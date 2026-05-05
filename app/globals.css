@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-crema text-tinta font-lora;
+  }
+
+  /* Textura papel rayado */
+  .papel-rayado {
+    background-image: repeating-linear-gradient(
+      transparent,
+      transparent 27px,
+      rgba(0, 0, 0, 0.04) 27px,
+      rgba(0, 0, 0, 0.04) 28px
+    );
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-azul text-white font-mono text-xs tracking-widest rounded-sm hover:bg-azul-medio transition-colors cursor-pointer border-none;
+  }
+  .btn-secondary {
+    @apply px-4 py-2 bg-white text-tinta font-mono text-xs tracking-widest rounded-sm border border-gray-200 hover:border-azul-medio hover:text-azul transition-colors cursor-pointer;
+  }
+  .btn-danger {
+    @apply px-4 py-2 bg-rojo text-white font-mono text-xs tracking-widest rounded-sm hover:bg-rojo-medio transition-colors cursor-pointer border-none;
+  }
+  .input-base {
+    @apply w-full px-3 py-2 border border-gray-200 rounded-sm font-lora text-sm bg-white text-tinta outline-none focus:border-azul transition-colors;
+  }
+  .select-base {
+    @apply px-3 py-2 border border-gray-200 rounded-sm font-mono text-xs bg-white cursor-pointer outline-none focus:border-azul;
+  }
+  .card {
+    @apply bg-white border border-gray-100 rounded-sm shadow-sm;
+  }
+  .tag {
+    @apply inline-block px-2 py-0.5 rounded-full font-mono text-xs font-medium;
+  }
+  .tag-ok    { @apply bg-verde-claro text-green-900; }
+  .tag-mora  { @apply bg-rojo-claro text-red-900; }
+  .tag-pend  { @apply bg-amarillo-claro text-yellow-900; }
+  .tag-par   { @apply bg-naranja-claro text-orange-900; }
+}
