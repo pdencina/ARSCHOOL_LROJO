@@ -8,13 +8,13 @@ export const metadata = { title: 'Solución Contable — Folio Verde' }
 export default async function ContablePage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: usuario } = await supabase
+  const { data: usuarioRaw } = await supabase
     .from('usuarios')
     .select('colegio_id')
     .eq('id', user!.id)
-    .returns<{ colegio_id: string }>()
     .single()
 
+  const usuario = usuarioRaw as { colegio_id: string } | null
   const colegioId = usuario?.colegio_id
   const ahora = new Date()
   const mes = ahora.getMonth() + 1
