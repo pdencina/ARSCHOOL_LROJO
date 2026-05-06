@@ -12,6 +12,7 @@ export default async function ContablePage() {
     .from('usuarios')
     .select('colegio_id')
     .eq('id', user!.id)
+    .returns<{ colegio_id: string }>()
     .single()
 
   const colegioId = usuario?.colegio_id
