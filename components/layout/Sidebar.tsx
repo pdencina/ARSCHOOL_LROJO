@@ -7,17 +7,16 @@ const NAV = [
   {
     section: 'Principal',
     items: [
-      { label: 'Inicio',        href: '/dashboard',      icon: 'ti-home' },
-      { label: 'Comunicados',   href: '/comunicados',    icon: 'ti-speakerphone', badge: 3 },
-      { label: 'Asistencias',   href: '/asistencias',    icon: 'ti-clipboard-check' },
-      { label: 'Calificaciones',href: '/calificaciones', icon: 'ti-chart-bar' },
+      { label: 'Comunicados',    href: '/comunicados',    icon: 'ti-speakerphone', badge: 3 },
+      { label: 'Asistencias',    href: '/asistencias',    icon: 'ti-clipboard-check' },
+      { label: 'Calificaciones', href: '/calificaciones', icon: 'ti-chart-bar' },
+      { label: 'Fichas',         href: '/fichas',         icon: 'ti-books' },
     ]
   },
   {
     section: 'Gestion',
     items: [
       { label: 'Cobranzas',     href: '/contable',       icon: 'ti-cash' },
-      { label: 'Fichas',        href: '/fichas',         icon: 'ti-books' },
       { label: 'Alumnos',       href: '/alumnos',        icon: 'ti-users' },
       { label: 'Calendario',    href: '/calendario',     icon: 'ti-calendar' },
       { label: 'Reportes',      href: '/reportes',       icon: 'ti-file-analytics' },
@@ -35,11 +34,11 @@ export default function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-56 bg-white border-r border-gray-100 flex flex-col shrink-0 min-h-[calc(100vh-57px)]">
-      <nav className="flex-1 py-2">
+    <aside className="w-52 bg-white border-r border-slate-200 flex flex-col shrink-0 min-h-[calc(100vh-56px)]">
+      <nav className="flex-1 py-4 px-2">
         {NAV.map(group => (
-          <div key={group.section} className="mb-1">
-            <div className="px-4 py-2 text-xs font-mono tracking-widest uppercase text-tinta-s/50">
+          <div key={group.section} className="mb-4">
+            <div className="px-3 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
               {group.section}
             </div>
             {group.items.map(item => {
@@ -48,19 +47,16 @@ export default function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-2 text-sm relative transition-colors ${
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium mb-0.5 transition-all ${
                     active
-                      ? 'text-azul bg-azul-claro font-medium'
-                      : 'text-tinta-s hover:bg-gray-50 hover:text-tinta'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
-                  {active && (
-                    <span className="absolute left-0 top-1 bottom-1 w-0.5 bg-azul rounded-r" />
-                  )}
-                  <i className={`ti ${item.icon} text-base w-4 text-center`} aria-hidden="true" />
-                  <span className="flex-1">{item.label}</span>
+                  <i className={`ti ${item.icon} text-base flex-shrink-0 ${active ? 'text-blue-600' : 'text-slate-400'}`} aria-hidden="true" />
+                  <span className="flex-1 truncate">{item.label}</span>
                   {item.badge && (
-                    <span className="bg-rojo text-white text-xs font-mono px-1.5 py-0.5 rounded-full leading-none">
+                    <span className="bg-red-500 text-white text-xs font-medium px-1.5 py-0.5 rounded-full leading-none">
                       {item.badge}
                     </span>
                   )}

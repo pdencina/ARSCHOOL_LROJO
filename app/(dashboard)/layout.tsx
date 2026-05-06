@@ -20,12 +20,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const usuario = usuarioRaw as any
 
   return (
-    <div className="min-h-screen bg-crema">
+    <div className="min-h-screen bg-slate-50">
       <Toaster position="top-right" />
       <Topbar usuario={usuario} />
       <div className="flex">
         <Sidebar />
-        <main className="flex-1 min-h-[calc(100vh-57px)] papel-rayado overflow-auto">
+        <main className="flex-1 min-h-[calc(100vh-56px)] overflow-auto">
           {children}
         </main>
       </div>

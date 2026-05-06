@@ -4,53 +4,43 @@ import { MATERIAS_CONFIG } from '@/lib/utils'
 interface Props { ficha: Ficha }
 
 const TIPO_EMOJI: Record<string, string> = {
-  ejercicio: '📄', evaluacion: '📝', cuento: '📖',
-  manualidad: '✂️', guia: '📋',
+  ejercicio: '📄', evaluacion: '📝', cuento: '📖', manualidad: '✂️', guia: '📋',
+}
+
+const MATERIA_BG: Record<string, string> = {
+  lenguaje:     'from-red-500 to-rose-600',
+  matematicas:  'from-blue-500 to-blue-700',
+  ciencias:     'from-emerald-500 to-green-700',
+  historia:     'from-amber-500 to-yellow-600',
+  ingles:       'from-violet-500 to-purple-700',
+  artes:        'from-orange-400 to-orange-600',
+  educacion_fisica: 'from-teal-500 to-cyan-600',
+  otro:         'from-slate-400 to-slate-600',
 }
 
 export default function FichaCard({ ficha }: Props) {
   const cfg = MATERIAS_CONFIG[ficha.materia] ?? MATERIAS_CONFIG.otro
+  const bg = MATERIA_BG[ficha.materia] ?? MATERIA_BG.otro
   const promedio = ficha.valoraciones_total > 0
     ? Math.round(ficha.valoraciones_suma / ficha.valoraciones_total)
     : 0
 
   return (
-    <div
-      className="bg-white border border-gray-100 rounded-sm overflow-hidden cursor-pointer hover:-translate-y-1 hover:shadow-md transition-all relative group"
-      style={{ borderTop: `3px solid ${cfg.color}` }}
-    >
-      {/* Esquina doblada */}
-      <div className="absolute top-0 right-0 w-0 h-0 border-solid border-t-0 border-r-crema border-b-0 border-l-transparent"
-           style={{ borderWidth: '0 18px 18px 0', borderRightColor: '#FDFBF7' }} />
-
-      {/* Portada */}
-      <div
-        className="h-24 flex items-center justify-center relative overflow-hidden"
-        style={{ background: `linear-gradient(135deg, ${cfg.color}, ${cfg.color}99)` }}
-      >
-        {/* Líneas cuaderno */}
-        <div className="absolute inset-0"
-             style={{ backgroundImage: 'repeating-linear-gradient(transparent,transparent 16px,rgba(255,255,255,0.2) 16px,rgba(255,255,255,0.2) 17px)' }} />
-        {/* Margen */}
-        <div className="absolute left-5 top-0 bottom-0 w-px bg-white/30" />
-        <span className="text-3xl relative">{TIPO_EMOJI[ficha.tipo] ?? '📄'}</span>
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden cursor-pointer hover:-translate-y-1 hover:shadow-md transition-all group">
+      <div className={`h-24 bg-gradient-to-br ${bg} flex items-center justify-center relative overflow-hidden`}>
+        <div className="absolute inset-0 bg-black/10" />
+        <span className="text-3xl relative z-10">{TIPO_EMOJI[ficha.tipo] ?? '📄'}</span>
       </div>
-
-      {/* Cuerpo */}
       <div className="p-3">
-        <div className="font-mono text-xs tracking-wide uppercase mb-1" style={{ color: cfg.color }}>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: cfg.color }}>
           {cfg.label}
         </div>
-        <div className="font-semibold text-xs leading-tight text-tinta mb-2 line-clamp-2">
+        <div className="text-xs font-semibold text-slate-800 leading-tight mb-2 line-clamp-2">
           {ficha.titulo}
         </div>
         <div className="flex items-center justify-between">
-          <span className="font-mono text-xs bg-papel px-1.5 py-0.5 rounded-sm text-tinta-s">
-            {ficha.grado}
-          </span>
-          <span className="text-xs text-yellow-500">
-            {'★'.repeat(promedio)}{'☆'.repeat(5 - promedio)}
-          </span>
+          <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{ficha.grado}</span>
+          <span className="text-xs text-amber-400">{'★'.repeat(promedio)}{'☆'.repeat(5 - promedio)}</span>
         </div>
       </div>
     </div>

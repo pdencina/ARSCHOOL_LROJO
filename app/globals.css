@@ -1,49 +1,95 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-crema text-tinta font-lora;
+  :root {
+    --ar-navy:    #0F1B2D;
+    --ar-blue:    #1B4FD8;
+    --ar-blue-l:  #EEF2FF;
+    --ar-blue-m:  #3B6EF0;
+    --ar-accent:  #F59E0B;
+    --ar-success: #10B981;
+    --ar-danger:  #EF4444;
+    --ar-warn:    #F59E0B;
+    --ar-surface: #F8FAFC;
+    --ar-border:  #E2E8F0;
+    --ar-text:    #0F172A;
+    --ar-muted:   #64748B;
   }
-
-  /* Textura papel rayado */
-  .papel-rayado {
-    background-image: repeating-linear-gradient(
-      transparent,
-      transparent 27px,
-      rgba(0, 0, 0, 0.04) 27px,
-      rgba(0, 0, 0, 0.04) 28px
-    );
+  body {
+    @apply bg-slate-50 text-slate-900;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3 {
+    font-family: 'Space Grotesk', sans-serif;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply px-4 py-2 bg-azul text-white font-mono text-xs tracking-widest rounded-sm hover:bg-azul-medio transition-colors cursor-pointer border-none;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer border-0 shadow-sm;
   }
   .btn-secondary {
-    @apply px-4 py-2 bg-white text-tinta font-mono text-xs tracking-widest rounded-sm border border-gray-200 hover:border-azul-medio hover:text-azul transition-colors cursor-pointer;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 text-sm font-medium rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm;
   }
   .btn-danger {
-    @apply px-4 py-2 bg-rojo text-white font-mono text-xs tracking-widest rounded-sm hover:bg-rojo-medio transition-colors cursor-pointer border-none;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors cursor-pointer border-0;
   }
   .input-base {
-    @apply w-full px-3 py-2 border border-gray-200 rounded-sm font-lora text-sm bg-white text-tinta outline-none focus:border-azul transition-colors;
+    @apply w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all;
   }
   .select-base {
-    @apply px-3 py-2 border border-gray-200 rounded-sm font-mono text-xs bg-white cursor-pointer outline-none focus:border-azul;
+    @apply px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer;
   }
   .card {
-    @apply bg-white border border-gray-100 rounded-sm shadow-sm;
+    @apply bg-white border border-slate-200 rounded-xl shadow-sm;
   }
   .tag {
-    @apply inline-block px-2 py-0.5 rounded-full font-mono text-xs font-medium;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
-  .tag-ok    { @apply bg-verde-claro text-green-900; }
-  .tag-mora  { @apply bg-rojo-claro text-red-900; }
-  .tag-pend  { @apply bg-amarillo-claro text-yellow-900; }
-  .tag-par   { @apply bg-naranja-claro text-orange-900; }
+  .tag-ok      { @apply bg-emerald-50 text-emerald-700; }
+  .tag-mora    { @apply bg-red-50 text-red-700; }
+  .tag-pend    { @apply bg-amber-50 text-amber-700; }
+  .tag-par     { @apply bg-orange-50 text-orange-700; }
+  .tag-blue    { @apply bg-blue-50 text-blue-700; }
+  .tag-gray    { @apply bg-slate-100 text-slate-600; }
+  .kpi-card {
+    @apply bg-white border border-slate-200 rounded-xl p-5 shadow-sm;
+  }
+  .kpi-label {
+    @apply text-xs font-medium text-slate-500 uppercase tracking-wider mb-1;
+  }
+  .kpi-value {
+    @apply text-2xl font-bold text-slate-900;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .kpi-sub {
+    @apply text-xs text-slate-500 mt-0.5;
+  }
+  .page-header {
+    @apply flex items-center justify-between mb-6;
+  }
+  .page-title {
+    @apply text-2xl font-bold text-slate-900;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .page-subtitle {
+    @apply text-sm text-slate-500 mt-0.5;
+  }
+  .table-head th {
+    @apply text-xs font-medium text-slate-500 uppercase tracking-wider px-4 py-3 text-left bg-slate-50 border-b border-slate-200;
+  }
+  .table-row td {
+    @apply px-4 py-3 border-b border-slate-100 text-sm;
+  }
+  .table-row:last-child td {
+    @apply border-b-0;
+  }
+  .table-row:hover td {
+    @apply bg-slate-50;
+  }
 }
