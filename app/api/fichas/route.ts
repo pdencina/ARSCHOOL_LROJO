@@ -31,11 +31,12 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const body = await request.json()
-  const { data: usuario } = await supabase.from('usuarios').select('colegio_id').eq('id', user.id).single()
+  const { data: usuarioRaw } = await supabase.from('usuarios').select('colegio_id').eq('id', user.id).single()
+  const colegioId = (usuarioRaw as { colegio_id: string } | null)?.colegio_id ?? ''
 
   const { data, error } = await supabase.from('fichas').insert({
     ...body,
-    colegio_id: usuario?.colegio_id,
+    colegio_id: colegioId,
     creado_por: user.id,
   }).select().single()
 

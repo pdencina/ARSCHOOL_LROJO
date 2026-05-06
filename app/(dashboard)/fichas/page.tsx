@@ -24,18 +24,18 @@ export default async function FichasPage({
   const { data: fichas } = await query
 
   // Conteo por materia para sidebar
-  const { data: conteos } = await supabase
+  const { data: conteosRaw } = await supabase
     .from('fichas')
     .select('materia')
 
   const conteosPorMateria: Record<string, number> = {}
-  conteos?.forEach(f => {
+  ;(conteosRaw as { materia: string }[] | null)?.forEach(f => {
     conteosPorMateria[f.materia] = (conteosPorMateria[f.materia] ?? 0) + 1
   })
 
   return (
     <FichasClient
-      fichas={fichas ?? []}
+      fichas={(fichas as any[]) ?? []}
       conteosPorMateria={conteosPorMateria}
       filtrosActivos={searchParams}
     />

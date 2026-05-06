@@ -13,15 +13,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
   }
 
-  // Verificar que el cobro pertenece al colegio del usuario
-  const { data: usuario } = await supabase.from('usuarios').select('colegio_id').eq('id', user.id).single()
-  const { data: cobro } = await supabase.from('cobros').select('*').eq('id', cobro_id).single()
+  const { data: usuarioRaw } = await supabase.from('usuarios').select('colegio_id').eq('id', user.id).single()
+  const colegioId = (usuarioRaw as { colegio_id: string } | null)?.colegio_id ?? ''
 
-  if (!cobro || cobro.colegio_id !== usuario?.colegio_id) {
+  const { data: cobro } = await supabase.from('cobros').select('*').eq('id', cobro_id).single()
+  const cobroTyped = cobro as { colegio_id: string; monto: number; monto_pagado: number } | null
+
+  if (!cobroTyped || cobroTyped.colegio_id !== colegioId) {
     return NextResponse.json({ error: 'Cobro no encontrado' }, { status: 404 })
   }
 
-  // Registrar pago
   const { data: pago, error } = await supabase.from('pagos').insert({
     cobro_id,
     monto,
@@ -32,9 +33,8 @@ export async function POST(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Actualizar cobro
-  const nuevoMonto = cobro.monto_pagado + monto
-  const nuevoEstado = nuevoMonto >= cobro.monto ? 'pagado' : 'parcial'
+  const nuevoMonto = cobroTyped.monto_pagado + monto
+  const nuevoEstado = nuevoMonto >= cobroTyped.monto ? 'pagado' : 'parcial'
 
   await supabase.from('cobros').update({
     monto_pagado: nuevoMonto,
