@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import ContableClient from '@/components/contable/ContableClient'
 import type { KpiContable, MorosidadMes } from '@/types'
@@ -21,7 +23,6 @@ export default async function ContablePage() {
   const mes = ahora.getMonth() + 1
   const anio = ahora.getFullYear()
 
-  // Cobros del mes actual
   const { data: cobros } = await supabase
     .from('cobros')
     .select('*, familia:familias(*, alumno:alumnos(*)), concepto:conceptos_cobro(*)')
@@ -30,7 +31,6 @@ export default async function ContablePage() {
     .eq('anio', anio)
     .order('fecha_vencimiento', { ascending: true })
 
-  // KPIs
   const kpis: KpiContable = {
     recaudado: 0, enMora: 0, moraCritica: 0,
     familiasAlDia: 0, totalFamilias: cobros?.length ?? 0, proyectado: 0,
@@ -42,7 +42,6 @@ export default async function ContablePage() {
     if (c.estado === 'parcial'){ kpis.recaudado += c.monto_pagado }
   })
 
-  // Morosidad crítica (2+ meses)
   const { count: moraCritica } = await supabase
     .from('cobros')
     .select('familia_id', { count: 'exact', head: true })
@@ -52,14 +51,12 @@ export default async function ContablePage() {
 
   kpis.moraCritica = moraCritica ?? 0
 
-  // Historial morosidad (últimos 6 meses)
   const historico: MorosidadMes[] = []
   for (let i = 5; i >= 0; i--) {
     const d = new Date(anio, mes - 1 - i, 1)
     historico.push({ mes: getMesNombre(d.getMonth() + 1), porcentaje: 0, monto: 0 })
   }
 
-  // Últimos pagos
   const { data: ultimosPagos } = await supabase
     .from('pagos')
     .select('*, cobro:cobros(*, familia:familias(nombre_apoderado, apellido_apoderado))')

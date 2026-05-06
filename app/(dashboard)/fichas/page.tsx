@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import FichasClient from '@/components/fichas/FichasClient'
 
@@ -23,7 +25,6 @@ export default async function FichasPage({
 
   const { data: fichas } = await query
 
-  // Conteo por materia para sidebar
   const { data: conteosRaw } = await supabase
     .from('fichas')
     .select('materia')

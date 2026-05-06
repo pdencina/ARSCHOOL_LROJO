@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
@@ -13,7 +15,6 @@ export default async function DashboardPage() {
     .single()
 
   const usuario = usuarioRaw as { rol: string } | null
-
   if (usuario?.rol === 'administrativo') redirect('/contable')
   redirect('/fichas')
 }

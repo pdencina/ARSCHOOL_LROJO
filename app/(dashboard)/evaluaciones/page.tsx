@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 export default function EvaluacionesPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-full p-12 text-center">
