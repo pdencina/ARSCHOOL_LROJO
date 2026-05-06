@@ -25,7 +25,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Topbar usuario={usuario} />
       <div className="flex">
         <Sidebar />
-        <main className="flex-1 min-h-[calc(100vh-57px)] papel-rayado">
+        <main className="flex-1 min-h-[calc(100vh-57px)] papel-rayado overflow-auto">
           {children}
         </main>
       </div>
