@@ -1,18 +1,19 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function DashboardPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: usuario } = await supabase
+  const { data: usuarioRaw } = await supabase
     .from('usuarios')
     .select('rol')
     .eq('id', user.id)
     .single()
 
-  // Redirigir según rol
+  const usuario = usuarioRaw as { rol: string } | null
+
   if (usuario?.rol === 'administrativo') redirect('/contable')
   redirect('/fichas')
 }

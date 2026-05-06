@@ -9,11 +9,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: usuario } = await supabase
+  const { data: usuarioRaw } = await supabase
     .from('usuarios')
     .select('*, colegio:colegios(*)')
     .eq('id', user.id)
     .single()
+
+  const usuario = usuarioRaw as any
 
   return (
     <div className="min-h-screen bg-crema">
