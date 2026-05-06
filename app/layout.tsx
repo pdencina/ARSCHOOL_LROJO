@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Folio Verde — Plataforma Educacional',
-  description: 'Sistema integral para colegios: fichas pedagógicas, gestión contable y comunicación con familias.',
-  keywords: ['educación', 'colegio', 'fichas pedagógicas', 'gestión escolar', 'cobranzas'],
+  title: 'AR School — Plataforma Educacional',
+  description: 'Sistema integral para AR School Global: comunicados, asistencias, calificaciones y cobranzas.',
+  keywords: ['educación', 'AR School', 'gestión escolar', 'ARM Global'],
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

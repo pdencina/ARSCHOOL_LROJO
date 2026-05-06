@@ -10,7 +10,7 @@ interface Props { usuario: any }
 const TABS = [
   { label: 'Fichas',       href: '/fichas',       dot: '#C0392B' },
   { label: 'Contable',     href: '/contable',     dot: '#F7DC6F' },
-  { label: 'Comunicación', href: '/comunicacion', dot: '#4A90D9' },
+  { label: 'Comunicacion', href: '/comunicacion', dot: '#4A90D9' },
   { label: 'Evaluaciones', href: '/evaluaciones', dot: '#27AE60' },
 ]
 
@@ -32,19 +32,16 @@ export default function Topbar({ usuario }: Props) {
   return (
     <header className="bg-azul border-b-[3px] border-[#154360] flex items-center justify-between pl-0 pr-5 relative z-20">
       <div className="absolute left-0 top-0 bottom-0 w-[5px] bg-[#0B2C46]" />
-
-      {/* Logo */}
       <div className="flex items-center gap-3 py-3.5 pl-7">
-        <div className="w-9 h-9 bg-white rounded flex items-center justify-center font-playfair font-black text-azul text-lg shadow-sm">
-          Fv
+        <div className="w-9 h-9 bg-white rounded flex items-center justify-center font-playfair font-black text-azul text-sm shadow-sm">
+          AR
         </div>
         <div>
-          <div className="font-playfair font-bold text-white text-lg leading-tight">Folio Verde</div>
+          <div className="font-playfair font-bold text-white text-lg leading-tight">AR School</div>
           <div className="font-mono text-xs text-white/50 tracking-widest leading-none">Plataforma educacional</div>
         </div>
       </div>
 
-      {/* Tabs */}
       <nav className="flex h-full">
         {TABS.map(t => {
           const active = pathname.startsWith(t.href)
@@ -64,15 +61,14 @@ export default function Topbar({ usuario }: Props) {
         })}
       </nav>
 
-      {/* Usuario */}
       <div className="flex items-center gap-2.5">
         <span className="font-mono text-xs text-white/60 hidden md:block">
-          {usuario?.colegio?.nombre ?? 'Mi Colegio'}
+          {usuario?.colegio?.nombre ?? 'AR School Global'}
         </span>
         <button
           onClick={logout}
           className="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center font-mono text-xs font-bold text-azul hover:bg-yellow-300 transition-colors"
-          title="Cerrar sesión"
+          title="Cerrar sesion"
         >
           {iniciales}
         </button>
