@@ -8,14 +8,15 @@ export const metadata = { title: 'Solución Contable — Folio Verde' }
 export default async function ContablePage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
+
   const { data: usuarioRaw } = await supabase
     .from('usuarios')
     .select('colegio_id')
     .eq('id', user!.id)
     .single()
 
-  const usuario = usuarioRaw as { colegio_id: string } | null
-  const colegioId = usuario?.colegio_id
+  const colegioId = (usuarioRaw as { colegio_id: string } | null)?.colegio_id ?? ''
+
   const ahora = new Date()
   const mes = ahora.getMonth() + 1
   const anio = ahora.getFullYear()
@@ -34,7 +35,7 @@ export default async function ContablePage() {
     recaudado: 0, enMora: 0, moraCritica: 0,
     familiasAlDia: 0, totalFamilias: cobros?.length ?? 0, proyectado: 0,
   }
-  cobros?.forEach(c => {
+  cobros?.forEach((c: any) => {
     kpis.proyectado += c.monto
     if (c.estado === 'pagado') { kpis.recaudado += c.monto; kpis.familiasAlDia++ }
     if (c.estado === 'mora')   { kpis.enMora += c.monto }
@@ -51,7 +52,7 @@ export default async function ContablePage() {
 
   kpis.moraCritica = moraCritica ?? 0
 
-  // Historial morosidad (últimos 6 meses) - fallback a datos vacíos si no hay función
+  // Historial morosidad (últimos 6 meses)
   const historico: MorosidadMes[] = []
   for (let i = 5; i >= 0; i--) {
     const d = new Date(anio, mes - 1 - i, 1)
