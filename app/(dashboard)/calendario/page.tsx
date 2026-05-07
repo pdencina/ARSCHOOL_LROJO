@@ -1,20 +1,22 @@
 export const dynamic = 'force-dynamic'
+import { createClient } from '@/lib/supabase/server'
+import CalendarioClient from '@/components/calendario/CalendarioClient'
 export const metadata = { title: 'Calendario — AR School' }
 
-export default function CalendarioPage() {
-  return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 font-display">Calendario</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Eventos, reuniones y planificacion academica</p>
-      </div>
-      <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
-        <div className="text-5xl mb-4">📅</div>
-        <h2 className="text-lg font-semibold text-slate-700 mb-2 font-display">Modulo de Calendario</h2>
-        <p className="text-slate-400 text-sm max-w-md mx-auto">
-          Agenda de eventos escolares, reuniones de apoderados y planificacion por curso. Proximamente disponible.
-        </p>
-      </div>
-    </div>
-  )
+export default async function CalendarioPage() {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: ur } = await supabase.from('usuarios').select('colegio_id').eq('id', user!.id).single()
+  const colegioId = (ur as any)?.colegio_id ?? ''
+
+  const { data: evaluaciones } = await supabase
+    .from('evaluaciones').select('id, nombre, materia, curso, fecha')
+    .eq('colegio_id', colegioId).order('fecha')
+
+  const { data: comunicados } = await supabase
+    .from('comunicados').select('id, titulo, tipo, enviado_at')
+    .eq('colegio_id', colegioId).not('enviado_at', 'is', null)
+    .order('enviado_at', { ascending: false }).limit(20)
+
+  return <CalendarioClient evaluaciones={(evaluaciones as any[]) ?? []} comunicados={(comunicados as any[]) ?? []} colegioId={colegioId}/>
 }
