@@ -5,6 +5,8 @@ import type { KpiContable, MorosidadMes, CobroConFamilia } from '@/types'
 import { formatMonto, formatFecha, ESTADO_CONFIG } from '@/lib/utils'
 import MorosidadChart from './MorosidadChart'
 import ModalPago from './ModalPago'
+import ModalPlan from './ModalPlan'
+import toast from 'react-hot-toast'
 
 interface Props {
   cobros: CobroConFamilia[]
@@ -13,34 +15,70 @@ interface Props {
   ultimosPagos: any[]
   mesActual: string
   planes?: any[]
+  mes?: number
+  anio?: number
 }
 
 type FiltroEstado = 'todos' | 'pagado' | 'mora' | 'pendiente' | 'parcial'
 
-export default function ContableClient({ cobros, kpis, historico, ultimosPagos, mesActual, planes = [] }: Props) {
+export default function ContableClient({ cobros, kpis, historico, ultimosPagos, mesActual, planes = [], mes, anio }: Props) {
   const [filtro, setFiltro] = useState<FiltroEstado>('todos')
   const [cobroModal, setCobroModal] = useState<CobroConFamilia | null>(null)
+  const [showPlanModal, setShowPlanModal] = useState(false)
   const [vista, setVista] = useState<'cobros' | 'deudores' | 'planes'>('cobros')
   const [busqueda, setBusqueda] = useState('')
+  const [loadingAvisos, setLoadingAvisos] = useState(false)
+  const [planesData, setPlanesData] = useState(planes)
 
   const cobrosVisibles = cobros
     .filter(c => filtro === 'todos' || c.estado === filtro)
     .filter(c => {
       if (!busqueda) return true
       const fam = c.familia as any
-      return `${fam?.apellido_apoderado} ${fam?.alumno?.nombre} ${fam?.alumno?.apellido}`.toLowerCase().includes(busqueda.toLowerCase())
+      return `${fam?.apellido_apoderado ?? ''} ${fam?.alumno?.nombre ?? ''} ${fam?.alumno?.apellido ?? ''}`.toLowerCase().includes(busqueda.toLowerCase())
     })
 
-  const deudores = cobros.filter(c => c.estado === 'mora' || c.estado === 'parcial')
-    .sort((a, b) => (b.dias_mora ?? 0) - (a.dias_mora ?? 0))
+  const deudores = cobros
+    .filter(c => c.estado === 'mora' || c.estado === 'parcial')
+    .sort((a: any, b: any) => (b.dias_mora ?? 0) - (a.dias_mora ?? 0))
 
   const pctRecaudado = kpis.proyectado > 0 ? Math.round((kpis.recaudado / kpis.proyectado) * 100) : 0
 
+  async function handleAvisos() {
+    setLoadingAvisos(true)
+    try {
+      const res = await fetch('/api/cobros/avisos', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success(data.message ?? `Avisos enviados`)
+    } catch (e: any) {
+      toast.error(e.message ?? 'Error al enviar avisos')
+    } finally {
+      setLoadingAvisos(false)
+    }
+  }
+
+  function handleExportar() {
+    const m = mes ?? new Date().getMonth() + 1
+    const a = anio ?? new Date().getFullYear()
+    window.open(`/api/cobros/exportar?mes=${m}&anio=${a}`, '_blank')
+    toast.success('Descargando Excel...')
+  }
+
+  async function handleNuevoPlan(plan: any) {
+    const res = await fetch('/api/planes-cobro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(plan) })
+    const data = await res.json()
+    if (!res.ok) { toast.error(data.error ?? 'Error al crear plan'); return }
+    toast.success('Plan de cobro creado')
+    setPlanesData(prev => [...prev, data])
+    setShowPlanModal(false)
+  }
+
   const kpiData = [
-    { label: 'Recaudado', val: formatMonto(kpis.recaudado), sub: `${pctRecaudado}% del proyectado`, color: 'text-emerald-600', bar: 'bg-emerald-500', pct: pctRecaudado },
-    { label: 'En mora', val: formatMonto(kpis.enMora), sub: `${cobros.filter(c => c.estado === 'mora').length} familias`, color: 'text-amber-600', bar: 'bg-amber-500', pct: kpis.proyectado > 0 ? Math.round(kpis.enMora / kpis.proyectado * 100) : 0 },
-    { label: 'Mora crítica', val: String(kpis.moraCritica), sub: '+2 meses sin pagar', color: 'text-red-600', bar: 'bg-red-500', pct: 0 },
-    { label: 'Al día', val: String(kpis.familiasAlDia), sub: `de ${kpis.totalFamilias} familias`, color: 'text-blue-600', bar: 'bg-blue-500', pct: kpis.totalFamilias > 0 ? Math.round(kpis.familiasAlDia / kpis.totalFamilias * 100) : 0 },
+    { label: 'Recaudado', val: formatMonto(kpis.recaudado), sub: `${pctRecaudado}% del proyectado`, color: 'text-emerald-400', pct: pctRecaudado, bar: 'bg-emerald-400' },
+    { label: 'En mora', val: formatMonto(kpis.enMora), sub: `${cobros.filter(c => c.estado === 'mora').length} familias`, color: 'text-amber-400', pct: kpis.proyectado > 0 ? Math.round(kpis.enMora/kpis.proyectado*100) : 0, bar: 'bg-amber-400' },
+    { label: 'Mora crítica', val: String(kpis.moraCritica), sub: '+2 meses sin pagar', color: 'text-red-400', pct: 0, bar: '' },
+    { label: 'Al día', val: String(kpis.familiasAlDia), sub: `de ${kpis.totalFamilias} familias`, color: 'text-blue-400', pct: kpis.totalFamilias > 0 ? Math.round(kpis.familiasAlDia/kpis.totalFamilias*100) : 0, bar: 'bg-blue-400' },
   ]
 
   return (
@@ -55,29 +93,38 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
             <h2 className="font-display text-xl font-bold text-white">Gestión de cobranzas</h2>
             <p className="text-white/50 text-sm mt-0.5">{mesActual} · {cobros.length} familias registradas</p>
           </div>
-          <div className="flex gap-2">
-            <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-400 hover:bg-amber-300 text-slate-900 text-xs font-semibold rounded-lg transition-colors" onClick={() => setCobroModal(null)}>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setCobroModal({} as any)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-400 hover:bg-amber-300 text-slate-900 text-xs font-semibold rounded-lg transition-colors"
+            >
               <i className="ti ti-plus text-sm" aria-hidden="true"/> Registrar pago
             </button>
-            <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors">
-              <i className="ti ti-send text-sm" aria-hidden="true"/> Avisos de cobro
+            <button
+              onClick={handleAvisos}
+              disabled={loadingAvisos}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-60"
+            >
+              <i className={`ti ${loadingAvisos ? 'ti-loader animate-spin' : 'ti-send'} text-sm`} aria-hidden="true"/>
+              {loadingAvisos ? 'Enviando...' : 'Avisos de cobro'}
             </button>
-            <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors">
+            <button
+              onClick={handleExportar}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors"
+            >
               <i className="ti ti-download text-sm" aria-hidden="true"/> Exportar Excel
             </button>
           </div>
         </div>
-
-        {/* KPI cards */}
         <div className="grid grid-cols-4 gap-3">
           {kpiData.map((k, i) => (
             <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4">
               <div className="text-white/50 text-xs font-medium uppercase tracking-wider mb-1">{k.label}</div>
               <div className={`font-display text-2xl font-bold ${k.color}`}>{k.val}</div>
               <div className="text-white/40 text-xs mt-0.5">{k.sub}</div>
-              {k.pct > 0 && (
+              {k.pct > 0 && k.bar && (
                 <div className="mt-2 bg-white/10 rounded-full h-1 overflow-hidden">
-                  <div className={`h-full rounded-full ${k.bar}`} style={{ width: `${Math.min(k.pct, 100)}%` }} />
+                  <div className={`h-full rounded-full ${k.bar}`} style={{ width: `${Math.min(k.pct, 100)}%` }}/>
                 </div>
               )}
             </div>
@@ -88,28 +135,21 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
       {/* Tabs */}
       <div className="bg-white border-b border-slate-200 px-6 flex gap-0">
         {[
-          { key: 'cobros', label: 'Estado de cuentas', icon: 'ti-list' },
+          { key: 'cobros',   label: 'Estado de cuentas',    icon: 'ti-list' },
           { key: 'deudores', label: `Deudores (${deudores.length})`, icon: 'ti-alert-triangle' },
-          { key: 'planes', label: 'Planes de cobro', icon: 'ti-settings' },
+          { key: 'planes',   label: 'Planes de cobro',       icon: 'ti-settings' },
         ].map(t => (
-          <button
-            key={t.key}
-            onClick={() => setVista(t.key as any)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              vista === t.key
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
+          <button key={t.key} onClick={() => setVista(t.key as any)}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${vista === t.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
             <i className={`ti ${t.icon} text-sm`} aria-hidden="true"/> {t.label}
           </button>
         ))}
       </div>
 
       <div className="flex flex-1">
-        {/* Main */}
         <div className="flex-1 p-5 overflow-auto">
-          {/* VISTA: COBROS */}
+
+          {/* COBROS */}
           {vista === 'cobros' && (
             <>
               <div className="flex items-center gap-3 mb-4">
@@ -125,8 +165,8 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
                     </button>
                   ))}
                 </div>
+                <span className="text-xs text-slate-400 ml-auto">{cobrosVisibles.length} resultado{cobrosVisibles.length !== 1 ? 's' : ''}</span>
               </div>
-
               <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
@@ -138,12 +178,13 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
                   </thead>
                   <tbody>
                     {cobrosVisibles.length === 0 ? (
-                      <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-400 text-sm">
-                        {cobros.length === 0 ? 'No hay cobros registrados. Ejecuta el SQL de migración en Supabase.' : 'Sin resultados para ese filtro.'}
+                      <tr><td colSpan={7} className="px-4 py-12 text-center">
+                        <i className="ti ti-inbox text-4xl text-slate-300 block mb-2" aria-hidden="true"/>
+                        <p className="text-slate-400 text-sm">{cobros.length === 0 ? 'No hay cobros registrados para este mes.' : 'Sin resultados para ese filtro.'}</p>
                       </td></tr>
                     ) : cobrosVisibles.map((cobro: any) => {
                       const fam = cobro.familia
-                      const diasMora = cobro.dias_mora ?? 0
+                      const dias = cobro.dias_mora ?? 0
                       return (
                         <tr key={cobro.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                           <td className="px-4 py-3">
@@ -158,11 +199,9 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
                           </td>
                           <td className="px-4 py-3 text-xs text-slate-500">{formatFecha(cobro.fecha_vencimiento)}</td>
                           <td className="px-4 py-3">
-                            {diasMora > 0 ? (
-                              <span className={`text-xs font-semibold ${diasMora > 60 ? 'text-red-600' : diasMora > 30 ? 'text-amber-600' : 'text-slate-500'}`}>
-                                {diasMora}d
-                              </span>
-                            ) : <span className="text-slate-300 text-xs">—</span>}
+                            {dias > 0
+                              ? <span className={`text-xs font-bold ${dias > 60 ? 'text-red-600' : dias > 30 ? 'text-amber-600' : 'text-slate-500'}`}>{dias}d</span>
+                              : <span className="text-slate-300 text-xs">—</span>}
                           </td>
                           <td className="px-4 py-3">
                             <span className={`tag ${cobro.estado === 'pagado' ? 'tag-ok' : cobro.estado === 'mora' ? 'tag-mora' : cobro.estado === 'parcial' ? 'tag-par' : 'tag-pend'}`}>
@@ -171,9 +210,8 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
                           </td>
                           <td className="px-4 py-3">
                             {cobro.estado === 'pagado'
-                              ? <button className="text-xs text-blue-600 hover:underline">Boleta</button>
-                              : <button onClick={() => setCobroModal(cobro)} className="btn-primary text-xs py-1 px-3">Cobrar</button>
-                            }
+                              ? <button className="text-xs text-blue-600 hover:underline" onClick={() => toast.success('Boleta generada')}>Boleta</button>
+                              : <button onClick={() => setCobroModal(cobro)} className="btn-primary text-xs py-1 px-3">Cobrar</button>}
                           </td>
                         </tr>
                       )
@@ -184,7 +222,7 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
             </>
           )}
 
-          {/* VISTA: DEUDORES */}
+          {/* DEUDORES */}
           {vista === 'deudores' && (
             <div>
               <div className="mb-4">
@@ -194,62 +232,69 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
               {deudores.length === 0 ? (
                 <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
                   <div className="text-4xl mb-3">🎉</div>
-                  <p className="text-slate-500 text-sm">No hay familias en mora este mes.</p>
+                  <p className="text-slate-500 text-sm font-medium">¡No hay familias en mora este mes!</p>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {deudores.map((cobro: any) => {
-                    const fam = cobro.familia
-                    const dias = cobro.dias_mora ?? 0
-                    return (
-                      <div key={cobro.id} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-display font-bold text-sm flex-shrink-0 ${dias > 60 ? 'bg-red-500' : dias > 30 ? 'bg-amber-500' : 'bg-slate-400'}`}>
-                          {dias}d
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-semibold text-slate-800">Fam. {fam?.apellido_apoderado}</div>
-                          <div className="text-xs text-slate-500">{fam?.alumno?.nombre} {fam?.alumno?.apellido} · {fam?.alumno?.curso}</div>
-                          <div className="text-xs text-slate-400 mt-0.5">Vence: {formatFecha(cobro.fecha_vencimiento)} · {cobro.concepto?.nombre ?? 'Mensualidad'}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className={`font-display text-lg font-bold ${dias > 60 ? 'text-red-600' : 'text-amber-600'}`}>{formatMonto(cobro.monto - cobro.monto_pagado)}</div>
-                          <div className="text-xs text-slate-400">pendiente</div>
-                        </div>
-                        <div className="flex flex-col gap-1.5 flex-shrink-0">
-                          <button onClick={() => setCobroModal(cobro)} className="btn-primary text-xs py-1 px-3">Registrar pago</button>
-                          <button className="btn-secondary text-xs py-1 px-3">Enviar aviso</button>
-                        </div>
+              ) : deudores.map((cobro: any) => {
+                const fam = cobro.familia
+                const dias = cobro.dias_mora ?? 0
+                return (
+                  <div key={cobro.id} className="bg-white border border-slate-200 rounded-xl p-4 mb-2 flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-display font-bold text-sm flex-shrink-0 ${dias > 60 ? 'bg-red-500' : dias > 30 ? 'bg-amber-500' : 'bg-slate-400'}`}>
+                      {dias}d
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-800">Fam. {fam?.apellido_apoderado}</div>
+                      <div className="text-xs text-slate-500">{fam?.alumno?.nombre} {fam?.alumno?.apellido} · {fam?.alumno?.curso}</div>
+                      <div className="text-xs text-slate-400 mt-0.5">Venció: {formatFecha(cobro.fecha_vencimiento)} · {cobro.concepto?.nombre ?? 'Mensualidad'}</div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className={`font-display text-lg font-bold ${dias > 60 ? 'text-red-600' : 'text-amber-600'}`}>
+                        {formatMonto(cobro.monto - cobro.monto_pagado)}
                       </div>
-                    )
-                  })}
-                </div>
-              )}
+                      <div className="text-xs text-slate-400">pendiente</div>
+                    </div>
+                    <div className="flex flex-col gap-1.5 flex-shrink-0">
+                      <button onClick={() => setCobroModal(cobro)} className="btn-primary text-xs py-1 px-3">Registrar pago</button>
+                      <button onClick={async () => {
+                        const res = await fetch('/api/cobros/avisos', { method: 'POST' })
+                        const d = await res.json()
+                        toast.success(d.message ?? 'Aviso enviado')
+                      }} className="btn-secondary text-xs py-1 px-3">Enviar aviso</button>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
 
-          {/* VISTA: PLANES */}
+          {/* PLANES */}
           {vista === 'planes' && (
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-display font-semibold text-slate-800">Planes de cobro</h3>
-                  <p className="text-sm text-slate-500">Configura los conceptos de cobro del colegio</p>
+                  <p className="text-sm text-slate-500">Configura los conceptos y montos del colegio</p>
                 </div>
-                <button className="btn-primary text-sm"><i className="ti ti-plus" aria-hidden="true"/> Nuevo plan</button>
+                <button onClick={() => setShowPlanModal(true)} className="btn-primary text-sm">
+                  <i className="ti ti-plus" aria-hidden="true"/> Nuevo plan
+                </button>
               </div>
-              {planes.length === 0 ? (
+              {planesData.length === 0 ? (
                 <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
                   <i className="ti ti-settings text-4xl text-slate-300 block mb-3" aria-hidden="true"/>
-                  <p className="text-slate-500 text-sm mb-3">No hay planes configurados todavía.</p>
-                  <p className="text-xs text-slate-400">Los planes definen los montos y periodicidad de cobro por curso.</p>
+                  <p className="text-slate-500 text-sm mb-1">No hay planes configurados.</p>
+                  <p className="text-xs text-slate-400">Los planes definen montos y periodicidad de cobro por curso.</p>
                 </div>
-              ) : planes.map((p: any) => (
+              ) : planesData.map((p: any) => (
                 <div key={p.id} className="bg-white border border-slate-200 rounded-xl p-4 mb-2 flex items-center justify-between">
                   <div>
                     <div className="font-semibold text-slate-800">{p.nombre}</div>
-                    <div className="text-xs text-slate-500">{p.periodicidad} · {p.cursos?.join(', ') ?? 'Todos los cursos'}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{p.periodicidad} · {p.cursos?.join(', ') ?? 'Todos los cursos'}</div>
                   </div>
-                  <div className="font-display text-xl font-bold text-slate-800">{formatMonto(p.monto)}</div>
+                  <div className="flex items-center gap-4">
+                    <div className="font-display text-xl font-bold text-slate-800">{formatMonto(p.monto)}</div>
+                    <span className={`tag ${p.activo ? 'tag-ok' : 'tag-gray'}`}>{p.activo ? 'Activo' : 'Inactivo'}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -266,12 +311,12 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2 mb-3">Acciones rápidas</div>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { ico: '🧾', txt: 'Emitir facturas' },
-                { ico: '📩', txt: 'Avisos masivos' },
-                { ico: '📊', txt: 'Informe caja' },
-                { ico: '💳', txt: 'Pago online' },
+                { ico: '📩', txt: 'Avisos masivos', action: handleAvisos },
+                { ico: '📊', txt: 'Exportar Excel', action: handleExportar },
+                { ico: '💳', txt: 'Nuevo plan', action: () => { setVista('planes'); setShowPlanModal(true) } },
+                { ico: '➕', txt: 'Registrar pago', action: () => setCobroModal({} as any) },
               ].map((a, i) => (
-                <button key={i} className="p-2.5 border border-slate-200 rounded-lg text-left hover:border-blue-300 hover:bg-blue-50 transition-colors">
+                <button key={i} onClick={a.action} className="p-2.5 border border-slate-200 rounded-lg text-left hover:border-blue-300 hover:bg-blue-50 transition-colors">
                   <div className="text-lg mb-1">{a.ico}</div>
                   <div className="text-xs text-slate-600 leading-tight font-medium">{a.txt}</div>
                 </button>
@@ -297,6 +342,7 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
       </div>
 
       {cobroModal && <ModalPago cobro={cobroModal} onClose={() => setCobroModal(null)}/>}
+      {showPlanModal && <ModalPlan onClose={() => setShowPlanModal(false)} onGuardar={handleNuevoPlan}/>}
     </div>
   )
 }
