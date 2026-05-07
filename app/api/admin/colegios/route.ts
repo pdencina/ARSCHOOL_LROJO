@@ -10,18 +10,21 @@ function getAdminClient() {
   )
 }
 
-export async function POST(request: NextRequest) {
+async function checkSuperAdmin() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-
+  if (!user) return null
   const { data: ur } = await supabase.from('usuarios').select('rol').eq('id', user.id).single()
-  if ((ur as any)?.rol !== 'super_admin') return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  return (ur as any)?.rol === 'super_admin' ? user : null
+}
+
+export async function POST(request: NextRequest) {
+  const user = await checkSuperAdmin()
+  if (!user) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
 
   const { nombre, rut, direccion, telefono, plan } = await request.json()
   if (!nombre) return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 })
 
-  // Usar service role para saltear RLS
   const admin = getAdminClient()
   const { data, error } = await admin
     .from('colegios')
@@ -34,9 +37,12 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json([], { status: 401 })
-  const { data } = await supabase.from('colegios').select('*').order('nombre')
+  const user = await checkSuperAdmin()
+  if (!user) return NextResponse.json([], { status: 403 })
+
+  // Service role bypasea RLS — ve todos los colegios
+  const admin = getAdminClient()
+  const { data, error } = await admin.from('colegios').select('*').order('nombre')
+  if (error) return NextResponse.json([], { status: 500 })
   return NextResponse.json(data ?? [])
 }

@@ -1,9 +1,18 @@
 export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 
 export const metadata = { title: 'Super Admin — AR School Global' }
+
+function getAdminClient() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 export default async function SuperAdminPage() {
   const supabase = createClient()
@@ -12,12 +21,18 @@ export default async function SuperAdminPage() {
   const { data: ur } = await supabase.from('usuarios').select('rol').eq('id', user.id).single()
   if ((ur as any)?.rol !== 'super_admin') redirect('/fichas')
 
-  const { data: colegios } = await supabase.from('colegios').select('*').order('nombre')
+  // Usar service role para leer todos los colegios sin RLS
+  const admin = getAdminClient()
+  const { data: colegios } = await admin.from('colegios').select('*').order('nombre')
   const colegioIds = (colegios ?? []).map((c: any) => c.id)
 
   const [{ data: alumnos }, { data: usuarios }] = await Promise.all([
-    supabase.from('alumnos').select('colegio_id').in('colegio_id', colegioIds.length ? colegioIds : ['none']).eq('activo', true),
-    supabase.from('usuarios').select('colegio_id, rol').in('colegio_id', colegioIds.length ? colegioIds : ['none']),
+    colegioIds.length
+      ? admin.from('alumnos').select('colegio_id').in('colegio_id', colegioIds).eq('activo', true)
+      : Promise.resolve({ data: [] }),
+    colegioIds.length
+      ? admin.from('usuarios').select('colegio_id, rol').in('colegio_id', colegioIds)
+      : Promise.resolve({ data: [] }),
   ])
 
   const alumnosPor: Record<string, number> = {}
@@ -42,11 +57,11 @@ export default async function SuperAdminPage() {
 
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Colegios', val: colegios?.length ?? 0, icon: 'ti-building-school', color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Total alumnos', val: Object.values(alumnosPor).reduce((a,b)=>a+b,0), icon: 'ti-users', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Total usuarios', val: Object.values(usuariosPor).reduce((a,b)=>a+b,0), icon: 'ti-user-cog', color: 'text-violet-600', bg: 'bg-violet-50' },
-          { label: 'Planes Pro+', val: (colegios??[]).filter((c:any)=>c.plan!=='basico').length, icon: 'ti-star', color: 'text-amber-600', bg: 'bg-amber-50' },
-        ].map((k,i) => (
+          { label: 'Colegios',      val: colegios?.length ?? 0,                                          icon: 'ti-building-school', color: 'text-blue-600',   bg: 'bg-blue-50' },
+          { label: 'Total alumnos', val: Object.values(alumnosPor).reduce((a, b) => a + b, 0),           icon: 'ti-users',           color: 'text-emerald-600',bg: 'bg-emerald-50' },
+          { label: 'Total usuarios',val: Object.values(usuariosPor).reduce((a, b) => a + b, 0),          icon: 'ti-user-cog',        color: 'text-violet-600', bg: 'bg-violet-50' },
+          { label: 'Planes Pro+',   val: (colegios ?? []).filter((c: any) => c.plan !== 'basico').length, icon: 'ti-star',            color: 'text-amber-600',  bg: 'bg-amber-50' },
+        ].map((k, i) => (
           <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 flex items-start gap-3">
             <div className={`w-9 h-9 rounded-lg ${k.bg} flex items-center justify-center flex-shrink-0`}>
               <i className={`ti ${k.icon} ${k.color}`} aria-hidden="true"/>
@@ -69,9 +84,15 @@ export default async function SuperAdminPage() {
             </tr>
           </thead>
           <tbody>
-            {(!colegios||colegios.length===0) ? (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400 text-sm">No hay colegios registrados.</td></tr>
-            ) : (colegios as any[]).map((c:any) => (
+            {(!colegios || colegios.length === 0) ? (
+              <tr><td colSpan={7} className="px-4 py-12 text-center">
+                <i className="ti ti-building-school text-4xl text-slate-300 block mb-2" aria-hidden="true"/>
+                <p className="text-slate-400 text-sm">No hay colegios registrados todavía.</p>
+                <Link href="/super-admin/colegios/nuevo" className="btn-primary mt-3 inline-flex">
+                  <i className="ti ti-plus text-sm" aria-hidden="true"/> Crear primer colegio
+                </Link>
+              </td></tr>
+            ) : (colegios as any[]).map((c: any) => (
               <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
@@ -79,12 +100,12 @@ export default async function SuperAdminPage() {
                     <span className="font-semibold text-slate-800">{c.nombre}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 font-mono text-xs text-slate-500">{c.rut??'—'}</td>
+                <td className="px-4 py-3 font-mono text-xs text-slate-500">{c.rut ?? '—'}</td>
                 <td className="px-4 py-3">
-                  <span className={`tag ${c.plan==='enterprise'?'tag-mora':c.plan==='profesional'?'tag-blue':'tag-gray'}`}>{c.plan}</span>
+                  <span className={`tag ${c.plan === 'enterprise' ? 'tag-mora' : c.plan === 'profesional' ? 'tag-blue' : 'tag-gray'}`}>{c.plan}</span>
                 </td>
-                <td className="px-4 py-3 font-semibold text-slate-700">{alumnosPor[c.id]??0}</td>
-                <td className="px-4 py-3 font-semibold text-slate-700">{usuariosPor[c.id]??0}</td>
+                <td className="px-4 py-3 font-semibold text-slate-700">{alumnosPor[c.id] ?? 0}</td>
+                <td className="px-4 py-3 font-semibold text-slate-700">{usuariosPor[c.id] ?? 0}</td>
                 <td className="px-4 py-3 text-xs text-slate-500">{new Date(c.created_at).toLocaleDateString('es-CL')}</td>
                 <td className="px-4 py-3 flex gap-3">
                   <Link href={`/super-admin/colegios/${c.id}`} className="text-xs text-blue-600 hover:underline">Gestionar</Link>
