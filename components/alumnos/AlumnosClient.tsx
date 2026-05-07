@@ -238,15 +238,18 @@ export default function AlumnosClient({ alumnos, cursos, colegioId }: Props) {
               )}
 
               <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
-                <button className="btn-secondary flex-1 text-sm justify-center">
+                <a href={`/asistencias?alumno=${alumnoDetalle.id}&curso=${encodeURIComponent(alumnoDetalle.curso)}`}
+                  className="btn-secondary flex-1 text-sm justify-center text-center">
                   <i className="ti ti-clipboard-check text-sm" aria-hidden="true"/> Asistencias
-                </button>
-                <button className="btn-secondary flex-1 text-sm justify-center">
+                </a>
+                <a href={`/calificaciones?alumno=${alumnoDetalle.id}&curso=${encodeURIComponent(alumnoDetalle.curso)}`}
+                  className="btn-secondary flex-1 text-sm justify-center text-center">
                   <i className="ti ti-chart-bar text-sm" aria-hidden="true"/> Notas
-                </button>
-                <button className="btn-secondary flex-1 text-sm justify-center">
+                </a>
+                <a href={`/contable?alumno=${alumnoDetalle.id}`}
+                  className="btn-secondary flex-1 text-sm justify-center text-center">
                   <i className="ti ti-cash text-sm" aria-hidden="true"/> Pagos
-                </button>
+                </a>
               </div>
             </div>
           </div>
