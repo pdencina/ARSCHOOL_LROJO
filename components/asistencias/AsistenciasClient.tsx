@@ -1,173 +1,176 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
-interface Props { comunicados: any[]; colegioId: string }
-
-const TIPO_COLOR: Record<string, string> = {
-  general:  'bg-azul-claro text-azul',
-  cobro:    'bg-amarillo-claro text-yellow-800',
-  evento:   'bg-verde-claro text-verde',
-  urgente:  'bg-rojo-claro text-rojo',
-}
-const TIPO_LABEL: Record<string, string> = {
-  general: 'General', cobro: 'Cobro', evento: 'Evento', urgente: 'Urgente'
+interface Props {
+  alumnos: any[]
+  asistenciasHoy: any[]
+  cursos: string[]
+  colegioId: string
+  fecha: string
 }
 
-export default function ComunicadosClient({ comunicados, colegioId }: Props) {
-  const [showModal, setShowModal] = useState(false)
-  const [titulo, setTitulo] = useState('')
-  const [contenido, setContenido] = useState('')
-  const [tipo, setTipo] = useState('general')
-  const [loading, setLoading] = useState(false)
+type EstadoAsistencia = 'presente' | 'ausente' | 'tardanza' | 'justificado'
+
+const ESTADO_STYLE: Record<string, string> = {
+  presente:   'bg-verde-claro text-verde',
+  ausente:    'bg-rojo-claro text-rojo',
+  tardanza:   'bg-amarillo-claro text-yellow-800',
+  justificado:'bg-azul-claro text-azul',
+}
+const ESTADO_LABEL: Record<string, string> = {
+  presente: 'Presente', ausente: 'Ausente', tardanza: 'Tardanza', justificado: 'Justificado'
+}
+
+export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, colegioId, fecha }: Props) {
+  const [cursoSel, setCursoSel] = useState(cursos[0] ?? '')
+  const [estados, setEstados] = useState<Record<string, EstadoAsistencia>>(() => {
+    const init: Record<string, EstadoAsistencia> = {}
+    asistenciasHoy.forEach(a => { init[a.alumno_id] = a.estado })
+    return init
+  })
+  const [saving, setSaving] = useState(false)
   const supabase = createClient()
 
-  async function handleEnviar() {
-    if (!titulo || !contenido) { toast.error('Completa todos los campos'); return }
-    setLoading(true)
-    const { error } = await supabase.from('comunicados').insert({
-      colegio_id: colegioId, titulo, contenido, tipo, enviado_at: new Date().toISOString()
-    })
-    if (error) { toast.error('Error al enviar'); setLoading(false); return }
-    toast.success('Comunicado enviado correctamente')
-    setShowModal(false); setTitulo(''); setContenido('')
-    setLoading(false)
-    window.location.reload()
+  const alumnosCurso = useMemo(() =>
+    alumnos.filter(a => a.curso === cursoSel),
+    [alumnos, cursoSel]
+  )
+
+  const presentes = Object.values(estados).filter(e => e === 'presente').length
+  const ausentes = Object.values(estados).filter(e => e === 'ausente').length
+  const tardanzas = Object.values(estados).filter(e => e === 'tardanza').length
+  const pct = alumnos.length ? Math.round((presentes / alumnos.length) * 100) : 0
+
+  function setEstado(alumnoId: string, estado: EstadoAsistencia) {
+    setEstados(prev => ({ ...prev, [alumnoId]: estado }))
   }
 
-  function calcStats(recepciones: any[]) {
-    const total = recepciones.length
-    const confirmados = recepciones.filter(r => r.estado === 'confirmado').length
-    const abiertos = recepciones.filter(r => r.estado === 'abierto').length
-    const sinAbrir = total - confirmados - abiertos
-    return { total, confirmados, abiertos, sinAbrir }
+  function setTodosPresentes() {
+    const nuevo: Record<string, EstadoAsistencia> = {}
+    alumnosCurso.forEach(a => { nuevo[a.id] = 'presente' })
+    setEstados(prev => ({ ...prev, ...nuevo }))
+  }
+
+  async function handleGuardar() {
+    setSaving(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const upserts = alumnosCurso
+      .filter(a => estados[a.id])
+      .map(a => ({
+        colegio_id: colegioId,
+        alumno_id: a.id,
+        fecha,
+        estado: estados[a.id] ?? 'presente',
+        registrado_por: user?.id,
+      }))
+
+    const { error } = await supabase.from('asistencias').upsert(upserts, { onConflict: 'alumno_id,fecha' })
+    if (error) { toast.error('Error al guardar'); setSaving(false); return }
+    toast.success('Asistencia guardada correctamente')
+    setSaving(false)
   }
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-playfair text-2xl font-bold text-tinta">Comunicados</h1>
-          <p className="text-sm text-tinta-s italic mt-0.5">Mensajes a familias con confirmacion de lectura</p>
+          <h1 className="font-playfair text-2xl font-bold text-tinta">Asistencias</h1>
+          <p className="text-sm text-tinta-s italic mt-0.5">
+            {new Date(fecha + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
-          <i className="ti ti-plus text-sm" aria-hidden="true" /> Nuevo comunicado
-        </button>
+        <div className="flex gap-2 items-center">
+          <select value={cursoSel} onChange={e => setCursoSel(e.target.value)} className="select-base">
+            {cursos.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <button onClick={setTodosPresentes} className="btn-secondary">Todos presentes</button>
+          <button onClick={handleGuardar} disabled={saving} className="btn-primary disabled:opacity-60">
+            {saving ? 'Guardando...' : 'Guardar asistencia'}
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Total enviados', val: comunicados.length, sub: 'este mes' },
-          { label: 'Confirmados', val: comunicados.reduce((a, c) => a + (c.recepciones?.filter((r: any) => r.estado === 'confirmado').length ?? 0), 0), sub: 'familias' },
-          { label: 'Sin abrir', val: comunicados.reduce((a, c) => a + (c.recepciones?.filter((r: any) => r.estado === 'enviado').length ?? 0), 0), sub: 'pendientes' },
-          { label: 'Tasa lectura', val: comunicados.length ? Math.round((comunicados.reduce((a, c) => a + (c.recepciones?.filter((r: any) => r.estado !== 'enviado').length ?? 0), 0) / Math.max(1, comunicados.reduce((a, c) => a + (c.recepciones?.length ?? 0), 0))) * 100) + '%' : '0%', sub: 'promedio' },
+          { label: 'Asistencia total', val: `${pct}%`, sub: `${presentes} de ${alumnos.length} alumnos`, color: pct >= 90 ? 'text-verde' : pct >= 75 ? 'text-yellow-700' : 'text-rojo' },
+          { label: 'Presentes', val: presentes, sub: 'hoy', color: 'text-verde' },
+          { label: 'Ausentes', val: ausentes, sub: 'sin justificar', color: 'text-rojo' },
+          { label: 'Tardanzas', val: tardanzas, sub: 'registradas', color: 'text-yellow-700' },
         ].map((k, i) => (
           <div key={i} className="bg-white border border-gray-100 rounded-sm p-4">
             <div className="font-mono text-xs tracking-widest uppercase text-tinta-s mb-1">{k.label}</div>
-            <div className="font-playfair text-2xl font-bold text-tinta">{k.val}</div>
+            <div className={`font-playfair text-2xl font-bold ${k.color}`}>{k.val}</div>
             <div className="font-mono text-xs text-tinta-s mt-0.5">{k.sub}</div>
           </div>
         ))}
       </div>
 
-      {/* Lista */}
-      <div className="space-y-3">
-        {comunicados.length === 0 ? (
-          <div className="bg-white border border-gray-100 rounded-sm p-12 text-center text-tinta-s">
-            <i className="ti ti-speakerphone text-4xl block mb-3 opacity-30" aria-hidden="true" />
-            <p className="font-lora italic">No hay comunicados todavia.</p>
-          </div>
-        ) : comunicados.map((com: any) => {
-          const stats = calcStats(com.recepciones ?? [])
-          return (
-            <div key={com.id} className="bg-white border border-gray-100 rounded-sm p-4">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded bg-azul-claro flex items-center justify-center flex-shrink-0">
-                  <i className={`ti ${com.tipo === 'cobro' ? 'ti-cash' : com.tipo === 'evento' ? 'ti-calendar' : com.tipo === 'urgente' ? 'ti-alert-triangle' : 'ti-mail'} text-azul text-lg`} aria-hidden="true" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm text-tinta">{com.titulo}</span>
-                    <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${TIPO_COLOR[com.tipo] ?? 'bg-gray-100 text-gray-600'}`}>
-                      {TIPO_LABEL[com.tipo] ?? com.tipo}
-                    </span>
-                  </div>
-                  <p className="text-xs text-tinta-s mb-2 line-clamp-1">{com.contenido}</p>
-                  <div className="flex items-center gap-4 text-xs font-mono">
-                    <span className="text-tinta-s">{com.enviado_at ? new Date(com.enviado_at).toLocaleDateString('es-CL') : 'Borrador'}</span>
-                    {stats.total > 0 && (
-                      <>
-                        <span className="text-verde"><i className="ti ti-check text-xs" /> {stats.confirmados} confirmados</span>
-                        <span className="text-azul"><i className="ti ti-eye text-xs" /> {stats.abiertos} abiertos</span>
-                        <span className="text-tinta-s"><i className="ti ti-clock text-xs" /> {stats.sinAbrir} sin abrir</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                {stats.total > 0 && (
-                  <div className="flex gap-3 flex-shrink-0">
-                    {[
-                      { pct: stats.total ? Math.round(stats.confirmados / stats.total * 100) : 0, label: 'Conf.', color: '#639922' },
-                      { pct: stats.total ? Math.round(stats.abiertos / stats.total * 100) : 0, label: 'Abierto', color: '#378ADD' },
-                      { pct: stats.total ? Math.round(stats.sinAbrir / stats.total * 100) : 0, label: 'Sin abrir', color: '#888780' },
-                    ].map((s, i) => (
-                      <div key={i} className="text-center">
-                        <div className="w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-mono font-semibold" style={{ borderColor: s.color, color: s.color }}>
-                          {s.pct}%
-                        </div>
-                        <div className="text-xs text-tinta-s mt-0.5">{s.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-azul/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-sm w-full max-w-lg shadow-xl overflow-hidden">
-            <div className="bg-azul px-5 py-4 flex items-center justify-between">
-              <h3 className="font-playfair text-lg font-bold text-white">Nuevo comunicado</h3>
-              <button onClick={() => setShowModal(false)} className="text-white/60 hover:text-white">
-                <i className="ti ti-x text-lg" aria-hidden="true" />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="font-mono text-xs tracking-widest uppercase text-tinta-s block mb-1.5">Tipo</label>
-                <select value={tipo} onChange={e => setTipo(e.target.value)} className="select-base w-full">
-                  <option value="general">General</option>
-                  <option value="cobro">Cobro</option>
-                  <option value="evento">Evento</option>
-                  <option value="urgente">Urgente</option>
-                </select>
-              </div>
-              <div>
-                <label className="font-mono text-xs tracking-widest uppercase text-tinta-s block mb-1.5">Titulo</label>
-                <input value={titulo} onChange={e => setTitulo(e.target.value)} className="input-base" placeholder="Asunto del comunicado" />
-              </div>
-              <div>
-                <label className="font-mono text-xs tracking-widest uppercase text-tinta-s block mb-1.5">Contenido</label>
-                <textarea value={contenido} onChange={e => setContenido(e.target.value)} className="input-base resize-none" rows={4} placeholder="Mensaje para las familias..." />
-              </div>
-            </div>
-            <div className="px-5 pb-5 flex gap-2 justify-end">
-              <button onClick={() => setShowModal(false)} className="btn-secondary">Cancelar</button>
-              <button onClick={handleEnviar} disabled={loading} className="btn-primary disabled:opacity-60">
-                {loading ? 'Enviando...' : 'Enviar a todas las familias'}
-              </button>
-            </div>
-          </div>
+      {/* Tabla */}
+      <div className="bg-white border border-gray-100 rounded-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 bg-papel">
+          <span className="font-playfair text-base font-bold">{cursoSel}</span>
+          <span className="font-mono text-xs text-tinta-s ml-2">— {alumnosCurso.length} alumnos</span>
         </div>
-      )}
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100">
+              <th className="font-mono text-xs tracking-widest uppercase text-tinta-s px-4 py-2 text-left font-normal">Alumno</th>
+              <th className="font-mono text-xs tracking-widest uppercase text-tinta-s px-4 py-2 text-left font-normal">Estado</th>
+              <th className="font-mono text-xs tracking-widest uppercase text-tinta-s px-4 py-2 text-left font-normal">Observacion</th>
+            </tr>
+          </thead>
+          <tbody>
+            {alumnosCurso.length === 0 ? (
+              <tr><td colSpan={3} className="px-4 py-8 text-center text-tinta-s italic font-lora">No hay alumnos en este curso.</td></tr>
+            ) : alumnosCurso.map((alumno: any) => {
+              const estadoActual = estados[alumno.id] ?? 'presente'
+              return (
+                <tr key={alumno.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-azul-claro flex items-center justify-center font-mono text-xs font-semibold text-azul flex-shrink-0">
+                        {alumno.nombre?.[0]}{alumno.apellido?.[0]}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-tinta">{alumno.nombre} {alumno.apellido}</div>
+                        <div className="font-mono text-xs text-tinta-s">{alumno.rut ?? 'Sin RUT'}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1 flex-wrap">
+                      {(['presente', 'tardanza', 'ausente', 'justificado'] as EstadoAsistencia[]).map(e => (
+                        <button
+                          key={e}
+                          onClick={() => setEstado(alumno.id, e)}
+                          className={`text-xs font-mono px-2 py-1 rounded-sm border transition-all ${
+                            estadoActual === e
+                              ? `${ESTADO_STYLE[e]} border-transparent font-semibold`
+                              : 'bg-white border-gray-200 text-tinta-s hover:border-gray-400'
+                          }`}
+                        >
+                          {ESTADO_LABEL[e]}
+                        </button>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <input
+                      type="text"
+                      placeholder="Observacion opcional..."
+                      className="input-base text-xs py-1"
+                    />
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
