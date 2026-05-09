@@ -1,23 +1,16 @@
 'use client'
-
 import { useState, useMemo } from 'react'
 import toast from 'react-hot-toast'
 
-interface Props {
-  usuarios: any[]
-  colegios: any[]
-  colegioFiltro?: string
-}
+interface Props { usuarios: any[]; colegios: any[]; colegioFiltro?: string }
 
-const ROL_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-  super_admin: { label: 'Super Admin', color: 'text-red-700',     bg: 'bg-red-50',     icon: 'ti-shield-check' },
-  admin:       { label: 'Admin',       color: 'text-blue-700',    bg: 'bg-blue-50',    icon: 'ti-user-cog' },
-  docente:     { label: 'Docente',     color: 'text-violet-700',  bg: 'bg-violet-50',  icon: 'ti-school' },
-  tutor:       { label: 'Apoderado',   color: 'text-emerald-700', bg: 'bg-emerald-50', icon: 'ti-heart-handshake' },
-  alumno:      { label: 'Alumno',      color: 'text-amber-700',   bg: 'bg-amber-50',   icon: 'ti-backpack' },
+const ROL_CONFIG: Record<string, { label: string; desc: string; color: string; bg: string; icon: string }> = {
+  super_admin: { label: 'Super Admin',    desc: 'Acceso total fundación',          color: 'text-red-700',     bg: 'bg-red-50',     icon: 'ti-shield-check' },
+  admin:       { label: 'Administrativo', desc: 'RRHH y gestión del colegio',      color: 'text-blue-700',    bg: 'bg-blue-50',    icon: 'ti-briefcase' },
+  tutor:       { label: 'Profesor',       desc: 'Gestiona cursos y clases',        color: 'text-violet-700',  bg: 'bg-violet-50',  icon: 'ti-school' },
+  apoderado:   { label: 'Apoderado',      desc: 'Portal familiar del alumno',      color: 'text-emerald-700', bg: 'bg-emerald-50', icon: 'ti-heart-handshake' },
+  alumno:      { label: 'Alumno',         desc: 'Portal personal del estudiante',  color: 'text-amber-700',   bg: 'bg-amber-50',   icon: 'ti-backpack' },
 }
-
-const ROLES = ['admin', 'docente', 'tutor', 'alumno']
 
 export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Props) {
   const [showModal, setShowModal] = useState(false)
@@ -28,83 +21,65 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     nombre: '', apellido: '', email: '', password: '',
-    rol: 'admin', colegio_id: colegioFiltro ?? colegios[0]?.id ?? '',
+    rol: 'tutor', colegio_id: colegioFiltro ?? colegios[0]?.id ?? '',
   })
 
   const usuariosFiltrados = useMemo(() =>
     usuarios.filter(u => {
-      const matchBusq = !busqueda || `${u.nombre} ${u.apellido} ${u.email}`.toLowerCase().includes(busqueda.toLowerCase())
-      const matchRol = !filtroRol || u.rol === filtroRol
-      const matchColegio = !filtroColegio || u.colegio_id === filtroColegio
-      return matchBusq && matchRol && matchColegio
+      const matchB = !busqueda || `${u.nombre} ${u.apellido} ${u.email}`.toLowerCase().includes(busqueda.toLowerCase())
+      const matchR = !filtroRol || u.rol === filtroRol
+      const matchC = !filtroColegio || u.colegio_id === filtroColegio
+      return matchB && matchR && matchC
     }),
     [usuarios, busqueda, filtroRol, filtroColegio]
   )
 
   function openNuevo() {
     setEditUsuario(null)
-    setForm({ nombre: '', apellido: '', email: '', password: '', rol: 'admin', colegio_id: colegioFiltro ?? colegios[0]?.id ?? '' })
+    setForm({ nombre:'', apellido:'', email:'', password:'', rol:'tutor', colegio_id: colegioFiltro ?? colegios[0]?.id ?? '' })
     setShowModal(true)
   }
-
   function openEditar(u: any) {
     setEditUsuario(u)
-    setForm({ nombre: u.nombre, apellido: u.apellido, email: u.email, password: '', rol: u.rol, colegio_id: u.colegio_id })
+    setForm({ nombre:u.nombre, apellido:u.apellido, email:u.email, password:'', rol:u.rol, colegio_id:u.colegio_id })
     setShowModal(true)
   }
 
   async function handleGuardar() {
-    if (!form.nombre || !form.email || !form.colegio_id) {
-      toast.error('Nombre, email y colegio son requeridos')
-      return
-    }
-    if (!editUsuario && !form.password) {
-      toast.error('La contraseña es requerida para nuevos usuarios')
-      return
-    }
+    if (!form.nombre || !form.email || !form.colegio_id) { toast.error('Nombre, email y colegio son requeridos'); return }
+    if (!editUsuario && !form.password) { toast.error('La contraseña es requerida para nuevos usuarios'); return }
     setLoading(true)
     try {
       const url = editUsuario ? `/api/admin/usuarios/${editUsuario.id}` : '/api/admin/usuarios'
-      const method = editUsuario ? 'PATCH' : 'POST'
       const res = await fetch(url, {
-        method,
+        method: editUsuario ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Error al guardar')
       toast.success(editUsuario ? 'Usuario actualizado' : 'Usuario creado correctamente')
-      setShowModal(false)
-      window.location.reload()
+      setShowModal(false); window.location.reload()
     } catch (e: any) {
       toast.error(e.message)
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
-  async function handleCambiarRol(usuarioId: string, nuevoRol: string) {
-    const res = await fetch(`/api/admin/usuarios/${usuarioId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rol: nuevoRol }),
+  async function handleCambiarRol(id: string, rol: string) {
+    const res = await fetch(`/api/admin/usuarios/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rol }),
     })
-    if (res.ok) {
-      toast.success('Rol actualizado')
-      window.location.reload()
-    } else {
-      toast.error('Error al actualizar rol')
-    }
+    if (res.ok) { toast.success('Rol actualizado'); window.location.reload() }
+    else toast.error('Error al actualizar rol')
   }
 
   const contsPorRol = Object.keys(ROL_CONFIG).reduce((acc, rol) => {
-    acc[rol] = usuarios.filter(u => u.rol === rol).length
-    return acc
+    acc[rol] = usuarios.filter(u => u.rol === rol).length; return acc
   }, {} as Record<string, number>)
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 font-display">Gestión de usuarios</h1>
@@ -119,12 +94,13 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
       <div className="grid grid-cols-5 gap-3 mb-6">
         {Object.entries(ROL_CONFIG).map(([rol, cfg]) => (
           <button key={rol} onClick={() => setFiltroRol(filtroRol === rol ? '' : rol)}
-            className={`p-3 rounded-xl border text-left transition-all ${filtroRol === rol ? `border-current ${cfg.bg}` : 'bg-white border-slate-200 hover:border-slate-300'}`}>
+            className={`p-3 rounded-xl border text-left transition-all ${filtroRol === rol ? `${cfg.bg} border-current` : 'bg-white border-slate-200 hover:border-slate-300'}`}>
             <div className={`flex items-center gap-1.5 mb-1 ${cfg.color}`}>
               <i className={`ti ${cfg.icon} text-sm`} aria-hidden="true"/>
               <span className="text-xs font-semibold">{cfg.label}</span>
             </div>
             <div className={`font-display text-2xl font-bold ${cfg.color}`}>{contsPorRol[rol] ?? 0}</div>
+            <div className={`text-xs mt-0.5 ${cfg.color} opacity-70`}>{cfg.desc}</div>
           </button>
         ))}
       </div>
@@ -169,7 +145,7 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
                 <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full ${cfg.bg} flex items-center justify-center font-bold text-xs flex-shrink-0 ${cfg.color}`}>
+                      <div className={`w-8 h-8 rounded-full ${cfg.bg} flex items-center justify-center font-bold text-xs ${cfg.color} flex-shrink-0`}>
                         {u.nombre?.[0]}{u.apellido?.[0]}
                       </div>
                       <div>
@@ -178,27 +154,17 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-600 text-xs">{u.email}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500">{u.email}</td>
                   <td className="px-4 py-3 text-xs text-slate-500">{u.colegio?.nombre ?? '—'}</td>
                   <td className="px-4 py-3">
-                    {/* Selector de rol inline */}
-                    <select
-                      value={u.rol}
-                      onChange={e => handleCambiarRol(u.id, e.target.value)}
-                      className={`text-xs font-semibold px-2 py-1 rounded-full border-0 cursor-pointer ${cfg.bg} ${cfg.color}`}
-                    >
-                      {Object.entries(ROL_CONFIG).map(([r, c]) => (
-                        <option key={r} value={r}>{c.label}</option>
-                      ))}
+                    <select value={u.rol} onChange={e => handleCambiarRol(u.id, e.target.value)}
+                      className={`text-xs font-semibold px-2 py-1 rounded-full border-0 cursor-pointer ${cfg.bg} ${cfg.color}`}>
+                      {Object.entries(ROL_CONFIG).map(([r, c]) => <option key={r} value={r}>{c.label}</option>)}
                     </select>
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
-                    {new Date(u.created_at).toLocaleDateString('es-CL')}
-                  </td>
+                  <td className="px-4 py-3 text-xs text-slate-500">{new Date(u.created_at).toLocaleDateString('es-CL')}</td>
                   <td className="px-4 py-3">
-                    <button onClick={() => openEditar(u)} className="text-xs text-blue-600 hover:underline mr-3">
-                      Editar
-                    </button>
+                    <button onClick={() => openEditar(u)} className="text-xs text-blue-600 hover:underline">Editar</button>
                   </td>
                 </tr>
               )
@@ -207,22 +173,13 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
         </table>
       </div>
 
-      {/* Modal crear/editar usuario */}
+      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
             <div className="bg-[#0F1B2D] px-6 py-4 flex items-center justify-between">
-              <div>
-                <h3 className="font-display font-semibold text-white">
-                  {editUsuario ? 'Editar usuario' : 'Nuevo usuario'}
-                </h3>
-                <p className="text-white/50 text-xs mt-0.5">
-                  {editUsuario ? `${editUsuario.nombre} ${editUsuario.apellido}` : 'Crear cuenta en AR School'}
-                </p>
-              </div>
-              <button onClick={() => setShowModal(false)} className="text-white/50 hover:text-white">
-                <i className="ti ti-x" aria-hidden="true"/>
-              </button>
+              <h3 className="font-display font-semibold text-white">{editUsuario ? 'Editar usuario' : 'Nuevo usuario'}</h3>
+              <button onClick={() => setShowModal(false)} className="text-white/50 hover:text-white"><i className="ti ti-x" aria-hidden="true"/></button>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -238,7 +195,6 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Email *</label>
                 <input type="email" value={form.email} onChange={e => setForm(p => ({...p, email: e.target.value}))} className="input-base" placeholder="correo@arschool.cl" disabled={!!editUsuario}/>
-                {editUsuario && <p className="text-xs text-slate-400 mt-1">El email no se puede modificar</p>}
               </div>
               {!editUsuario && (
                 <div>
@@ -250,17 +206,8 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Rol *</label>
                   <select value={form.rol} onChange={e => setForm(p => ({...p, rol: e.target.value}))} className="select-base w-full">
-                    {Object.entries(ROL_CONFIG).map(([r, c]) => (
-                      <option key={r} value={r}>{c.label}</option>
-                    ))}
+                    {Object.entries(ROL_CONFIG).map(([r, c]) => <option key={r} value={r}>{c.label}</option>)}
                   </select>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {form.rol === 'tutor' ? 'Portal de apoderado — solo ve a su hijo/a' :
-                     form.rol === 'alumno' ? 'Portal de alumno — solo ve sus datos' :
-                     form.rol === 'docente' ? 'Gestiona sus cursos asignados' :
-                     form.rol === 'admin' ? 'Acceso completo a su colegio' :
-                     'Acceso a todos los colegios ARM Global'}
-                  </p>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Colegio *</label>
@@ -269,21 +216,13 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
                   </select>
                 </div>
               </div>
-
-              {/* Preview del rol */}
               {form.rol && ROL_CONFIG[form.rol] && (
-                <div className={`p-3 rounded-xl ${ROL_CONFIG[form.rol].bg} border border-current/10`}>
-                  <div className={`flex items-center gap-2 ${ROL_CONFIG[form.rol].color}`}>
+                <div className={`p-3 rounded-xl ${ROL_CONFIG[form.rol].bg}`}>
+                  <div className={`flex items-center gap-2 ${ROL_CONFIG[form.rol].color} font-semibold text-sm`}>
                     <i className={`ti ${ROL_CONFIG[form.rol].icon}`} aria-hidden="true"/>
-                    <span className="text-sm font-semibold">{ROL_CONFIG[form.rol].label}</span>
+                    {ROL_CONFIG[form.rol].label}
                   </div>
-                  <p className={`text-xs mt-1 ${ROL_CONFIG[form.rol].color} opacity-75`}>
-                    {form.rol === 'super_admin' ? 'Ve y gestiona todos los colegios de la Fundación ARM Global' :
-                     form.rol === 'admin' ? 'Acceso completo: comunicados, asistencias, calificaciones, cobranzas, alumnos y reportes' :
-                     form.rol === 'docente' ? 'Acceso a fichas, comunicados, asistencias y calificaciones de sus cursos' :
-                     form.rol === 'tutor' ? 'Portal familiar: ve comunicados, asistencias, notas y pagos de su hijo/a' :
-                     'Portal personal: ve sus propias notas, asistencias y comunicados del colegio'}
-                  </p>
+                  <p className={`text-xs mt-1 ${ROL_CONFIG[form.rol].color} opacity-80`}>{ROL_CONFIG[form.rol].desc}</p>
                 </div>
               )}
             </div>

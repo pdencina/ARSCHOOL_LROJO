@@ -16,7 +16,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
   const usuario = ur as any
   const rol = usuario?.rol
-  if (rol !== 'tutor' && rol !== 'alumno') redirect('/fichas')
+  if (!['apoderado','alumno'].includes(rol)) redirect('/inicio')
 
   return (
     <div className="min-h-screen bg-slate-50">
