@@ -1,29 +1,34 @@
 export const dynamic = 'force-dynamic'
-
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import CalificacionesClient from '@/components/calificaciones/CalificacionesClient'
 
-export const metadata = { title: 'Calificaciones — AR School' }
+function getAdmin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 export default async function CalificacionesPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: usuarioRaw } = await supabase.from('usuarios').select('colegio_id').eq('id', user!.id).single()
-  const colegioId = (usuarioRaw as any)?.colegio_id ?? ''
+  if (!user) redirect('/login')
 
-  const { data: evaluaciones } = await supabase
-    .from('evaluaciones')
-    .select('*, calificaciones(nota, alumno:alumnos(nombre, apellido))')
-    .eq('colegio_id', colegioId)
-    .order('fecha', { ascending: false })
-    .limit(20)
+  const admin = getAdmin()
+  const { data: ur } = await admin.from('usuarios').select('colegio_id').eq('id', user.id).single()
+  const colegioId = (ur as any)?.colegio_id ?? ''
 
-  const { data: alumnos } = await supabase
-    .from('alumnos')
-    .select('*')
-    .eq('colegio_id', colegioId)
-    .eq('activo', true)
-    .order('apellido')
+  const [{ data: evaluaciones }, { data: alumnos }] = await Promise.all([
+    admin.from('evaluaciones')
+      .select('*, calificaciones(nota, alumno:alumnos(nombre, apellido))')
+      .eq('colegio_id', colegioId)
+      .order('fecha', { ascending: false })
+      .limit(20),
+    admin.from('alumnos').select('*').eq('colegio_id', colegioId).eq('activo', true).order('apellido'),
+  ])
 
   const cursos = [...new Set((alumnos ?? []).map((a: any) => a.curso))].sort()
 

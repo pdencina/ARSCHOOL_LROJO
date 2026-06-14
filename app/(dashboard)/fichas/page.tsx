@@ -1,25 +1,28 @@
 export const dynamic = 'force-dynamic'
-
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import FichasClient from '@/components/fichas/FichasClient'
 
-export const metadata = { title: 'Fichas Pedagógicas — AR School' }
+function getAdmin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
-export default async function FichasPage({
-  searchParams,
-}: {
-  searchParams: { materia?: string; grado?: string; tipo?: string; q?: string }
-}) {
+export default async function FichasPage({ searchParams }: { searchParams: { materia?: string; grado?: string; tipo?: string; q?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: ur } = await supabase.from('usuarios').select('colegio_id, rol').eq('id', user!.id).single()
+  if (!user) redirect('/login')
+
+  const admin = getAdmin()
+  const { data: ur } = await admin.from('usuarios').select('colegio_id, rol').eq('id', user.id).single()
   const colegioId = (ur as any)?.colegio_id ?? ''
   const rol = (ur as any)?.rol ?? 'admin'
 
-  // Fichas del colegio + públicas
-  let query = supabase
-    .from('fichas')
-    .select('*')
+  let query = admin.from('fichas').select('*')
     .or(`colegio_id.eq.${colegioId},es_publica.eq.true`)
     .order('descargas', { ascending: false })
     .limit(60)
@@ -31,13 +34,11 @@ export default async function FichasPage({
 
   const { data: fichas } = await query
 
-  const { data: conteosRaw } = await supabase
-    .from('fichas')
-    .select('materia')
+  const { data: todasFichas } = await admin.from('fichas').select('materia')
     .or(`colegio_id.eq.${colegioId},es_publica.eq.true`)
 
   const conteosPorMateria: Record<string, number> = {}
-  ;(conteosRaw ?? []).forEach((f: any) => {
+  ;(todasFichas ?? []).forEach((f: any) => {
     conteosPorMateria[f.materia] = (conteosPorMateria[f.materia] ?? 0) + 1
   })
 
@@ -48,7 +49,7 @@ export default async function FichasPage({
       filtrosActivos={searchParams}
       colegioId={colegioId}
       rol={rol}
-      userId={user!.id}
+      userId={user.id}
     />
   )
 }
