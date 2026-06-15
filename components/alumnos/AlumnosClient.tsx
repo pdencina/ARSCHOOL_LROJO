@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 interface Props { alumnos: any[]; cursos: string[]; colegioId: string }
@@ -23,6 +24,7 @@ export default function AlumnosClient({ alumnos, cursos, colegioId }: Props) {
     nombre_apoderado: '', apellido_apoderado: '', email_apoderado: '', telefono: ''
   })
   const supabase = createClient()
+  const router = useRouter()
 
   const alumnosFiltrados = useMemo(() =>
     alumnos.filter(a => {
@@ -59,7 +61,7 @@ export default function AlumnosClient({ alumnos, cursos, colegioId }: Props) {
     }
     toast.success('Alumno registrado correctamente')
     setSaving(false); setShowModal(false)
-    window.location.reload()
+    router.refresh()
   }
 
   const activos = alumnos.filter(a => a.activo).length

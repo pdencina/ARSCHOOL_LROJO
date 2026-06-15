@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 interface Props { evaluaciones: any[]; comunicados: any[]; colegioId: string }
@@ -24,6 +25,7 @@ export default function CalendarioClient({ evaluaciones, comunicados, colegioId 
   const [form, setForm] = useState({ titulo: '', fecha: '', tipo: 'evento', descripcion: '' })
   const [saving, setSaving] = useState(false)
   const supabase = createClient()
+  const router = useRouter()
 
   // Construir eventos del mes
   const eventos = useMemo(() => {
@@ -74,7 +76,7 @@ export default function CalendarioClient({ evaluaciones, comunicados, colegioId 
     if (error) { toast.error('Error al guardar evento'); setSaving(false); return }
     toast.success('Evento agregado al calendario')
     setSaving(false); setShowModal(false)
-    window.location.reload()
+    router.refresh()
   }
 
   const eventosDelDia = diaSeleccionado ? (eventos[diaSeleccionado] ?? []) : []

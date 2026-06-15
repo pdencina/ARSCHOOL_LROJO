@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 interface Props { colegioId: string; userId: string; onClose: () => void }
@@ -39,6 +40,7 @@ export default function ModalNuevaFicha({ colegioId, userId, onClose }: Props) {
     objetivos: [''], es_publica: false,
   })
   const supabase = createClient()
+  const router = useRouter()
 
   function setF(k: string, v: any) { setForm(p => ({ ...p, [k]: v })) }
   function setObj(i: number, v: string) {
@@ -112,7 +114,7 @@ export default function ModalNuevaFicha({ colegioId, userId, onClose }: Props) {
 
       toast.success('¡Ficha creada correctamente!')
       onClose()
-      window.location.reload()
+      router.refresh()
     } catch (e: any) {
       toast.error(e.message ?? 'Error al guardar')
     } finally {

@@ -43,9 +43,9 @@ export const MATERIAS_CONFIG: Record<string, { label: string; color: string; bg:
 }
 
 export const ESTADO_CONFIG: Record<string, { label: string; className: string }> = {
-  pagado:   { label: 'Al día',    className: 'bg-verde-claro text-verde-oscuro' },
-  mora:     { label: 'En mora',   className: 'bg-rojo-claro text-rojo-oscuro' },
-  pendiente:{ label: 'Pendiente', className: 'bg-amarillo-claro text-yellow-800' },
-  parcial:  { label: 'Parcial',   className: 'bg-naranja-claro text-orange-900' },
-  anulado:  { label: 'Anulado',   className: 'bg-gray-100 text-gray-500' },
+  pagado:   { label: 'Al día',    className: 'bg-emerald-50 text-emerald-700' },
+  mora:     { label: 'En mora',   className: 'bg-red-50 text-red-700' },
+  pendiente:{ label: 'Pendiente', className: 'bg-amber-50 text-amber-700' },
+  parcial:  { label: 'Parcial',   className: 'bg-orange-50 text-orange-700' },
+  anulado:  { label: 'Anulado',   className: 'bg-slate-100 text-slate-500' },
 }

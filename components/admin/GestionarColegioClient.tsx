@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
@@ -14,6 +15,7 @@ const ROL_CONFIG: Record<string, { label: string; color: string; bg: string }> =
 }
 
 export default function GestionarColegioClient({ colegio, usuarios, alumnos }: Props) {
+  const router = useRouter()
   const [tab, setTab] = useState<'resumen'|'usuarios'|'alumnos'>('resumen')
 
   async function handleCambiarRol(usuarioId: string, rol: string) {
@@ -21,7 +23,7 @@ export default function GestionarColegioClient({ colegio, usuarios, alumnos }: P
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rol }),
     })
-    if (res.ok) { toast.success('Rol actualizado'); window.location.reload() }
+    if (res.ok) { toast.success('Rol actualizado'); router.refresh() }
     else toast.error('Error al actualizar rol')
   }
 

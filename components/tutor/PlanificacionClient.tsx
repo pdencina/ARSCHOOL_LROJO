@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 interface Props {
@@ -34,6 +35,7 @@ export default function PlanificacionClient({ planificaciones, cursos, colegioId
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM, curso: cursos[0] ?? '' })
   const supabase = createClient()
+  const router = useRouter()
 
   const plansFiltradas = useMemo(() =>
     planificaciones.filter(p =>
@@ -89,13 +91,13 @@ export default function PlanificacionClient({ planificaciones, cursos, colegioId
     if (error) { toast.error('Error al guardar: ' + error.message); setSaving(false); return }
     toast.success(editId ? 'Planificación actualizada' : 'Planificación creada')
     setSaving(false); setShowModal(false)
-    window.location.reload()
+    router.refresh()
   }
 
   async function handleCambiarEstado(id: string, estado: string) {
     await supabase.from('planificaciones').update({ estado }).eq('id', id)
     toast.success(`Estado actualizado a ${ESTADO_CONFIG[estado]?.label}`)
-    window.location.reload()
+    router.refresh()
   }
 
   const stats = {

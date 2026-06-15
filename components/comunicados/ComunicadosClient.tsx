@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 interface Props { comunicados: any[]; colegioId: string; cursos: string[] }
@@ -14,6 +15,7 @@ const TIPO_CONFIG: Record<string, { label: string; color: string; bg: string; ic
 }
 
 export default function ComunicadosClient({ comunicados, colegioId, cursos }: Props) {
+  const router = useRouter()
   const [showModal, setShowModal] = useState(false)
   const [detalle, setDetalle] = useState<any>(null)
   const [filtroTipo, setFiltroTipo] = useState('')
@@ -59,7 +61,7 @@ export default function ComunicadosClient({ comunicados, colegioId, cursos }: Pr
     setShowModal(false)
     setForm({ titulo: '', contenido: '', tipo: 'general', cursos: [], urgente: false })
     setLoading(false)
-    window.location.reload()
+    router.refresh()
   }
 
   const totalConf = comunicados.reduce((a, c) => a + (c.recepciones?.filter((r: any) => r.estado === 'confirmado').length ?? 0), 0)

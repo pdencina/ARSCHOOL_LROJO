@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
 
 export default async function PortalComunicadosPage() {
   const supabase = createClient()
@@ -57,6 +58,7 @@ export default async function PortalComunicadosPage() {
                         'use server'
                         const supabase2 = createClient()
                         await supabase2.from('comunicado_recepciones').update({ estado: 'confirmado', confirmado_at: new Date().toISOString() }).eq('id', r.id)
+                        revalidatePath('/portal/comunicados')
                       }}>
                         <button type="submit" className="btn-primary text-xs py-1 px-3">
                           <i className="ti ti-check text-xs" aria-hidden="true"/> Confirmar lectura

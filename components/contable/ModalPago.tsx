@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 import type { CobroConFamilia } from '@/types'
 import { formatMonto } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -17,6 +18,7 @@ export default function ModalPago({ cobro, onClose }: Props) {
   const [obs, setObs] = useState('')
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
+  const router = useRouter()
 
   const saldo = cobro.monto - cobro.monto_pagado
   const alumno = cobro.familia?.alumno
@@ -44,7 +46,7 @@ export default function ModalPago({ cobro, onClose }: Props) {
 
       toast.success('Pago registrado correctamente')
       onClose()
-      window.location.reload()
+      router.refresh()
     } catch {
       toast.error('Error al registrar el pago')
       setLoading(false)

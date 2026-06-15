@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 interface Props { usuarios: any[]; colegios: any[]; colegioFiltro?: string }
@@ -13,6 +14,7 @@ const ROL_CONFIG: Record<string, { label: string; desc: string; color: string; b
 }
 
 export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Props) {
+  const router = useRouter()
   const [showModal, setShowModal] = useState(false)
   const [editUsuario, setEditUsuario] = useState<any>(null)
   const [busqueda, setBusqueda] = useState('')
@@ -59,7 +61,7 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Error al guardar')
       toast.success(editUsuario ? 'Usuario actualizado' : 'Usuario creado correctamente')
-      setShowModal(false); window.location.reload()
+      setShowModal(false); router.refresh()
     } catch (e: any) {
       toast.error(e.message)
     } finally { setLoading(false) }
@@ -70,7 +72,7 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rol }),
     })
-    if (res.ok) { toast.success('Rol actualizado'); window.location.reload() }
+    if (res.ok) { toast.success('Rol actualizado'); router.refresh() }
     else toast.error('Error al actualizar rol')
   }
 

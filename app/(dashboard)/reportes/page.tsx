@@ -1,60 +1,110 @@
 export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { redirect } from 'next/navigation'
+import { getMesNombre } from '@/lib/utils'
+import ReportesClient from '@/components/reportes/ReportesClient'
+
 export const metadata = { title: 'Reportes — AR School' }
+
+function getAdmin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 export default async function ReportesPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: ur } = await supabase.from('usuarios').select('colegio_id').eq('id', user!.id).single()
+  if (!user) redirect('/login')
+
+  const admin = getAdmin()
+  const { data: ur } = await admin.from('usuarios').select('colegio_id').eq('id', user.id).single()
   const colegioId = (ur as any)?.colegio_id ?? ''
 
-  const [{ count: totalAlumnos }, { count: totalFichas }, { count: totalCobros }] = await Promise.all([
-    supabase.from('alumnos').select('*', { count: 'exact', head: true }).eq('colegio_id', colegioId).eq('activo', true),
-    supabase.from('fichas').select('*', { count: 'exact', head: true }).eq('colegio_id', colegioId),
-    supabase.from('cobros').select('*', { count: 'exact', head: true }).eq('colegio_id', colegioId),
+  const ahora = new Date()
+  const mes  = ahora.getMonth() + 1
+  const anio = ahora.getFullYear()
+
+  const [
+    { count: totalAlumnos },
+    { count: totalEvaluaciones },
+    { count: totalCobros },
+    { count: totalComunicados },
+    { data: alumnos },
+    { data: asistenciasHoy },
+    { data: calificaciones },
+    { data: cobrosDelMes },
+    { data: mesesDisponibles },
+  ] = await Promise.all([
+    admin.from('alumnos').select('*', { count: 'exact', head: true }).eq('colegio_id', colegioId).eq('activo', true),
+    admin.from('evaluaciones').select('*', { count: 'exact', head: true }).eq('colegio_id', colegioId),
+    admin.from('cobros').select('*', { count: 'exact', head: true }).eq('colegio_id', colegioId),
+    admin.from('comunicados').select('*', { count: 'exact', head: true }).eq('colegio_id', colegioId),
+    admin.from('alumnos').select('id, curso').eq('colegio_id', colegioId).eq('activo', true),
+    admin.from('asistencias').select('estado, alumno_id').eq('colegio_id', colegioId).gte('fecha', `${anio}-${String(mes).padStart(2,'0')}-01`).lte('fecha', `${anio}-${String(mes).padStart(2,'0')}-31`),
+    admin.from('calificaciones').select('nota, evaluacion:evaluaciones(colegio_id)').eq('evaluaciones.colegio_id', colegioId),
+    admin.from('cobros').select('estado, monto, monto_pagado').eq('colegio_id', colegioId).eq('mes', mes).eq('anio', anio),
+    admin.from('cobros').select('mes, anio').eq('colegio_id', colegioId).order('anio', { ascending: false }).order('mes', { ascending: false }),
   ])
 
-  const stats = [
-    { label: 'Total alumnos activos', val: totalAlumnos ?? 0, icon: 'ti-users', color: 'bg-blue-50 text-blue-600' },
-    { label: 'Fichas pedagogicas', val: totalFichas ?? 0, icon: 'ti-books', color: 'bg-violet-50 text-violet-600' },
-    { label: 'Cobros registrados', val: totalCobros ?? 0, icon: 'ti-cash', color: 'bg-emerald-50 text-emerald-600' },
-  ]
+  const cursos = [...new Set((alumnos ?? []).map((a: any) => a.curso))].sort()
+
+  // Asistencia global del mes
+  const totalAsist = (asistenciasHoy ?? []).length
+  const presentes = (asistenciasHoy ?? []).filter((a: any) => a.estado === 'presente').length
+  const pctAsistenciaGlobal = totalAsist > 0 ? Math.round(presentes / totalAsist * 100) : null
+
+  // Promedio general de calificaciones
+  const notasValidas = (calificaciones ?? []).map((c: any) => c.nota).filter((n: any) => n != null && !isNaN(n))
+  const promedioGeneral = notasValidas.length > 0
+    ? notasValidas.reduce((a: number, b: number) => a + b, 0) / notasValidas.length
+    : null
+
+  // Recaudación del mes
+  const recaudadoMes = (cobrosDelMes ?? []).filter((c: any) => c.estado === 'pagado').reduce((a: number, c: any) => a + c.monto, 0)
+  const moraMes = (cobrosDelMes ?? []).filter((c: any) => ['mora','parcial','pendiente'].includes(c.estado)).reduce((a: number, c: any) => a + (c.monto - c.monto_pagado), 0)
+
+  // Resumen por curso
+  const resumenPorCurso = cursos.map(curso => {
+    const alumnosCurso = (alumnos ?? []).filter((a: any) => a.curso === curso)
+    const alumnoIds = alumnosCurso.map((a: any) => a.id)
+    const asistCurso = (asistenciasHoy ?? []).filter((a: any) => alumnoIds.includes(a.alumno_id))
+    const pct = asistCurso.length > 0
+      ? Math.round(asistCurso.filter((a: any) => a.estado === 'presente').length / asistCurso.length * 100)
+      : null
+    return { curso, alumnos: alumnosCurso.length, pctAsistencia: pct, promedio: null as number | null }
+  })
+
+  // Meses únicos para el selector
+  const mesesUnicos = [...new Map((mesesDisponibles ?? []).map((m: any) => [`${m.anio}-${m.mes}`, m])).values()]
+  const mesesOpts = mesesUnicos.map((m: any) => ({
+    mes: m.mes, anio: m.anio,
+    label: `${getMesNombre(m.mes)} ${m.anio}`
+  }))
+  // Asegurar que el mes actual siempre aparezca
+  if (!mesesOpts.find(m => m.mes === mes && m.anio === anio)) {
+    mesesOpts.unshift({ mes, anio, label: `${getMesNombre(mes)} ${anio}` })
+  }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 font-display">Reportes</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Resumen general del colegio</p>
-      </div>
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        {stats.map((s, i) => (
-          <div key={i} className="bg-white border border-slate-200 rounded-xl p-5">
-            <div className={`w-10 h-10 rounded-lg ${s.color} flex items-center justify-center mb-3`}>
-              <i className={`ti ${s.icon} text-lg`} aria-hidden="true" />
-            </div>
-            <div className="text-2xl font-bold text-slate-900 font-display">{s.val}</div>
-            <div className="text-sm text-slate-500 mt-0.5">{s.label}</div>
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        {[
-          { title: 'Reporte de asistencia mensual', desc: 'Porcentaje de asistencia por curso y alumno', icon: 'ti-clipboard-check', color: 'text-blue-500' },
-          { title: 'Reporte de calificaciones', desc: 'Promedios por materia, curso y periodo', icon: 'ti-chart-bar', color: 'text-violet-500' },
-          { title: 'Reporte de cobranzas', desc: 'Estado de pagos, deudores y proyeccion mensual', icon: 'ti-cash', color: 'text-emerald-500' },
-          { title: 'Reporte de comunicados', desc: 'Tasa de lectura y confirmacion por familia', icon: 'ti-speakerphone', color: 'text-amber-500' },
-        ].map((r, i) => (
-          <div key={i} className="bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer">
-            <div className="flex items-start gap-4">
-              <i className={`ti ${r.icon} text-2xl ${r.color} flex-shrink-0 mt-0.5`} aria-hidden="true" />
-              <div>
-                <div className="font-semibold text-slate-800 text-sm mb-1 font-display">{r.title}</div>
-                <div className="text-xs text-slate-500">{r.desc}</div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <ReportesClient
+      stats={{
+        totalAlumnos: totalAlumnos ?? 0,
+        totalEvaluaciones: totalEvaluaciones ?? 0,
+        totalCobros: totalCobros ?? 0,
+        totalComunicados: totalComunicados ?? 0,
+        pctAsistenciaGlobal,
+        promedioGeneral,
+        recaudadoMes,
+        moraMes,
+      }}
+      cursos={cursos}
+      meses={mesesOpts}
+      mesActual={{ mes, anio }}
+      resumenPorCurso={resumenPorCurso}
+    />
   )
 }

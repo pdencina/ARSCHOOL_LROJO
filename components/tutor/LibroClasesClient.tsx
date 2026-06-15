@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 interface Props { registros: any[]; cursos: string[]; colegioId: string; tutorId: string }
@@ -8,6 +9,7 @@ interface Props { registros: any[]; cursos: string[]; colegioId: string; tutorId
 const MATERIAS = ['Lenguaje','Matemáticas','Ciencias Naturales','Historia','Inglés','Artes','Ed. Física','Música','Tecnología']
 
 export default function LibroClasesClient({ registros, cursos, colegioId, tutorId }: Props) {
+  const router = useRouter()
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [filtroCurso, setFiltroCurso] = useState(cursos[0] ?? '')
@@ -36,7 +38,7 @@ export default function LibroClasesClient({ registros, cursos, colegioId, tutorI
     if (error) { toast.error('Error al guardar'); setSaving(false); return }
     toast.success('Registro guardado en el libro de clases')
     setSaving(false); setShowModal(false)
-    window.location.reload()
+    router.refresh()
   }
 
   return (
