@@ -27,11 +27,11 @@ export interface Database {
       usuarios: {
         Row: {
           id: string
-          colegio_id: string
+          colegio_id: string | null
           email: string
           nombre: string
           apellido: string
-          rol: 'admin' | 'director' | 'docente' | 'administrativo'
+          rol: 'super_admin' | 'admin' | 'tutor' | 'apoderado' | 'alumno'
           avatar_url: string | null
           activo: boolean
           created_at: string

@@ -38,11 +38,13 @@ const ROL_ACCESOS: Record<string, { label: string; href: string; icon: string; c
     { label: 'Alumnos',       href: '/alumnos',        icon: 'ti-users',            color: 'text-slate-600',  bg: 'bg-slate-50' },
     { label: 'Reportes',      href: '/reportes',       icon: 'ti-file-analytics',   color: 'text-red-600',    bg: 'bg-red-50' },
   ],
-  docente: [
+  tutor: [
     { label: 'Comunicados',   href: '/comunicados',    icon: 'ti-speakerphone',    color: 'text-blue-600',   bg: 'bg-blue-50' },
     { label: 'Asistencias',   href: '/asistencias',    icon: 'ti-clipboard-check', color: 'text-emerald-600',bg: 'bg-emerald-50' },
     { label: 'Calificaciones',href: '/calificaciones', icon: 'ti-chart-bar',       color: 'text-violet-600', bg: 'bg-violet-50' },
     { label: 'Fichas',        href: '/fichas',         icon: 'ti-books',           color: 'text-amber-600',  bg: 'bg-amber-50' },
+    { label: 'Planificación', href: '/planificacion',  icon: 'ti-layout-board',    color: 'text-slate-600',  bg: 'bg-slate-50' },
+    { label: 'Libro de clases',href: '/libro-clases',  icon: 'ti-notebook',        color: 'text-teal-600',   bg: 'bg-teal-50' },
   ],
   tutor: [
     { label: 'Comunicados',   href: '/portal/comunicados',    icon: 'ti-speakerphone',    color: 'text-blue-600',   bg: 'bg-blue-50' },
@@ -70,8 +72,8 @@ export default function DashboardInicio({ usuario, rol, stats, notificaciones, u
         </h1>
         <p className="text-slate-500 mt-1">
           {rol === 'super_admin' ? 'Fundación ARM Global — Vista global' :
-           rol === 'docente'     ? `Docente · ${usuario?.colegio?.nombre}` :
-           rol === 'tutor'       ? `Apoderado · ${usuario?.colegio?.nombre}` :
+           rol === 'tutor'       ? `Profesor · ${usuario?.colegio?.nombre}` :
+           rol === 'apoderado'   ? `Apoderado · ${usuario?.colegio?.nombre}` :
            rol === 'alumno'      ? `Estudiante · ${usuario?.colegio?.nombre}` :
            `${usuario?.colegio?.nombre} — Panel de administración`}
         </p>
