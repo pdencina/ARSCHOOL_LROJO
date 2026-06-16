@@ -15,13 +15,24 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       toast.error('Credenciales incorrectas.')
       setLoading(false)
       return
     }
-    router.push('/')
+    // Detectar rol para redirigir al lugar correcto
+    const { data: usuario } = await supabase.from('usuarios').select('rol, colegio_id').eq('id', data.user.id).single()
+    const rol = (usuario as any)?.rol
+    const colegioId = (usuario as any)?.colegio_id
+
+    if (rol === 'super_admin' && !colegioId) {
+      router.push('/super-admin')
+    } else if (['apoderado', 'alumno'].includes(rol)) {
+      router.push('/portal')
+    } else {
+      router.push('/inicio')
+    }
     router.refresh()
   }
 
