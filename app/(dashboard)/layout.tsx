@@ -31,6 +31,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const usuario = usuarioRaw as any
   if (!usuario) redirect('/login')
 
+  // Super admin sin colegio asignado: redirigir al panel de super admin
+  if (usuario.rol === 'super_admin' && !usuario.colegio_id) {
+    redirect('/super-admin')
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Toaster position="top-right"/>

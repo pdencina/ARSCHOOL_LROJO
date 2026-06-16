@@ -21,7 +21,7 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    router.push('/inicio')
+    router.push('/')
     router.refresh()
   }
 
