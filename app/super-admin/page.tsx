@@ -18,11 +18,12 @@ export default async function SuperAdminPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  const { data: ur } = await supabase.from('usuarios').select('rol').eq('id', user.id).single()
-  if ((ur as any)?.rol !== 'super_admin') redirect('/fichas')
 
   // Usar service role para leer todos los colegios sin RLS
   const admin = getAdminClient()
+
+  const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
+  if ((ur as any)?.rol !== 'super_admin') redirect('/inicio')
   const { data: colegios } = await admin.from('colegios').select('*').order('nombre')
   const colegioIds = (colegios ?? []).map((c: any) => c.id)
 

@@ -23,11 +23,11 @@ export default async function UsuariosPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: ur } = await supabase.from('usuarios').select('rol').eq('id', user.id).single()
-  if ((ur as any)?.rol !== 'super_admin') redirect('/fichas')
-
   // Usar service role para saltear RLS
   const admin = getAdminClient()
+
+  const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
+  if ((ur as any)?.rol !== 'super_admin') redirect('/inicio')
 
   const [{ data: colegios }, { data: usuarios }] = await Promise.all([
     admin.from('colegios').select('id, nombre').order('nombre'),
