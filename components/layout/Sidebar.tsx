@@ -74,18 +74,18 @@ export default function Sidebar({ rol = 'admin' }: Props) {
     const visibles = items.filter(i => i.roles.includes(rolTyped))
     if (!visibles.length) return null
     return (
-      <div className="mb-4">
-        <div className="px-3 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{section}</div>
+      <div className="mb-5">
+        <div className="px-3 py-1.5 text-[10px] font-bold text-[#9ca3af] uppercase tracking-[0.12em] mb-1">{section}</div>
         {visibles.map(item => {
           const active = pathname === item.href || (item.href !== '/inicio' && item.href !== '/portal' && pathname.startsWith(item.href))
           return (
             <Link key={item.href + item.label} href={item.href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium mb-0.5 transition-all ${
-                active ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium mb-0.5 transition-all ${
+                active ? 'bg-[#1a2332] text-white' : 'text-[#4b5563] hover:bg-[#f3f4f6] hover:text-[#1a2332]'
               }`}>
-              <i className={`ti ${item.icon} text-base flex-shrink-0 ${active ? 'text-blue-600' : 'text-slate-400'}`} aria-hidden="true"/>
+              <i className={`ti ${item.icon} text-[15px] flex-shrink-0 ${active ? 'text-[#b8860b]' : 'text-[#9ca3af]'}`} aria-hidden="true"/>
               <span className="flex-1 truncate">{item.label}</span>
-              {item.badge && <span className="bg-red-500 text-white text-xs font-medium px-1.5 py-0.5 rounded-full leading-none">{item.badge}</span>}
+              {item.badge && <span className="bg-[#c53030] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none">{item.badge}</span>}
             </Link>
           )
         })}
@@ -94,15 +94,15 @@ export default function Sidebar({ rol = 'admin' }: Props) {
   }
 
   return (
-    <aside className="w-56 bg-white border-r border-slate-100 flex flex-col shrink-0 min-h-[calc(100vh-56px)]">
+    <aside className="w-56 bg-white border-r border-[#e8eaed] flex flex-col shrink-0 min-h-[calc(100vh-56px)]">
       <div className="px-4 pt-4 pb-2">
         {badge && (
-          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold ${badge.color}`}>
-            <i className={`ti ${badge.icon} text-xs`} aria-hidden="true"/> {badge.label}
+          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold ${badge.color}`}>
+            <i className={`ti ${badge.icon} text-[10px]`} aria-hidden="true"/> {badge.label}
           </div>
         )}
       </div>
-      <nav className="flex-1 py-2 px-2">
+      <nav className="flex-1 py-3 px-3">
         {rolTyped === 'apoderado' && renderGroup(NAV_APODERADO, 'Mi espacio')}
         {rolTyped === 'alumno'    && renderGroup(NAV_ALUMNO,    'Mi espacio')}
         {!isPortal && (

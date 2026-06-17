@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,90 +6,99 @@
 
 @layer base {
   :root {
-    --ar-navy:    #0F1B2D;
-    --ar-blue:    #1B4FD8;
-    --ar-blue-l:  #EEF2FF;
-    --ar-blue-m:  #3B6EF0;
-    --ar-accent:  #F59E0B;
-    --ar-success: #10B981;
-    --ar-danger:  #EF4444;
-    --ar-warn:    #F59E0B;
-    --ar-surface: #F8FAFC;
-    --ar-border:  #E2E8F0;
-    --ar-text:    #0F172A;
-    --ar-muted:   #64748B;
+    --ar-navy:    #1a2332;
+    --ar-primary: #2c4a6e;
+    --ar-primary-l: #f0f4f8;
+    --ar-accent:  #b8860b;
+    --ar-accent-l: #fdf8ee;
+    --ar-success: #1a7a4c;
+    --ar-danger:  #c53030;
+    --ar-warn:    #b7791f;
+    --ar-surface: #ffffff;
+    --ar-bg:      #f7f8fa;
+    --ar-border:  #e8eaed;
+    --ar-text:    #1a2332;
+    --ar-muted:   #6b7280;
   }
   body {
-    @apply bg-slate-50 text-slate-900;
-    font-family: 'Inter', system-ui, sans-serif;
+    @apply bg-[#f7f8fa] text-[#1a2332];
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.011em;
   }
   h1,h2,h3 {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'DM Sans', 'Inter', sans-serif;
+    letter-spacing: -0.02em;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer border-0 shadow-sm;
+    @apply inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a2332] text-white text-sm font-medium rounded-lg hover:bg-[#2c3a4d] transition-all cursor-pointer border-0;
   }
   .btn-secondary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 text-sm font-medium rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm;
+    @apply inline-flex items-center gap-2 px-4 py-2.5 bg-white text-[#1a2332] text-sm font-medium rounded-lg border border-[#e8eaed] hover:border-[#d1d5db] hover:bg-[#fafbfc] transition-all cursor-pointer;
   }
   .btn-danger {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors cursor-pointer border-0;
+    @apply inline-flex items-center gap-2 px-4 py-2.5 bg-[#c53030] text-white text-sm font-medium rounded-lg hover:bg-[#9b2c2c] transition-all cursor-pointer border-0;
   }
   .input-base {
-    @apply w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all;
+    @apply w-full px-3.5 py-2.5 bg-white border border-[#e8eaed] rounded-lg text-sm text-[#1a2332] placeholder-[#9ca3af] outline-none focus:ring-2 focus:ring-[#2c4a6e]/20 focus:border-[#2c4a6e] transition-all;
   }
   .select-base {
-    @apply px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer;
+    @apply px-3.5 py-2.5 bg-white border border-[#e8eaed] rounded-lg text-sm text-[#1a2332] outline-none focus:ring-2 focus:ring-[#2c4a6e]/20 cursor-pointer;
   }
   .card {
-    @apply bg-white border border-slate-200 rounded-xl shadow-sm;
+    @apply bg-white border border-[#e8eaed] rounded-xl;
   }
   .tag {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium;
   }
-  .tag-ok      { @apply bg-emerald-50 text-emerald-700; }
-  .tag-mora    { @apply bg-red-50 text-red-700; }
-  .tag-pend    { @apply bg-amber-50 text-amber-700; }
-  .tag-par     { @apply bg-orange-50 text-orange-700; }
-  .tag-blue    { @apply bg-blue-50 text-blue-700; }
-  .tag-gray    { @apply bg-slate-100 text-slate-600; }
+  .tag-ok      { @apply bg-emerald-50 text-emerald-800; }
+  .tag-mora    { @apply bg-red-50 text-red-800; }
+  .tag-pend    { @apply bg-amber-50 text-amber-800; }
+  .tag-par     { @apply bg-orange-50 text-orange-800; }
+  .tag-blue    { @apply bg-sky-50 text-sky-800; }
+  .tag-gray    { @apply bg-gray-100 text-gray-600; }
   .kpi-card {
-    @apply bg-white border border-slate-200 rounded-xl p-5 shadow-sm;
+    @apply bg-white border border-[#e8eaed] rounded-xl p-5;
   }
   .kpi-label {
-    @apply text-xs font-medium text-slate-500 uppercase tracking-wider mb-1;
+    @apply text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1;
   }
   .kpi-value {
-    @apply text-2xl font-bold text-slate-900;
-    font-family: 'Space Grotesk', sans-serif;
+    @apply text-2xl font-bold text-[#1a2332];
+    font-family: 'DM Sans', sans-serif;
   }
   .kpi-sub {
-    @apply text-xs text-slate-500 mt-0.5;
+    @apply text-xs text-[#9ca3af] mt-0.5;
   }
   .page-header {
     @apply flex items-center justify-between mb-6;
   }
   .page-title {
-    @apply text-2xl font-bold text-slate-900;
-    font-family: 'Space Grotesk', sans-serif;
+    @apply text-xl font-bold text-[#1a2332];
+    font-family: 'DM Sans', sans-serif;
   }
   .page-subtitle {
-    @apply text-sm text-slate-500 mt-0.5;
+    @apply text-sm text-[#6b7280] mt-0.5;
   }
   .table-head th {
-    @apply text-xs font-medium text-slate-500 uppercase tracking-wider px-4 py-3 text-left bg-slate-50 border-b border-slate-200;
+    @apply text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider px-4 py-3 text-left bg-[#f7f8fa] border-b border-[#e8eaed];
   }
   .table-row td {
-    @apply px-4 py-3 border-b border-slate-100 text-sm;
+    @apply px-4 py-3.5 border-b border-[#f3f4f6] text-sm;
   }
   .table-row:last-child td {
     @apply border-b-0;
   }
   .table-row:hover td {
-    @apply bg-slate-50;
+    @apply bg-[#f9fafb];
   }
 }
+
+/* Scrollbar refinada */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
