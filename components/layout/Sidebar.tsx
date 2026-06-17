@@ -55,11 +55,11 @@ const NAV_ALUMNO: NavItem[] = [
 ]
 
 const ROL_BADGE: Record<string, { label: string; color: string; icon: string }> = {
-  super_admin: { label: 'Super Admin',   color: 'bg-red-50 text-red-700',      icon: 'ti-shield-check' },
-  admin:       { label: 'Administrativo',color: 'bg-blue-50 text-blue-700',    icon: 'ti-briefcase' },
-  tutor:       { label: 'Profesor',      color: 'bg-violet-50 text-violet-700',icon: 'ti-school' },
-  apoderado:   { label: 'Apoderado',     color: 'bg-emerald-50 text-emerald-700',icon: 'ti-heart-handshake' },
-  alumno:      { label: 'Alumno',        color: 'bg-amber-50 text-amber-700',  icon: 'ti-backpack' },
+  super_admin: { label: 'Administración General', color: 'bg-amber-50 text-amber-800 border border-amber-100', icon: 'ti-shield-check' },
+  admin:       { label: 'Administración',         color: 'bg-blue-50 text-blue-700 border border-blue-100',    icon: 'ti-briefcase' },
+  tutor:       { label: 'Docente',                color: 'bg-violet-50 text-violet-700 border border-violet-100', icon: 'ti-school' },
+  apoderado:   { label: 'Apoderado',              color: 'bg-emerald-50 text-emerald-700 border border-emerald-100', icon: 'ti-heart-handshake' },
+  alumno:      { label: 'Alumno',                 color: 'bg-amber-50 text-amber-700 border border-amber-100', icon: 'ti-backpack' },
 }
 
 interface Props { rol?: string }
@@ -94,10 +94,10 @@ export default function Sidebar({ rol = 'admin' }: Props) {
   }
 
   return (
-    <aside className="w-56 bg-white border-r border-slate-200 flex flex-col shrink-0 min-h-[calc(100vh-56px)]">
-      <div className="px-3 pt-3 pb-1">
+    <aside className="w-56 bg-white border-r border-slate-100 flex flex-col shrink-0 min-h-[calc(100vh-56px)]">
+      <div className="px-4 pt-4 pb-2">
         {badge && (
-          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${badge.color}`}>
+          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold ${badge.color}`}>
             <i className={`ti ${badge.icon} text-xs`} aria-hidden="true"/> {badge.label}
           </div>
         )}
