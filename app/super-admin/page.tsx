@@ -45,11 +45,8 @@ export default async function SuperAdminPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-red-50 text-red-700 text-xs font-medium mb-2">
-            <i className="ti ti-shield-check text-xs" aria-hidden="true"/> Fundación ARM Global
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 font-display">Colegios AR School</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Vista global de todos los establecimientos</p>
+          <h1 className="text-2xl font-bold text-slate-900 font-display">Establecimientos</h1>
+          <p className="text-sm text-slate-400 mt-0.5">Gestión centralizada de colegios AR School</p>
         </div>
         <Link href="/super-admin/colegios/nuevo" className="btn-primary">
           <i className="ti ti-plus text-sm" aria-hidden="true"/> Nuevo colegio

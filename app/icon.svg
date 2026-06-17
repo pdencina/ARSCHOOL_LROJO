@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#1B4FD8"/>
-  <text x="16" y="22" text-anchor="middle" fill="white" font-family="sans-serif" font-weight="700" font-size="14">AR</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="6" fill="#1B2B4B"/>
+  <path d="M8 6h16v14.5c0 3.2-3.2 6.4-8 8-4.8-1.6-8-4.8-8-8V6z" fill="#C9A94E" opacity="0.85"/>
+  <text x="16" y="21" text-anchor="middle" fill="#1B2B4B" font-family="serif" font-weight="700" font-size="10">AR</text>
 </svg>

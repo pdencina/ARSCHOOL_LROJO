@@ -1,14 +1,15 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 interface Props { usuario: any }
 
 const ROL_LABEL: Record<string, string> = {
-  super_admin: 'Super Admin',
-  admin:       'Administrativo',
-  tutor:       'Profesor',
+  super_admin: 'Administrador General',
+  admin:       'Administración',
+  tutor:       'Docente',
   apoderado:   'Apoderado',
   alumno:      'Alumno',
 }
@@ -31,11 +32,11 @@ export default function Topbar({ usuario }: Props) {
       <div className="flex items-center justify-between h-14 px-6">
         {/* Logo */}
         <Link href={rol === 'apoderado' || rol === 'alumno' ? '/portal' : '/inicio'} className="flex items-center gap-3 shrink-0">
-          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center font-display font-bold text-white text-sm">AR</div>
+          <Image src="/logo.svg" alt="AR School" width={36} height={36} className="rounded-lg"/>
           <div>
-            <div className="font-display font-semibold text-white text-sm leading-none">AR School</div>
-            <div className="text-white/40 text-xs mt-0.5 leading-none">
-              {rol === 'super_admin' ? 'Fundación ARM Global' : usuario?.colegio?.nombre ?? 'Plataforma educacional'}
+            <div className="font-display font-semibold text-white text-sm leading-none tracking-wide">AR SCHOOL</div>
+            <div className="text-white/40 text-[10px] mt-0.5 leading-none uppercase tracking-widest">
+              {rol === 'super_admin' ? 'Gestión Educacional' : usuario?.colegio?.nombre ?? 'Gestión Educacional'}
             </div>
           </div>
         </Link>
@@ -44,10 +45,10 @@ export default function Topbar({ usuario }: Props) {
         <div className="flex items-center gap-3 shrink-0">
           <div className="hidden md:block text-right">
             <div className="text-white/80 text-sm font-medium">{usuario?.nombre} {usuario?.apellido}</div>
-            <div className="text-white/40 text-xs">{ROL_LABEL[rol] ?? rol}</div>
+            <div className="text-white/40 text-[10px] uppercase tracking-wider">{ROL_LABEL[rol] ?? rol}</div>
           </div>
           <button onClick={logout}
-            className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center font-medium text-white text-xs hover:bg-blue-400 transition-colors"
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center font-semibold text-white text-xs hover:from-amber-400 hover:to-amber-600 transition-all shadow-lg shadow-amber-900/20"
             title="Cerrar sesión">
             {iniciales}
           </button>
