@@ -15,10 +15,11 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: ur } = await supabase.from('usuarios').select('rol').eq('id', user.id).single()
+  const admin = getAdminClient()
+  const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
   if ((ur as any)?.rol !== 'super_admin') return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
 
-  const { data } = await supabase.from('usuarios').select('*, colegio:colegios(nombre)').order('created_at', { ascending: false })
+  const { data } = await admin.from('usuarios').select('*, colegio:colegios(nombre)').order('created_at', { ascending: false })
   return NextResponse.json(data ?? [])
 }
 
@@ -27,15 +28,14 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: ur } = await supabase.from('usuarios').select('rol').eq('id', user.id).single()
+  const admin = getAdminClient()
+  const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
   if ((ur as any)?.rol !== 'super_admin') return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
 
   const { nombre, apellido, email, password, rol, colegio_id } = await request.json()
   if (!email || !password || !nombre || !colegio_id) {
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
   }
-
-  const admin = getAdminClient()
 
   // 1. Crear usuario en Supabase Auth
   const { data: authData, error: authError } = await admin.auth.admin.createUser({
