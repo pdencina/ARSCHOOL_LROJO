@@ -37,6 +37,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
   }
 
+  // Verificar si ya existe en public.usuarios
+  const { data: existente } = await admin.from('usuarios').select('id').eq('email', email).single()
+  if (existente) {
+    return NextResponse.json({ error: 'Ya existe un usuario con ese email' }, { status: 400 })
+  }
+
   // 1. Crear usuario en Supabase Auth
   const { data: authData, error: authError } = await admin.auth.admin.createUser({
     email,
@@ -44,7 +50,22 @@ export async function POST(request: NextRequest) {
     email_confirm: true,
   })
 
-  if (authError) return NextResponse.json({ error: authError.message }, { status: 400 })
+  if (authError) {
+    // Si ya existe en auth pero no en usuarios, recuperar el ID
+    if (authError.message?.includes('already been registered')) {
+      const { data: { users } } = await admin.auth.admin.listUsers()
+      const existing = users.find((u: any) => u.email === email)
+      if (existing) {
+        const { data: nuevoUsuario, error: dbError } = await admin.from('usuarios').insert({
+          id: existing.id, email, nombre: nombre.trim(), apellido: apellido?.trim() ?? '',
+          rol, colegio_id, activo: true,
+        }).select().single()
+        if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })
+        return NextResponse.json(nuevoUsuario, { status: 201 })
+      }
+    }
+    return NextResponse.json({ error: authError.message }, { status: 400 })
+  }
 
   // 2. Insertar en tabla usuarios
   const { data: nuevoUsuario, error: dbError } = await admin.from('usuarios').insert({
