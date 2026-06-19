@@ -56,10 +56,10 @@ export async function POST(request: NextRequest) {
       const { data: { users } } = await admin.auth.admin.listUsers()
       const existing = users.find((u: any) => u.email === email)
       if (existing) {
-        const { data: nuevoUsuario, error: dbError } = await admin.from('usuarios').insert({
+        const { data: nuevoUsuario, error: dbError } = await admin.from('usuarios').upsert({
           id: existing.id, email, nombre: nombre.trim(), apellido: apellido?.trim() ?? '',
           rol, colegio_id, activo: true,
-        }).select().single()
+        }, { onConflict: 'id' }).select().single()
         if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })
         return NextResponse.json(nuevoUsuario, { status: 201 })
       }
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 2. Insertar en tabla usuarios
-  const { data: nuevoUsuario, error: dbError } = await admin.from('usuarios').insert({
+  const { data: nuevoUsuario, error: dbError } = await admin.from('usuarios').upsert({
     id: authData.user.id,
     email,
     nombre: nombre.trim(),
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     rol,
     colegio_id,
     activo: true,
-  }).select().single()
+  }, { onConflict: 'id' }).select().single()
 
   if (dbError) {
     // Rollback: eliminar usuario de auth
