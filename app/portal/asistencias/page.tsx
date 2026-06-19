@@ -1,20 +1,34 @@
 export const dynamic = 'force-dynamic'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getMesNombre } from '@/lib/utils'
 
 export default async function PortalAsistenciasPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: ur } = await supabase.from('usuarios').select('rol').eq('id', user!.id).single()
+  if (!user) redirect('/login')
+
+  const { data: ur } = await supabase.from('usuarios').select('rol').eq('id', user.id).single()
   const rol = (ur as any)?.rol
 
   let alumnoIds: string[] = []
   if (rol === 'alumno') {
-    const { data: va } = await supabase.from('usuario_alumno').select('alumno_id').eq('usuario_id', user!.id)
+    const { data: va } = await supabase.from('usuario_alumno').select('alumno_id').eq('usuario_id', user.id)
     alumnoIds = (va ?? []).map((r: any) => r.alumno_id)
   } else {
-    const { data: ta } = await supabase.from('tutor_alumnos').select('alumno_id, alumno:alumnos(nombre,apellido,curso)').eq('tutor_id', user!.id)
+    const { data: ta } = await supabase.from('tutor_alumnos').select('alumno_id').eq('tutor_id', user.id)
     alumnoIds = (ta ?? []).map((r: any) => r.alumno_id)
+  }
+
+  if (alumnoIds.length === 0) {
+    return (
+      <div className="p-6">
+        <h1 className="text-xl font-bold text-[#1a2332]" style={{ fontFamily: 'DM Sans, sans-serif' }}>Asistencias</h1>
+        <div className="mt-8 bg-white border border-[#e8eaed] rounded-xl p-10 text-center">
+          <i className="ti ti-clipboard-check text-3xl text-[#d1d5db] block mb-2" aria-hidden="true"/>
+          <p className="text-[#9ca3af] text-sm">No hay alumnos vinculados a tu cuenta.</p>
+        </div>
+      </div>
+    )
   }
 
   const { data: asistencias } = await supabase
