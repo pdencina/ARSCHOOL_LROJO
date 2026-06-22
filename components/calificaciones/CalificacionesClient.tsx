@@ -24,8 +24,17 @@ const MATERIA_COLOR: Record<string, { bg: string; text: string }> = {
   'Ed. Fisica':         { bg: 'bg-teal-50',    text: 'text-teal-700' },
 }
 
-function notaColor(nota: number) {
-  return nota >= 4 ? 'text-emerald-600' : 'text-red-600'
+function logroColor(pct: number) {
+  if (pct >= 80) return 'text-emerald-600'
+  if (pct >= 60) return 'text-amber-600'
+  return 'text-red-600'
+}
+
+function logroTag(pct: number) {
+  if (pct >= 80) return { label: 'Destacado', className: 'tag-ok' }
+  if (pct >= 60) return { label: 'Logrado', className: 'tag-blue' }
+  if (pct >= 40) return { label: 'En desarrollo', className: 'tag-pend' }
+  return { label: 'Inicial', className: 'tag-mora' }
 }
 
 export default function CalificacionesClient({ evaluaciones, alumnos, cursos, colegioId }: Props) {
@@ -55,22 +64,24 @@ export default function CalificacionesClient({ evaluaciones, alumnos, cursos, co
   )
 
   function promedioEval(ev: any) {
-    const ns = (ev.calificaciones ?? []).map((c: any) => c.nota).filter(Boolean)
+    const ns = (ev.calificaciones ?? []).map((c: any) => c.nota).filter((n: any) => n != null)
     if (!ns.length) return null
-    return (ns.reduce((a: number, b: number) => a + b, 0) / ns.length).toFixed(1)
+    return Math.round(ns.reduce((a: number, b: number) => a + b, 0) / ns.length)
   }
 
   const promGeneral = evaluaciones.length
-    ? evaluaciones.map(e => promedioEval(e)).filter(Boolean)
-        .reduce((a, b) => a + parseFloat(b!), 0) /
-      evaluaciones.filter(e => promedioEval(e)).length
+    ? Math.round(
+        evaluaciones.map(e => promedioEval(e)).filter(Boolean)
+          .reduce((a, b) => a + (b as number), 0) /
+        evaluaciones.filter(e => promedioEval(e)).length
+      )
     : null
 
   async function handleCrearEval() {
     if (!nuevaEval.nombre || !nuevaEval.curso) { toast.error('Completa todos los campos'); return }
     setSaving(true)
     const { data, error } = await supabase.from('evaluaciones').insert({
-      colegio_id: colegioId, ...nuevaEval, nota_minima: 4.0, nota_maxima: 7.0
+      colegio_id: colegioId, ...nuevaEval, ponderacion: 100
     }).select().single()
     if (error) { toast.error('Error al crear evaluación'); setSaving(false); return }
     toast.success('Evaluación creada')
@@ -88,13 +99,14 @@ export default function CalificacionesClient({ evaluaciones, alumnos, cursos, co
       .map(([alumno_id, nota]) => ({
         evaluacion_id: evalSel.id,
         alumno_id,
-        nota: parseFloat(nota),
+        nota: parseInt(nota),
+        colegio_id: colegioId,
         registrado_por: user?.id,
       }))
-    if (upserts.length === 0) { toast.error('No hay notas para guardar'); setSaving(false); return }
+    if (upserts.length === 0) { toast.error('No hay porcentajes para guardar'); setSaving(false); return }
     const { error } = await supabase.from('calificaciones').upsert(upserts, { onConflict: 'evaluacion_id,alumno_id' })
-    if (error) { toast.error('Error al guardar notas'); setSaving(false); return }
-    toast.success(`${upserts.length} notas guardadas correctamente`)
+    if (error) { toast.error('Error al guardar'); setSaving(false); return }
+    toast.success(`${upserts.length} resultados guardados`)
     setSaving(false)
     setVista('lista')
     router.refresh()
@@ -106,8 +118,8 @@ export default function CalificacionesClient({ evaluaciones, alumnos, cursos, co
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 font-display">Calificaciones</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Evaluaciones y registro de notas por alumno</p>
+          <h1 className="page-title">Evaluaciones</h1>
+          <p className="page-subtitle">Registro de logro por alumno (escala 0–100%)</p>
         </div>
         {vista === 'lista' && (
           <button onClick={() => setVista('nueva')} className="btn-primary">
@@ -124,10 +136,10 @@ export default function CalificacionesClient({ evaluaciones, alumnos, cursos, co
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Promedio general', val: promGeneral ? promGeneral.toFixed(1) : '—', sub: 'todas las materias', color: promGeneral && promGeneral >= 4 ? 'text-emerald-600' : 'text-slate-800' },
-          { label: 'Evaluaciones', val: evaluaciones.length, sub: 'registradas', color: 'text-blue-600' },
-          { label: 'Notas cargadas', val: evaluaciones.reduce((a, e) => a + (e.calificaciones?.length ?? 0), 0), sub: 'total alumnos', color: 'text-slate-800' },
-          { label: 'Sin notas', val: evaluaciones.filter(e => (e.calificaciones?.length ?? 0) === 0).length, sub: 'evaluaciones pendientes', color: 'text-amber-600' },
+          { label: 'Logro promedio', val: promGeneral ? `${promGeneral}%` : '—', sub: 'todas las materias', color: promGeneral ? logroColor(promGeneral) : 'text-[#1a2332]' },
+          { label: 'Evaluaciones', val: evaluaciones.length, sub: 'registradas', color: 'text-[#2c4a6e]' },
+          { label: 'Resultados', val: evaluaciones.reduce((a, e) => a + (e.calificaciones?.length ?? 0), 0), sub: 'cargados', color: 'text-[#1a2332]' },
+          { label: 'Pendientes', val: evaluaciones.filter(e => (e.calificaciones?.length ?? 0) === 0).length, sub: 'sin resultados', color: 'text-[#b7791f]' },
         ].map((k, i) => (
           <div key={i} className="kpi-card">
             <div className="kpi-label">{k.label}</div>
@@ -140,7 +152,6 @@ export default function CalificacionesClient({ evaluaciones, alumnos, cursos, co
       {/* Vista: Lista evaluaciones */}
       {vista === 'lista' && (
         <>
-          {/* Filtros */}
           <div className="flex items-center gap-2 mb-4 flex-wrap">
             <select value={filtroMateria} onChange={e => setFiltroMateria(e.target.value)} className="select-base text-sm">
               <option value="">Todas las materias</option>
@@ -151,51 +162,46 @@ export default function CalificacionesClient({ evaluaciones, alumnos, cursos, co
               {cursos.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             {(filtroMateria || filtroCurso) && (
-              <button onClick={() => { setFiltroMateria(''); setFiltroCurso('') }} className="text-xs text-blue-600 hover:underline">
+              <button onClick={() => { setFiltroMateria(''); setFiltroCurso('') }} className="text-xs text-[#6b7280] hover:text-[#1a2332]">
                 Limpiar filtros
               </button>
             )}
-            <span className="text-xs text-slate-400 ml-auto">{evalsFiltradas.length} evaluación{evalsFiltradas.length !== 1 ? 'es' : ''}</span>
+            <span className="text-[11px] text-[#9ca3af] ml-auto">{evalsFiltradas.length} evaluación{evalsFiltradas.length !== 1 ? 'es' : ''}</span>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="bg-white border border-[var(--ar-border)] rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  {['Evaluación','Materia','Curso','Fecha','Promedio','Alumnos',''].map(h => (
-                    <th key={h} className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3 text-left">{h}</th>
+                <tr className="bg-[#f9fafb] border-b border-[var(--ar-border)]">
+                  {['Evaluación','Materia','Curso','Fecha','Logro promedio','Alumnos',''].map(h => (
+                    <th key={h} className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider px-4 py-3 text-left">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {evalsFiltradas.length === 0 ? (
                   <tr><td colSpan={7} className="px-4 py-12 text-center">
-                    <i className="ti ti-chart-bar text-4xl text-slate-200 block mb-3" aria-hidden="true"/>
-                    <p className="text-slate-400 text-sm">No hay evaluaciones todavía.</p>
+                    <i className="ti ti-chart-bar text-3xl text-[#d1d5db] block mb-3" aria-hidden="true"/>
+                    <p className="text-[#9ca3af] text-sm">No hay evaluaciones todavía.</p>
                   </td></tr>
                 ) : evalsFiltradas.map((ev: any) => {
                   const prom = promedioEval(ev)
                   const mc = MATERIA_COLOR[ev.materia] ?? { bg: 'bg-slate-100', text: 'text-slate-600' }
                   return (
-                    <tr key={ev.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 font-semibold text-slate-800">{ev.nombre}</td>
-                      <td className="px-4 py-3">
-                        <span className={`tag ${mc.bg} ${mc.text}`}>{ev.materia}</span>
+                    <tr key={ev.id} className="border-b border-[#f3f4f6] hover:bg-[#fafbfc] transition-colors">
+                      <td className="px-4 py-3.5 font-medium text-[#1a2332]">{ev.nombre}</td>
+                      <td className="px-4 py-3.5"><span className={`tag ${mc.bg} ${mc.text}`}>{ev.materia}</span></td>
+                      <td className="px-4 py-3.5 text-[#6b7280] text-xs font-mono">{ev.curso}</td>
+                      <td className="px-4 py-3.5 text-xs text-[#6b7280]">{new Date(ev.fecha + 'T12:00:00').toLocaleDateString('es-CL')}</td>
+                      <td className="px-4 py-3.5">
+                        {prom != null ? (
+                          <span className={`font-bold text-lg ${logroColor(prom)}`} style={{ fontFamily: 'DM Sans, sans-serif' }}>{prom}%</span>
+                        ) : <span className="text-[#9ca3af] text-xs">Sin datos</span>}
                       </td>
-                      <td className="px-4 py-3 text-slate-600 text-xs font-mono">{ev.curso}</td>
-                      <td className="px-4 py-3 text-xs text-slate-500">{new Date(ev.fecha + 'T12:00:00').toLocaleDateString('es-CL')}</td>
-                      <td className="px-4 py-3">
-                        {prom ? (
-                          <span className={`font-display text-lg font-bold ${notaColor(parseFloat(prom))}`}>{prom}</span>
-                        ) : <span className="text-slate-400 text-xs">Sin notas</span>}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-500">{ev.calificaciones?.length ?? 0} alumnos</td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => { setEvalSel(ev); setNotas({}); setVista('cargar') }}
-                          className="btn-secondary text-xs py-1 px-3"
-                        >
-                          <i className="ti ti-pencil text-xs" aria-hidden="true"/> Cargar notas
+                      <td className="px-4 py-3.5 text-xs text-[#6b7280]">{ev.calificaciones?.length ?? 0}</td>
+                      <td className="px-4 py-3.5">
+                        <button onClick={() => { setEvalSel(ev); setNotas({}); setVista('cargar') }} className="btn-secondary text-xs py-1.5 px-3">
+                          Cargar resultados
                         </button>
                       </td>
                     </tr>
@@ -209,99 +215,101 @@ export default function CalificacionesClient({ evaluaciones, alumnos, cursos, co
 
       {/* Vista: Nueva evaluación */}
       {vista === 'nueva' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 max-w-lg">
-          <h2 className="font-display text-lg font-bold text-slate-800 mb-4">Nueva evaluación</h2>
+        <div className="bg-white border border-[var(--ar-border)] rounded-xl p-6 max-w-lg">
+          <h2 className="text-lg font-bold text-[#1a2332] mb-4" style={{ fontFamily: 'DM Sans, sans-serif' }}>Nueva evaluación</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Nombre</label>
-              <input value={nuevaEval.nombre} onChange={e => setNuevaEval(p => ({...p, nombre: e.target.value}))} className="input-base" placeholder="Ej: Prueba unidad 1"/>
+              <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1.5">Nombre de la evaluación</label>
+              <input value={nuevaEval.nombre} onChange={e => setNuevaEval(p => ({...p, nombre: e.target.value}))} className="input-base" placeholder="Ej: Evaluación diagnóstica unidad 1"/>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Materia</label>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1.5">Materia</label>
                 <select value={nuevaEval.materia} onChange={e => setNuevaEval(p => ({...p, materia: e.target.value}))} className="select-base w-full">
                   {MATERIAS.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Curso</label>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1.5">Curso</label>
                 <select value={nuevaEval.curso} onChange={e => setNuevaEval(p => ({...p, curso: e.target.value}))} className="select-base w-full">
                   {cursos.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Fecha</label>
+              <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1.5">Fecha</label>
               <input type="date" value={nuevaEval.fecha} onChange={e => setNuevaEval(p => ({...p, fecha: e.target.value}))} className="input-base"/>
             </div>
             <div className="flex gap-2 pt-2">
               <button onClick={() => setVista('lista')} className="btn-secondary flex-1">Cancelar</button>
               <button onClick={handleCrearEval} disabled={saving} className="btn-primary flex-1 disabled:opacity-60">
-                {saving ? 'Creando...' : 'Crear y cargar notas'}
+                {saving ? 'Creando...' : 'Crear evaluación'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Vista: Cargar notas */}
+      {/* Vista: Cargar resultados */}
       {vista === 'cargar' && evalSel && (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <div className="px-5 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <div className="bg-white border border-[var(--ar-border)] rounded-xl overflow-hidden">
+          <div className="px-5 py-3 bg-[#f9fafb] border-b border-[var(--ar-border)] flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`px-2.5 py-1 rounded-full text-xs font-medium ${matConfig?.bg} ${matConfig?.text}`}>
+              <div className={`px-2.5 py-1 rounded-md text-[11px] font-semibold ${matConfig?.bg} ${matConfig?.text}`}>
                 {evalSel.materia}
               </div>
-              <span className="font-display font-bold text-slate-800">{evalSel.nombre}</span>
-              <span className="text-xs text-slate-400">{evalSel.curso} · {new Date(evalSel.fecha + 'T12:00:00').toLocaleDateString('es-CL')}</span>
+              <span className="font-bold text-[#1a2332]" style={{ fontFamily: 'DM Sans, sans-serif' }}>{evalSel.nombre}</span>
+              <span className="text-xs text-[#9ca3af]">{evalSel.curso} · {new Date(evalSel.fecha + 'T12:00:00').toLocaleDateString('es-CL')}</span>
             </div>
             <button onClick={handleGuardarNotas} disabled={saving} className="btn-primary text-sm disabled:opacity-60">
-              {saving ? 'Guardando...' : `Guardar ${Object.values(notas).filter(n => n !== '').length} notas`}
+              {saving ? 'Guardando...' : `Guardar ${Object.values(notas).filter(n => n !== '').length} resultados`}
             </button>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200">
-                <th className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-2 text-left">#</th>
-                <th className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-2 text-left">Alumno</th>
-                <th className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-2 text-left">Nota (1–7)</th>
-                <th className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-2 text-left">Estado</th>
+              <tr className="border-b border-[var(--ar-border)]">
+                <th className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider px-4 py-2.5 text-left">#</th>
+                <th className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider px-4 py-2.5 text-left">Alumno</th>
+                <th className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider px-4 py-2.5 text-left">% de logro (0–100)</th>
+                <th className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider px-4 py-2.5 text-left">Nivel</th>
               </tr>
             </thead>
             <tbody>
               {alumnosCurso.length === 0 ? (
-                <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-400 text-sm">No hay alumnos en {evalSel.curso}.</td></tr>
+                <tr><td colSpan={4} className="px-4 py-8 text-center text-[#9ca3af] text-sm">No hay alumnos en {evalSel.curso}.</td></tr>
               ) : alumnosCurso.map((a: any, idx: number) => {
                 const notaExistente = evalSel.calificaciones?.find((c: any) => c.alumno?.nombre === a.nombre)?.nota
                 const notaActual = notas[a.id] ?? (notaExistente?.toString() ?? '')
-                const notaNum = parseFloat(notaActual)
+                const notaNum = parseInt(notaActual)
+                const tag = notaActual ? logroTag(notaNum) : null
                 return (
-                  <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 text-slate-400 text-xs font-mono">{idx + 1}</td>
+                  <tr key={a.id} className="border-b border-[#f3f4f6] hover:bg-[#fafbfc] transition-colors">
+                    <td className="px-4 py-3 text-[#9ca3af] text-xs font-mono">{idx + 1}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-xs font-bold text-blue-600 flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-[#f0f4f8] flex items-center justify-center text-[11px] font-bold text-[#2c4a6e] flex-shrink-0">
                           {a.nombre?.[0]}{a.apellido?.[0]}
                         </div>
-                        <span className="font-medium text-slate-800">{a.nombre} {a.apellido}</span>
+                        <span className="font-medium text-[#1a2332]">{a.nombre} {a.apellido}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <input
-                        type="number"
-                        min="1" max="7" step="0.1"
-                        value={notaActual}
-                        onChange={e => setNotas(prev => ({...prev, [a.id]: e.target.value}))}
-                        placeholder="—"
-                        className="input-base w-24 text-center font-mono"
-                      />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0" max="100" step="1"
+                          value={notaActual}
+                          onChange={e => setNotas(prev => ({...prev, [a.id]: e.target.value}))}
+                          placeholder="—"
+                          className="input-base w-20 text-center font-mono"
+                        />
+                        <span className="text-[#9ca3af] text-xs">%</span>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
-                      {notaActual ? (
-                        <span className={`tag ${notaNum >= 4 ? 'tag-ok' : 'tag-mora'}`}>
-                          {notaNum >= 4 ? 'Aprobado' : 'Reprobado'}
-                        </span>
-                      ) : <span className="text-slate-400 text-xs">Sin nota</span>}
+                      {tag ? (
+                        <span className={`tag ${tag.className}`}>{tag.label}</span>
+                      ) : <span className="text-[#d1d5db] text-xs">—</span>}
                     </td>
                   </tr>
                 )
