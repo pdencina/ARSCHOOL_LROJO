@@ -36,14 +36,14 @@ const NAV_APODERADO: NavItem[] = [
   { label: 'Inicio',          href: '/portal',                icon: 'ti-home',            roles: ['apoderado'] },
   { label: 'Comunicados',     href: '/portal/comunicados',    icon: 'ti-speakerphone',    roles: ['apoderado'] },
   { label: 'Asistencias',     href: '/portal/asistencias',    icon: 'ti-clipboard-check', roles: ['apoderado'] },
-  { label: 'Calificaciones',  href: '/portal/calificaciones', icon: 'ti-chart-bar',       roles: ['apoderado'] },
+  { label: 'Evaluaciones',   href: '/portal/calificaciones', icon: 'ti-chart-bar',       roles: ['apoderado'] },
   { label: 'Estado de pagos', href: '/portal/pagos',          icon: 'ti-cash',            roles: ['apoderado'] },
   { label: 'Mi perfil',       href: '/portal/perfil',         icon: 'ti-user',            roles: ['apoderado'] },
 ]
 
 const NAV_ALUMNO: NavItem[] = [
   { label: 'Inicio',          href: '/portal',                icon: 'ti-home',            roles: ['alumno'] },
-  { label: 'Mis notas',       href: '/portal/calificaciones', icon: 'ti-chart-bar',       roles: ['alumno'] },
+  { label: 'Mis evaluaciones', href: '/portal/calificaciones', icon: 'ti-chart-bar',       roles: ['alumno'] },
   { label: 'Asistencias',     href: '/portal/asistencias',    icon: 'ti-clipboard-check', roles: ['alumno'] },
   { label: 'Tareas',          href: '/portal/tareas',         icon: 'ti-checklist',       roles: ['alumno'] },
   { label: 'Comunicados',     href: '/portal/comunicados',    icon: 'ti-speakerphone',    roles: ['alumno'] },
