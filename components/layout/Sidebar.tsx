@@ -63,16 +63,51 @@ const ROL_BADGE: Record<string, { label: string; color: string; icon: string }> 
   alumno:      { label: 'Alumno',                 color: 'bg-[#fdf8ee] text-[#92400e] border border-[#fde68a]/40', icon: 'ti-backpack' },
 }
 
-interface Props { rol?: string }
+interface Props { rol?: string; modulosHabilitados?: string[] | null }
 
-export default function Sidebar({ rol = 'admin' }: Props) {
+// Mapeo: href del sidebar → key del módulo en BD
+const HREF_TO_MODULO: Record<string, string> = {
+  '/inicio': 'inicio',
+  '/alumnos': 'alumnos',
+  '/planificacion': 'planificacion',
+  '/asistencias': 'asistencias',
+  '/calificaciones': 'evaluaciones',
+  '/comunicados': 'comunicados',
+  '/mensajes': 'mensajes',
+  '/libro-clases': 'libro_clases',
+  '/reporte-diario': 'reporte_diario',
+  '/contable': 'cobranzas',
+  '/documentos': 'documentos',
+  '/calendario': 'calendario',
+  '/fichas': 'fichas',
+  '/reportes': 'reportes',
+  '/portal': 'inicio',
+  '/portal/reporte-diario': 'reporte_diario',
+  '/portal/mensajes': 'mensajes',
+  '/portal/comunicados': 'comunicados',
+  '/portal/asistencias': 'asistencias',
+  '/portal/calificaciones': 'evaluaciones',
+  '/portal/pagos': 'pagos',
+  '/portal/perfil': 'perfil',
+  '/portal/tareas': 'tareas',
+}
+
+export default function Sidebar({ rol = 'admin', modulosHabilitados = null }: Props) {
   const pathname  = usePathname()
   const rolTyped  = rol as Rol
   const badge     = ROL_BADGE[rolTyped]
   const isPortal  = rolTyped === 'apoderado' || rolTyped === 'alumno'
 
   function renderGroup(items: NavItem[], section: string) {
-    const visibles = items.filter(i => i.roles.includes(rolTyped))
+    let visibles = items.filter(i => i.roles.includes(rolTyped))
+    // Filtrar por permisos de BD si existen
+    if (modulosHabilitados) {
+      visibles = visibles.filter(i => {
+        const modKey = HREF_TO_MODULO[i.href]
+        if (!modKey) return true // Si no tiene mapeo, mostrar siempre
+        return modulosHabilitados.includes(modKey)
+      })
+    }
     if (!visibles.length) return null
     return (
       <div className="mb-6">
