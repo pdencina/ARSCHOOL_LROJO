@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import Topbar from '@/components/layout/Topbar'
-import Sidebar from '@/components/layout/Sidebar'
+import SidebarWrapper from '@/components/layout/SidebarWrapper'
 import { Toaster } from 'react-hot-toast'
 
 function getAdmin() {
@@ -49,7 +49,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Toaster position="top-right"/>
       <Topbar usuario={usuario}/>
       <div className="flex">
-        <Sidebar rol={usuario.rol} modulosHabilitados={modulosHabilitados}/>
+        <SidebarWrapper rol={usuario.rol} modulosHabilitadosInicial={modulosHabilitados}/>
         <main className="flex-1 min-h-[calc(100vh-56px)] overflow-auto">
           {children}
         </main>
