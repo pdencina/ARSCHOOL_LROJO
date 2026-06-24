@@ -40,13 +40,15 @@ export async function PATCH(request: NextRequest) {
   }
 
   // Buscar si ya existe
-  const { data: existing } = await admin
+  const { data: rows } = await admin
     .from('permisos_rol')
     .select('id')
     .is('colegio_id', null)
     .eq('rol', rol)
     .eq('modulo', modulo)
-    .single()
+    .limit(1)
+
+  const existing = rows && rows.length > 0 ? rows[0] : null
 
   let data, error
   if (existing) {
