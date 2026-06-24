@@ -48,7 +48,6 @@ const ROL_ACCESOS: Record<string, { label: string; href: string; icon: string }[
 }
 
 export default function DashboardInicio({ usuario, rol, stats, notificaciones, ultimosComunicados, mesActual }: Props) {
-  const accesos = ROL_ACCESOS[rol] ?? ROL_ACCESOS.admin
   const notifsNoLeidas = notificaciones.filter(n => !n.leida).length
 
   return (
@@ -101,22 +100,10 @@ export default function DashboardInicio({ usuario, rol, stats, notificaciones, u
       )}
 
       <div className="grid grid-cols-3 gap-6">
-        {/* Accesos rápidos */}
+        {/* Últimos comunicados */}
         <div className="col-span-2">
-          <h2 className="font-semibold text-[#1a2332] text-sm mb-4" style={{ fontFamily: 'DM Sans, sans-serif' }}>Accesos rápidos</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {accesos.map((a, i) => (
-              <Link key={i} href={a.href}
-                className="bg-white border border-[#e8eaed] rounded-xl p-4 hover:border-[#1a2332]/20 hover:shadow-sm transition-all group">
-                <i className={`ti ${a.icon} text-[20px] text-[#9ca3af] group-hover:text-[#b8860b] transition-colors mb-3 block`} aria-hidden="true"/>
-                <div className="font-medium text-[#4b5563] text-[13px] group-hover:text-[#1a2332] transition-colors">{a.label}</div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Últimos comunicados */}
           {ultimosComunicados.length > 0 && (
-            <div className="mt-6">
+            <div>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-semibold text-[#1a2332] text-sm" style={{ fontFamily: 'DM Sans, sans-serif' }}>Últimos comunicados</h2>
                 <Link href="/comunicados" className="text-[11px] text-[#6b7280] hover:text-[#1a2332] transition-colors">Ver todos →</Link>
