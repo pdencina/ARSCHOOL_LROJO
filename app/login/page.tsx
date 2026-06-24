@@ -46,7 +46,7 @@ export default function LoginPage() {
         
         <div className="relative">
           <div className="flex items-center gap-3 mb-20">
-            <Image src="/logo.svg" alt="AR School" width={44} height={44} className="rounded-lg"/>
+            <Image src="/logo-arschool.png" alt="AR School" width={44} height={44} className="rounded-lg"/>
             <div>
               <span className="font-display font-bold text-white text-lg tracking-wide">AR SCHOOL</span>
               <div className="text-white/30 text-[10px] uppercase tracking-[0.2em]">Gestión Educacional</div>
@@ -81,7 +81,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-3 mb-10">
-            <Image src="/logo.svg" alt="AR School" width={38} height={38} className="rounded-lg"/>
+            <Image src="/logo-arschool.png" alt="AR School" width={38} height={38} className="rounded-lg"/>
             <span className="font-display font-bold text-slate-900 text-lg tracking-wide">AR SCHOOL</span>
           </div>
 

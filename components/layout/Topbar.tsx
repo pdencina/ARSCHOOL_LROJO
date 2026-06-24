@@ -34,7 +34,7 @@ export default function Topbar({ usuario }: Props) {
       <div className="flex items-center justify-between h-[56px] px-6">
         {/* Logo */}
         <Link href={rol === 'apoderado' || rol === 'alumno' ? '/portal' : '/inicio'} className="flex items-center gap-3 shrink-0 group">
-          <Image src="/logo.svg" alt="AR School" width={34} height={34} className="rounded-lg group-hover:scale-105 transition-transform duration-200"/>
+          <Image src="/logo-arschool.png" alt="AR School" width={34} height={34} className="rounded-lg group-hover:scale-105 transition-transform duration-200"/>
           <div>
             <div className="font-semibold text-[var(--ar-text)] text-[13px] leading-none tracking-tight" style={{ fontFamily: 'DM Sans, sans-serif' }}>AR SCHOOL</div>
             <div className="text-[10px] text-[#b0b7c3] mt-[3px] leading-none tracking-wide">

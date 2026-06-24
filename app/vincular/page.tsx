@@ -62,7 +62,7 @@ export default function VincularPage() {
     <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center p-8">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-3 mb-10 justify-center">
-          <Image src="/logo.svg" alt="AR School" width={38} height={38} className="rounded-lg"/>
+          <Image src="/logo-arschool.png" alt="AR School" width={38} height={38} className="rounded-lg"/>
           <span className="font-semibold text-[#1a2332] text-lg tracking-tight" style={{ fontFamily: 'DM Sans, sans-serif' }}>AR SCHOOL</span>
         </div>
 
