@@ -131,9 +131,12 @@ export default function ReporteDiarioClient({ alumnos, reportesHoy, cursos, cole
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="page-title">Reporte Diario PreSchool</h1>
-          <p className="page-subtitle">{new Date(fecha + 'T12:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        <div className="flex items-center gap-4">
+          <img src="/logo-playgroup.png" alt="Play and Group" className="h-9 w-auto opacity-80"/>
+          <div>
+            <h1 className="page-title">Reporte Diario</h1>
+            <p className="page-subtitle">{new Date(fecha + 'T12:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <select value={cursoSel} onChange={e => { setCursoSel(e.target.value); setAlumnoSel(null) }} className="select-base">

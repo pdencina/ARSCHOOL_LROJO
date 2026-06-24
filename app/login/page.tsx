@@ -45,14 +45,12 @@ export default function LoginPage() {
         <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-500/5 rounded-full blur-3xl" />
         
         <div className="relative">
-          <div className="flex items-center gap-3 mb-20">
-            <Image src="/logo-arschool.png" alt="AR School" width={44} height={44} className="rounded-lg"/>
-            <div>
-              <span className="font-display font-bold text-white text-lg tracking-wide">AR SCHOOL</span>
-              <div className="text-white/30 text-[10px] uppercase tracking-[0.2em]">Gestión Educacional</div>
+          <div className="flex items-center gap-4 mb-16">
+            <div className="bg-white rounded-xl p-2">
+              <Image src="/logo-arschool.png" alt="AR School" width={120} height={40} className="h-10 w-auto"/>
             </div>
           </div>
-          <h1 className="font-display text-4xl font-bold text-white leading-tight mb-5">
+          <h1 className="text-4xl font-bold text-white leading-tight mb-5" style={{ fontFamily: 'DM Sans, sans-serif' }}>
             Sistema integral de<br/>gestión escolar
           </h1>
           <p className="text-white/50 text-base leading-relaxed max-w-md">
@@ -61,19 +59,15 @@ export default function LoginPage() {
         </div>
 
         <div className="relative">
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { n: 'Multi-sede', label: 'Gestión centralizada', icon: '🏫' },
-              { n: 'Tiempo real', label: 'Datos actualizados', icon: '⚡' },
-              { n: 'Seguro', label: 'Datos protegidos', icon: '🔒' },
-            ].map(s => (
-              <div key={s.label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 backdrop-blur-sm">
-                <div className="text-lg mb-2">{s.icon}</div>
-                <div className="font-display font-semibold text-white text-sm">{s.n}</div>
-                <div className="text-white/40 text-xs mt-0.5">{s.label}</div>
-              </div>
-            ))}
+          <div className="flex items-center gap-6">
+            <div className="bg-white/[0.06] border border-white/[0.08] rounded-xl p-4 backdrop-blur-sm">
+              <Image src="/logo-arschool.png" alt="AR School" width={140} height={50} className="h-8 w-auto invert opacity-80"/>
+            </div>
+            <div className="bg-white/[0.06] border border-white/[0.08] rounded-xl p-4 backdrop-blur-sm">
+              <Image src="/logo-playgroup.png" alt="Play and Group" width={140} height={50} className="h-8 w-auto invert opacity-80"/>
+            </div>
           </div>
+          <div className="mt-4 text-white/30 text-[10px] uppercase tracking-[0.15em]">Fundación ARM Global</div>
         </div>
       </div>
 
@@ -81,8 +75,9 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-3 mb-10">
-            <Image src="/logo-arschool.png" alt="AR School" width={38} height={38} className="rounded-lg"/>
-            <span className="font-display font-bold text-slate-900 text-lg tracking-wide">AR SCHOOL</span>
+            <div className="bg-[#f3f4f6] rounded-lg p-1.5">
+              <Image src="/logo-arschool.png" alt="AR School" width={100} height={36} className="h-7 w-auto"/>
+            </div>
           </div>
 
           <h2 className="font-display text-2xl font-bold text-slate-900 mb-1">Iniciar sesión</h2>
