@@ -38,12 +38,12 @@ const ROL_ACCESOS: Record<string, { label: string; href: string; icon: string }[
     { label: 'Reportes',       href: '/reportes',       icon: 'ti-file-analytics' },
   ],
   tutor: [
-    { label: 'Comunicados',      href: '/comunicados',    icon: 'ti-speakerphone' },
+    { label: 'Mis alumnos',      href: '/alumnos',        icon: 'ti-users' },
     { label: 'Asistencias',      href: '/asistencias',    icon: 'ti-clipboard-check' },
-    { label: 'Calificaciones',   href: '/calificaciones', icon: 'ti-chart-bar' },
-    { label: 'Fichas',           href: '/fichas',         icon: 'ti-books' },
+    { label: 'Evaluaciones',     href: '/calificaciones', icon: 'ti-chart-bar' },
     { label: 'Planificación',    href: '/planificacion',  icon: 'ti-layout-board' },
     { label: 'Libro de clases',  href: '/libro-clases',   icon: 'ti-notebook' },
+    { label: 'Reporte diario',   href: '/reporte-diario', icon: 'ti-clipboard-heart' },
   ],
 }
 
@@ -65,7 +65,7 @@ export default function DashboardInicio({ usuario, rol, stats, notificaciones, u
         </p>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs — Admin */}
       {(rol === 'admin' || rol === 'super_admin') && (
         <div className="grid grid-cols-4 gap-4 mb-8">
           {[
@@ -75,6 +75,23 @@ export default function DashboardInicio({ usuario, rol, stats, notificaciones, u
             { label: 'En mora',          val: formatMonto(stats.enMora),    sub: stats.enMora > 0 ? 'Requiere atención' : 'Sin pendientes', href: '/contable' },
           ].map((k, i) => (
             <Link key={i} href={k.href} className="bg-white border border-[#e8eaed] rounded-xl p-5 hover:border-[#b8860b]/30 transition-all group">
+              <div className="text-[11px] font-semibold text-[#9ca3af] uppercase tracking-wider mb-2">{k.label}</div>
+              <div className="text-2xl font-bold text-[#1a2332] group-hover:text-[#2c4a6e] transition-colors" style={{ fontFamily: 'DM Sans, sans-serif' }}>{k.val}</div>
+              <div className="text-[11px] text-[#9ca3af] mt-1">{k.sub}</div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* KPIs — Tutor (pedagógicos) */}
+      {rol === 'tutor' && (
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          {[
+            { label: 'Mis alumnos',    val: stats.totalAlumnos.toString(), sub: 'activos en mi curso', href: '/alumnos' },
+            { label: 'Asistencia hoy', val: stats.pctAsistencia != null ? `${stats.pctAsistencia}%` : '—', sub: 'de mi curso', href: '/asistencias' },
+            { label: 'Comunicados',    val: stats.totalComunicados.toString(), sub: 'enviados', href: '/comunicados' },
+          ].map((k, i) => (
+            <Link key={i} href={k.href} className="bg-white border border-[var(--ar-border)] rounded-xl p-5 hover:border-[var(--ar-accent)]/30 transition-all group">
               <div className="text-[11px] font-semibold text-[#9ca3af] uppercase tracking-wider mb-2">{k.label}</div>
               <div className="text-2xl font-bold text-[#1a2332] group-hover:text-[#2c4a6e] transition-colors" style={{ fontFamily: 'DM Sans, sans-serif' }}>{k.val}</div>
               <div className="text-[11px] text-[#9ca3af] mt-1">{k.sub}</div>
