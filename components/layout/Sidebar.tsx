@@ -81,13 +81,14 @@ export default function Sidebar({ rol = 'admin' }: Props) {
           const active = pathname === item.href || (item.href !== '/inicio' && item.href !== '/portal' && pathname.startsWith(item.href))
           return (
             <Link key={item.href + item.label} href={item.href}
-              className={`group relative flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13px] font-medium mb-[2px] transition-all duration-200 ${
+              className={`group relative flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13px] font-medium mb-[2px] transition-all duration-150 ${
                 active
-                  ? 'bg-[var(--ar-navy)] text-white shadow-sm'
-                  : 'text-[#4b5563] hover:bg-[#f3f4f6] hover:text-[var(--ar-text)]'
-              }`}>
+                  ? 'bg-[var(--ar-navy)] text-white'
+                  : 'text-[#5f6876] hover:bg-[#f4f5f7] hover:text-[var(--ar-text)]'
+              }`}
+              style={active ? { boxShadow: '0 1px 3px rgba(26,35,50,0.15)' } : undefined}>
               {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-[var(--ar-accent)] rounded-r-full"/>}
-              <i className={`ti ${item.icon} text-[15px] flex-shrink-0 transition-colors duration-200 ${active ? 'text-[var(--ar-accent)]' : 'text-[#9ca3af] group-hover:text-[#6b7280]'}`} aria-hidden="true"/>
+              <i className={`ti ${item.icon} text-[15px] flex-shrink-0 transition-colors duration-150 ${active ? 'text-[var(--ar-accent)]' : 'text-[#b0b7c3] group-hover:text-[#7c8390]'}`} aria-hidden="true"/>
               <span className="flex-1 truncate">{item.label}</span>
               {item.badge && <span className="bg-[var(--ar-danger)] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">{item.badge}</span>}
             </Link>

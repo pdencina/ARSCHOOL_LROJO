@@ -30,7 +30,7 @@ export default function Topbar({ usuario }: Props) {
   const iniciales = `${usuario?.nombre?.[0] ?? ''}${usuario?.apellido?.[0] ?? ''}`.toUpperCase()
 
   return (
-    <header className="bg-white border-b border-[var(--ar-border)] sticky top-0 z-30">
+    <header className="bg-white/80 backdrop-blur-xl border-b border-[var(--ar-border)] sticky top-0 z-30">
       <div className="flex items-center justify-between h-[56px] px-6">
         {/* Logo */}
         <Link href={rol === 'apoderado' || rol === 'alumno' ? '/portal' : '/inicio'} className="flex items-center gap-3 shrink-0 group">
@@ -59,16 +59,16 @@ export default function Topbar({ usuario }: Props) {
           {showMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}/>
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-[var(--ar-border)] rounded-xl shadow-lg shadow-black/[0.08] py-1.5 z-50 animate-fade-in">
-                <div className="px-3 py-2 border-b border-[#f3f4f6]">
+              <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-[var(--ar-border)] rounded-xl py-1.5 z-50 animate-fade-in-scale" style={{ boxShadow: 'var(--shadow-lg)' }}>
+                <div className="px-3.5 py-2.5 border-b border-[#f5f6f7]">
                   <div className="text-[12px] font-medium text-[var(--ar-text)]">{usuario?.nombre} {usuario?.apellido}</div>
-                  <div className="text-[11px] text-[#9ca3af]">{usuario?.email}</div>
+                  <div className="text-[11px] text-[#b0b7c3] mt-0.5">{usuario?.email}</div>
                 </div>
-                <Link href="/configuracion" onClick={() => setShowMenu(false)} className="flex items-center gap-2 px-3 py-2 text-[12px] text-[#4b5563] hover:bg-[#f9fafb] transition-colors">
-                  <i className="ti ti-settings text-[13px] text-[#9ca3af]" aria-hidden="true"/> Configuración
+                <Link href="/configuracion" onClick={() => setShowMenu(false)} className="flex items-center gap-2.5 px-3.5 py-2.5 text-[12px] text-[#5f6876] hover:bg-[#f8f9fb] transition-colors">
+                  <i className="ti ti-settings text-[14px] text-[#b0b7c3]" aria-hidden="true"/> Configuración
                 </Link>
-                <button onClick={logout} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[var(--ar-danger)] hover:bg-red-50 transition-colors">
-                  <i className="ti ti-logout text-[13px]" aria-hidden="true"/> Cerrar sesión
+                <button onClick={logout} className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[12px] text-[var(--ar-danger)] hover:bg-red-50/50 transition-colors">
+                  <i className="ti ti-logout text-[14px]" aria-hidden="true"/> Cerrar sesión
                 </button>
               </div>
             </>
