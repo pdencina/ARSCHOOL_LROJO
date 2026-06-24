@@ -39,12 +39,29 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'rol, modulo y habilitado son requeridos' }, { status: 400 })
   }
 
-  const { data, error } = await admin.from('permisos_rol').upsert({
-    colegio_id: null,
-    rol,
-    modulo,
-    habilitado,
-  }, { onConflict: 'colegio_id,rol,modulo' }).select().single()
+  // Buscar si ya existe
+  const { data: existing } = await admin
+    .from('permisos_rol')
+    .select('id')
+    .is('colegio_id', null)
+    .eq('rol', rol)
+    .eq('modulo', modulo)
+    .single()
+
+  let data, error
+  if (existing) {
+    // Update
+    const result = await admin.from('permisos_rol').update({ habilitado }).eq('id', existing.id).select().single()
+    data = result.data
+    error = result.error
+  } else {
+    // Insert
+    const result = await admin.from('permisos_rol').insert({
+      colegio_id: null, rol, modulo, habilitado,
+    }).select().single()
+    data = result.data
+    error = result.error
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
