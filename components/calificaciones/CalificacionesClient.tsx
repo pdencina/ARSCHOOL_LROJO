@@ -81,13 +81,19 @@ export default function CalificacionesClient({ evaluaciones, alumnos, cursos, co
   async function handleCrearEval() {
     if (!nuevaEval.nombre || !nuevaEval.curso) { toast.error('Completa todos los campos'); return }
     setSaving(true)
-    const { data, error } = await supabase.from('evaluaciones').insert({
-      colegio_id: colegioId, ...nuevaEval, ponderacion: 100
-    }).select().single()
-    if (error) { toast.error('Error al crear evaluación'); setSaving(false); return }
-    toast.success('Evaluación creada')
-    setEvalSel(data)
-    setVista('cargar')
+    const res = await fetch('/api/calificaciones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accion: 'crear_evaluacion', ...nuevaEval, colegio_id: colegioId }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      toast.success('Evaluación creada')
+      setEvalSel(data)
+      setVista('cargar')
+    } else {
+      toast.error('Error al crear evaluación')
+    }
     setSaving(false)
   }
 

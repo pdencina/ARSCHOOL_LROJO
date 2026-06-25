@@ -22,7 +22,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
-  const { evaluacion_id, resultados } = await request.json()
+  const body = await request.json()
+
+  // Crear evaluación
+  if (body.accion === 'crear_evaluacion') {
+    const { data, error } = await admin.from('evaluaciones').insert({
+      colegio_id: (ur as any).colegio_id,
+      nombre: body.nombre,
+      materia: body.materia,
+      curso: body.curso,
+      fecha: body.fecha,
+      ponderacion: 100,
+      creado_por: user.id,
+    }).select().single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(data, { status: 201 })
+  }
+
+  // Guardar calificaciones
+  const { evaluacion_id, resultados } = body
   // resultados: [{ alumno_id, nota }]
 
   if (!evaluacion_id || !resultados?.length) {
