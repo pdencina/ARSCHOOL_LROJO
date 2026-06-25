@@ -10,6 +10,7 @@ interface Props {
   alumnos: any[]
   cursos: string[]
   colegioId: string
+  alumnoFiltro?: any | null
 }
 
 const MATERIAS = ['Lenguaje','Matematicas','Ciencias Naturales','Historia','Ingles','Artes','Ed. Fisica']
@@ -37,7 +38,7 @@ function logroTag(pct: number) {
   return { label: 'Inicial', className: 'tag-mora' }
 }
 
-export default function CalificacionesClient({ evaluaciones, alumnos, cursos, colegioId }: Props) {
+export default function CalificacionesClient({ evaluaciones, alumnos, cursos, colegioId, alumnoFiltro = null }: Props) {
   const router = useRouter()
   const [vista, setVista] = useState<'lista' | 'nueva' | 'cargar'>('lista')
   const [evalSel, setEvalSel] = useState<any>(null)
@@ -120,6 +121,85 @@ export default function CalificacionesClient({ evaluaciones, alumnos, cursos, co
 
   return (
     <div className="p-6">
+      {/* Vista individual del alumno */}
+      {alumnoFiltro && vista === 'lista' && (
+        <div className="mb-6 bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-[#f0f4f8] flex items-center justify-center text-[14px] font-bold text-[#2c4a6e]">
+                {alumnoFiltro.nombre?.[0]}{alumnoFiltro.apellido?.[0]}
+              </div>
+              <div>
+                <h2 className="text-[16px] font-bold text-[#1a2332]" style={{ fontFamily: 'DM Sans, sans-serif' }}>Evaluaciones de {alumnoFiltro.nombre} {alumnoFiltro.apellido}</h2>
+                <p className="text-[12px] text-[#9ca3af]">{alumnoFiltro.curso} · {alumnoFiltro.rut ?? ''}</p>
+              </div>
+            </div>
+            <a href="/alumnos" className="btn-secondary text-xs">
+              <i className="ti ti-arrow-left text-xs" aria-hidden="true"/> Volver a alumnos
+            </a>
+          </div>
+          {/* Resultados del alumno */}
+          <div className="mt-4 pt-4 border-t border-[#f3f4f6]">
+            {(() => {
+              const resultados = evaluaciones
+                .map(ev => {
+                  const cal = ev.calificaciones?.find((c: any) => c.alumno_id === alumnoFiltro.id)
+                  if (!cal) return null
+                  return { evaluacion: ev.nombre, materia: ev.materia, fecha: ev.fecha, nota: cal.nota }
+                })
+                .filter(Boolean)
+
+              if (resultados.length === 0) return <p className="text-[#9ca3af] text-[13px]">Sin evaluaciones registradas para este alumno.</p>
+
+              const promedio = Math.round(resultados.reduce((a: number, r: any) => a + r.nota, 0) / resultados.length)
+
+              return (
+                <>
+                  <div className="flex gap-4 mb-4">
+                    <div className="kpi-card flex-1 p-3">
+                      <div className="kpi-label">Logro promedio</div>
+                      <div className={`text-[20px] font-bold ${promedio >= 80 ? 'text-[#1a7a4c]' : promedio >= 60 ? 'text-[#b7791f]' : 'text-[#c53030]'}`} style={{ fontFamily: 'DM Sans' }}>{promedio}%</div>
+                    </div>
+                    <div className="kpi-card flex-1 p-3">
+                      <div className="kpi-label">Evaluaciones</div>
+                      <div className="kpi-value text-[20px]">{resultados.length}</div>
+                    </div>
+                  </div>
+                  <table className="w-full text-[13px]">
+                    <thead>
+                      <tr className="border-b border-[var(--ar-border)]">
+                        <th className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider px-3 py-2 text-left">Evaluación</th>
+                        <th className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider px-3 py-2 text-left">Materia</th>
+                        <th className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider px-3 py-2 text-left">Fecha</th>
+                        <th className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider px-3 py-2 text-left">Logro</th>
+                        <th className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider px-3 py-2 text-left">Nivel</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resultados.map((r: any, i: number) => {
+                        const tag = r.nota >= 80 ? { l: 'Destacado', c: 'tag-ok' } : r.nota >= 60 ? { l: 'Logrado', c: 'tag-blue' } : r.nota >= 40 ? { l: 'En desarrollo', c: 'tag-pend' } : { l: 'Inicial', c: 'tag-mora' }
+                        const mc = MATERIA_COLOR[r.materia] ?? { bg: 'bg-slate-50', text: 'text-slate-600' }
+                        return (
+                          <tr key={i} className="border-b border-[#f5f6f7]">
+                            <td className="px-3 py-2.5 font-medium text-[#1a2332]">{r.evaluacion}</td>
+                            <td className="px-3 py-2.5"><span className={`tag ${mc.bg} ${mc.text}`}>{r.materia}</span></td>
+                            <td className="px-3 py-2.5 text-[#6b7280] text-[12px]">{new Date(r.fecha + 'T12:00').toLocaleDateString('es-CL')}</td>
+                            <td className="px-3 py-2.5 font-bold" style={{ fontFamily: 'DM Sans' }}>{r.nota}%</td>
+                            <td className="px-3 py-2.5"><span className={`tag ${tag.c}`}>{tag.l}</span></td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </>
+              )
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Vista general (si no hay alumno filtrado o está en modo crear/cargar) */}
+      {(!alumnoFiltro || vista !== 'lista') && (<>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="page-title">Evaluaciones</h1>
@@ -322,6 +402,7 @@ export default function CalificacionesClient({ evaluaciones, alumnos, cursos, co
           </table>
         </div>
       )}
+      </>)}
     </div>
   )
 }

@@ -12,7 +12,7 @@ function getAdmin() {
   )
 }
 
-export default async function CalificacionesPage() {
+export default async function CalificacionesPage({ searchParams }: { searchParams: { alumno?: string; curso?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -23,7 +23,7 @@ export default async function CalificacionesPage() {
 
   const [{ data: evaluaciones }, { data: alumnos }] = await Promise.all([
     admin.from('evaluaciones')
-      .select('*, calificaciones(nota, alumno:alumnos(nombre, apellido))')
+      .select('*, calificaciones(nota, alumno_id, alumno:alumnos(nombre, apellido))')
       .eq('colegio_id', colegioId)
       .order('fecha', { ascending: false })
       .limit(20),
@@ -32,12 +32,20 @@ export default async function CalificacionesPage() {
 
   const cursos = [...new Set((alumnos ?? []).map((a: any) => a.curso))].sort()
 
+  // Si viene un alumno_id en la URL, cargar datos del alumno
+  let alumnoFiltro: any = null
+  if (searchParams.alumno) {
+    const { data: al } = await admin.from('alumnos').select('*').eq('id', searchParams.alumno).single()
+    alumnoFiltro = al
+  }
+
   return (
     <CalificacionesClient
       evaluaciones={(evaluaciones as any[]) ?? []}
       alumnos={(alumnos as any[]) ?? []}
       cursos={cursos}
       colegioId={colegioId}
+      alumnoFiltro={alumnoFiltro}
     />
   )
 }
