@@ -93,23 +93,27 @@ export default function CalificacionesClient({ evaluaciones, alumnos, cursos, co
   async function handleGuardarNotas() {
     if (!evalSel) return
     setSaving(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    const upserts = Object.entries(notas)
+    const resultados = Object.entries(notas)
       .filter(([_, nota]) => nota !== '')
-      .map(([alumno_id, nota]) => ({
-        evaluacion_id: evalSel.id,
-        alumno_id,
-        nota: parseInt(nota),
-        colegio_id: colegioId,
-        registrado_por: user?.id,
-      }))
-    if (upserts.length === 0) { toast.error('No hay porcentajes para guardar'); setSaving(false); return }
-    const { error } = await supabase.from('calificaciones').upsert(upserts, { onConflict: 'evaluacion_id,alumno_id' })
-    if (error) { toast.error('Error al guardar'); setSaving(false); return }
-    toast.success(`${upserts.length} resultados guardados`)
+      .map(([alumno_id, nota]) => ({ alumno_id, nota: parseInt(nota) }))
+
+    if (resultados.length === 0) { toast.error('No hay porcentajes para guardar'); setSaving(false); return }
+
+    const res = await fetch('/api/calificaciones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ evaluacion_id: evalSel.id, resultados }),
+    })
+
+    if (res.ok) {
+      toast.success(`${resultados.length} resultados guardados`)
+      setVista('lista')
+      router.refresh()
+    } else {
+      const data = await res.json()
+      toast.error(data.error ?? 'Error al guardar')
+    }
     setSaving(false)
-    setVista('lista')
-    router.refresh()
   }
 
   const matConfig = evalSel ? (MATERIA_COLOR[evalSel.materia] ?? { bg: 'bg-slate-50', text: 'text-slate-700' }) : null
