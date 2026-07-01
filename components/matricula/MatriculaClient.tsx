@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validarEmail } from '@/lib/validaciones'
 
 interface Props { planes: any[]; matriculas: any[]; cursos: string[] }
 
@@ -27,6 +28,9 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
   async function handleMatricular() {
     if (!form.nombre || !form.apellido || !form.curso) { toast.error('Datos del alumno incompletos'); return }
     if (!form.nombre_apoderado || !form.email_apoderado) { toast.error('Datos del apoderado incompletos'); return }
+    if (form.rut && !validarRut(form.rut)) { toast.error('RUT del alumno es inválido'); return }
+    if (form.rut_apoderado && !validarRut(form.rut_apoderado)) { toast.error('RUT del apoderado es inválido'); return }
+    if (!validarEmail(form.email_apoderado)) { toast.error('Email del apoderado es inválido'); return }
     setSaving(true)
 
     const res = await fetch('/api/matriculas', {
@@ -113,16 +117,20 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
               <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Datos del alumno</h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre} onChange={e => setForm(p => ({...p, nombre: e.target.value}))} className="input-base" placeholder="Nombre"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Apellido *</label><input value={form.apellido} onChange={e => setForm(p => ({...p, apellido: e.target.value}))} className="input-base" placeholder="Apellido"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">RUT</label><input value={form.rut} onChange={e => setForm(p => ({...p, rut: e.target.value}))} className="input-base" placeholder="12.345.678-9"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre} onChange={e => setForm(p => ({...p, nombre: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Nombre"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Apellido *</label><input value={form.apellido} onChange={e => setForm(p => ({...p, apellido: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Apellido"/></div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">RUT</label>
+                <input value={form.rut} onChange={e => setForm(p => ({...p, rut: formatearRut(e.target.value)}))} className={`input-base ${form.rut && !validarRut(form.rut) ? 'border-red-300 focus:ring-red-200' : ''}`} placeholder="12.345.678-9" maxLength={12}/>
+                {form.rut && !validarRut(form.rut) && <span className="text-[10px] text-[#c53030] mt-0.5 block">RUT inválido</span>}
+              </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Curso *</label>
                 <select value={form.curso} onChange={e => setForm(p => ({...p, curso: e.target.value}))} className="select-base w-full">
                   {cursos.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Fecha nacimiento</label><input type="date" value={form.fecha_nacimiento} onChange={e => setForm(p => ({...p, fecha_nacimiento: e.target.value}))} className="input-base"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nacionalidad</label><input value={form.nacionalidad} onChange={e => setForm(p => ({...p, nacionalidad: e.target.value}))} className="input-base"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nacionalidad</label><input value={form.nacionalidad} onChange={e => setForm(p => ({...p, nacionalidad: capitalizarNombre(e.target.value)}))} className="input-base"/></div>
             </div>
           </div>
 
@@ -133,11 +141,19 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
               <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Datos del apoderado</h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre_apoderado} onChange={e => setForm(p => ({...p, nombre_apoderado: e.target.value}))} className="input-base" placeholder="Nombre"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Apellido</label><input value={form.apellido_apoderado} onChange={e => setForm(p => ({...p, apellido_apoderado: e.target.value}))} className="input-base" placeholder="Apellido"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Email *</label><input type="email" value={form.email_apoderado} onChange={e => setForm(p => ({...p, email_apoderado: e.target.value}))} className="input-base" placeholder="correo@email.com"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Teléfono</label><input value={form.telefono_apoderado} onChange={e => setForm(p => ({...p, telefono_apoderado: e.target.value}))} className="input-base" placeholder="+56 9 1234 5678"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">RUT apoderado</label><input value={form.rut_apoderado} onChange={e => setForm(p => ({...p, rut_apoderado: e.target.value}))} className="input-base" placeholder="12.345.678-9"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre_apoderado} onChange={e => setForm(p => ({...p, nombre_apoderado: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Nombre"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Apellido</label><input value={form.apellido_apoderado} onChange={e => setForm(p => ({...p, apellido_apoderado: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Apellido"/></div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Email *</label>
+                <input type="email" value={form.email_apoderado} onChange={e => setForm(p => ({...p, email_apoderado: e.target.value.toLowerCase()}))} className={`input-base ${form.email_apoderado && !validarEmail(form.email_apoderado) ? 'border-red-300 focus:ring-red-200' : ''}`} placeholder="correo@email.com"/>
+                {form.email_apoderado && !validarEmail(form.email_apoderado) && <span className="text-[10px] text-[#c53030] mt-0.5 block">Email inválido</span>}
+              </div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Teléfono</label><input value={form.telefono_apoderado} onChange={e => setForm(p => ({...p, telefono_apoderado: formatearTelefono(e.target.value)}))} className="input-base" placeholder="+56 9 1234 5678" maxLength={16}/></div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">RUT apoderado</label>
+                <input value={form.rut_apoderado} onChange={e => setForm(p => ({...p, rut_apoderado: formatearRut(e.target.value)}))} className={`input-base ${form.rut_apoderado && !validarRut(form.rut_apoderado) ? 'border-red-300 focus:ring-red-200' : ''}`} placeholder="12.345.678-9" maxLength={12}/>
+                {form.rut_apoderado && !validarRut(form.rut_apoderado) && <span className="text-[10px] text-[#c53030] mt-0.5 block">RUT inválido</span>}
+              </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Parentesco</label>
                 <select value={form.parentesco} onChange={e => setForm(p => ({...p, parentesco: e.target.value}))} className="select-base w-full">
                   {['apoderado','madre','padre','abuelo/a','tutor legal','otro'].map(p => <option key={p} value={p}>{p}</option>)}
