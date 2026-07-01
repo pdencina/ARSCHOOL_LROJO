@@ -10,6 +10,7 @@ interface NavItem {
 
 const NAV_PRINCIPAL: NavItem[] = [
   { label: 'Inicio',          href: '/inicio',          icon: 'ti-home',             roles: ['super_admin','admin','tutor'] },
+  { label: 'Matrícula',       href: '/matricula',       icon: 'ti-user-plus',        roles: ['super_admin','admin'] },
   { label: 'Mis alumnos',     href: '/alumnos',         icon: 'ti-users',            roles: ['tutor'] },
   { label: 'Alumnos',         href: '/alumnos',         icon: 'ti-users',            roles: ['super_admin','admin'] },
   { label: 'Planificación',   href: '/planificacion',   icon: 'ti-layout-board',     roles: ['tutor'] },
