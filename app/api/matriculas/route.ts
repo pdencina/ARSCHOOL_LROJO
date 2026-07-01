@@ -75,15 +75,14 @@ export async function POST(request: NextRequest) {
       if (!errFam) familiaId = (familia as any).id
     }
 
-    // 3. Crear cuenta apoderado (si se solicita)
+    // 3. Crear cuenta apoderado (invitación por email para que defina su password)
     let apoderadoUserId = null
     if (crear_cuenta_apoderado && email_apoderado) {
-      const pwd = password_apoderado || 'ArSchool2026!'
-      const { data: authData, error: authErr } = await admin.auth.admin.createUser({
-        email: email_apoderado.trim(),
-        password: pwd,
-        email_confirm: true,
-      })
+      // Usar inviteUserByEmail — Supabase envía email para que el usuario cree su password
+      const { data: authData, error: authErr } = await admin.auth.admin.inviteUserByEmail(
+        email_apoderado.trim(),
+        { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password` }
+      )
 
       if (!authErr && authData.user) {
         apoderadoUserId = authData.user.id
