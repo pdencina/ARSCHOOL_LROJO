@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validarEmail, formatearFecha, fechaISOaDisplay } from '@/lib/validaciones'
+import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validarEmail, formatearFecha, fechaISOaDisplay, formatearMontoInput } from '@/lib/validaciones'
 
 interface Props { planes: any[]; matriculas: any[]; cursos: string[] }
 
@@ -12,6 +12,8 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
   const [vista, setVista] = useState<'lista' | 'nueva'>('lista')
   const [saving, setSaving] = useState(false)
   const [fechaDisplay, setFechaDisplay] = useState('')
+  const [montoMatDisplay, setMontoMatDisplay] = useState('')
+  const [montoMensDisplay, setMontoMensDisplay] = useState('')
   const [form, setForm] = useState({
     // Alumno
     nombre: '', apellido: '', rut: '', curso: cursos[0] ?? '', fecha_nacimiento: '',
@@ -174,13 +176,13 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
               <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Plan de cobro</h2>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Monto matrícula ($)</label><input type="number" value={form.monto_matricula} onChange={e => setForm(p => ({...p, monto_matricula: parseInt(e.target.value) || 0}))} className="input-base" placeholder="0"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Mensualidad ($)</label><input type="number" value={form.monto_mensual} onChange={e => setForm(p => ({...p, monto_mensual: parseInt(e.target.value) || 0}))} className="input-base" placeholder="0"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Monto matrícula ($)</label><input value={montoMatDisplay} onChange={e => { const m = formatearMontoInput(e.target.value); setMontoMatDisplay(m.display); setForm(p => ({...p, monto_matricula: m.value})) }} className="input-base" placeholder="0"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Mensualidad ($)</label><input value={montoMensDisplay} onChange={e => { const m = formatearMontoInput(e.target.value); setMontoMensDisplay(m.display); setForm(p => ({...p, monto_mensual: m.value})) }} className="input-base" placeholder="0"/></div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Meses a cobrar</label><input type="number" min="1" max="12" value={form.meses_cobro} onChange={e => setForm(p => ({...p, meses_cobro: parseInt(e.target.value) || 10}))} className="input-base"/></div>
             </div>
             {form.monto_mensual > 0 && (
               <div className="mt-3 bg-[#f9fafb] rounded-lg p-3 text-[12px] text-[#4b5563]">
-                <strong>Resumen:</strong> Matrícula ${form.monto_matricula.toLocaleString('es-CL')} + {form.meses_cobro} cuotas de ${form.monto_mensual.toLocaleString('es-CL')} = <strong>${(form.monto_matricula + form.monto_mensual * form.meses_cobro).toLocaleString('es-CL')} total año</strong>
+                <strong>Resumen:</strong> Matrícula ${form.monto_matricula.toLocaleString('es-CL')} + {form.meses_cobro} cuotas de ${form.monto_mensual.toLocaleString('es-CL')} = <strong className="text-[#1a2332]">${(form.monto_matricula + form.monto_mensual * form.meses_cobro).toLocaleString('es-CL')} total año</strong>
               </div>
             )}
           </div>

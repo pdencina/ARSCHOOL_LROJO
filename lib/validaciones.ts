@@ -130,6 +130,17 @@ export function fechaISOaDisplay(iso: string): string {
 }
 
 /**
+ * Formatea número como monto mientras se escribe
+ * "1600000" → "1.600.000"
+ */
+export function formatearMontoInput(valor: string): { display: string; value: number } {
+  const nums = valor.replace(/[^0-9]/g, '')
+  const numValue = parseInt(nums) || 0
+  const display = numValue > 0 ? numValue.toLocaleString('es-CL') : ''
+  return { display, value: numValue }
+}
+
+/**
  * Formatea montos CLP
  * 150000 → "$150.000"
  */
