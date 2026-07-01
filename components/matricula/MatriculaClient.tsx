@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validarEmail } from '@/lib/validaciones'
+import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validarEmail, formatearFecha, fechaISOaDisplay } from '@/lib/validaciones'
 
 interface Props { planes: any[]; matriculas: any[]; cursos: string[] }
 
@@ -11,6 +11,7 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
   const router = useRouter()
   const [vista, setVista] = useState<'lista' | 'nueva'>('lista')
   const [saving, setSaving] = useState(false)
+  const [fechaDisplay, setFechaDisplay] = useState('')
   const [form, setForm] = useState({
     // Alumno
     nombre: '', apellido: '', rut: '', curso: cursos[0] ?? '', fecha_nacimiento: '',
@@ -129,7 +130,7 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
                   {cursos.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Fecha nacimiento</label><input type="date" value={form.fecha_nacimiento} onChange={e => setForm(p => ({...p, fecha_nacimiento: e.target.value}))} className="input-base"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Fecha nacimiento</label><input value={fechaDisplay} onChange={e => { const f = formatearFecha(e.target.value); setFechaDisplay(f.display); if(f.value) setForm(p => ({...p, fecha_nacimiento: f.value})) }} className="input-base" placeholder="DD-MM-AAAA" maxLength={10}/></div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nacionalidad</label><input value={form.nacionalidad} onChange={e => setForm(p => ({...p, nacionalidad: capitalizarNombre(e.target.value)}))} className="input-base"/></div>
             </div>
           </div>

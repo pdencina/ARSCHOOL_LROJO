@@ -95,6 +95,41 @@ export function validarEmail(email: string): boolean {
 }
 
 /**
+ * Formatea fecha mientras se escribe (DD-MM-AAAA)
+ * "25062026" → "25-06-2026"
+ * Retorna { display: "25-06-2026", value: "2026-06-25" }
+ */
+export function formatearFecha(valor: string): { display: string; value: string } {
+  // Solo números
+  const nums = valor.replace(/[^0-9]/g, '').slice(0, 8)
+  
+  let display = ''
+  if (nums.length <= 2) display = nums
+  else if (nums.length <= 4) display = `${nums.slice(0, 2)}-${nums.slice(2)}`
+  else display = `${nums.slice(0, 2)}-${nums.slice(2, 4)}-${nums.slice(4)}`
+
+  // Convertir a formato ISO para la BD (YYYY-MM-DD)
+  let value = ''
+  if (nums.length === 8) {
+    const dia = nums.slice(0, 2)
+    const mes = nums.slice(2, 4)
+    const anio = nums.slice(4, 8)
+    value = `${anio}-${mes}-${dia}`
+  }
+
+  return { display, value }
+}
+
+/**
+ * Convierte fecha ISO (YYYY-MM-DD) a display (DD-MM-AAAA)
+ */
+export function fechaISOaDisplay(iso: string): string {
+  if (!iso || iso.length !== 10) return ''
+  const [anio, mes, dia] = iso.split('-')
+  return `${dia}-${mes}-${anio}`
+}
+
+/**
  * Formatea montos CLP
  * 150000 → "$150.000"
  */
