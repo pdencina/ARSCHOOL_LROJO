@@ -176,9 +176,9 @@ export default function AlumnosClient({ alumnos, cursos, colegioId }: Props) {
                     <span className={`tag ${a.activo ? 'tag-ok' : 'tag-gray'}`}>{a.activo ? 'Activo' : 'Inactivo'}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <button className="text-xs text-blue-600 hover:underline" onClick={e => { e.stopPropagation(); setAlumnoDetalle(a) }}>
-                      Ver perfil
-                    </button>
+                    <a href={`/alumnos/${a.id}`} className="text-xs text-[var(--ar-accent)] hover:underline font-medium" onClick={e => e.stopPropagation()}>
+                      Ver ficha
+                    </a>
                   </td>
                 </tr>
               )
