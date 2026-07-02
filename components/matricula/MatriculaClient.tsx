@@ -45,6 +45,10 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
     const data = await res.json()
     if (res.ok) {
       toast.success(`Matrícula completada — ${data.cobros_generados} cobros generados`)
+      // Abrir contrato en nueva pestaña
+      if (data.matricula?.id) {
+        window.open(`/api/contratos?matricula_id=${data.matricula.id}`, '_blank')
+      }
       setVista('lista')
       router.refresh()
     } else {
@@ -84,14 +88,14 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="bg-[#f9fafb] border-b border-[var(--ar-border)]">
-                  {['Alumno', 'Curso', 'Estado', 'Fecha', 'Monto matrícula'].map(h => (
+                  {['Alumno', 'Curso', 'Estado', 'Fecha', 'Monto matrícula', ''].map(h => (
                     <th key={h} className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider px-4 py-3 text-left">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {matriculas.length === 0 ? (
-                  <tr><td colSpan={5} className="px-4 py-12 text-center">
+                  <tr><td colSpan={6} className="px-4 py-12 text-center">
                     <i className="ti ti-user-plus text-3xl text-[#d1d5db] block mb-3" aria-hidden="true"/>
                     <p className="text-[#9ca3af] text-sm">No hay matrículas este año. Registra la primera.</p>
                   </td></tr>
@@ -102,6 +106,11 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
                     <td className="px-4 py-3.5"><span className={`tag ${m.estado === 'activa' ? 'tag-ok' : 'tag-pend'}`}>{m.estado}</span></td>
                     <td className="px-4 py-3.5 text-[#6b7280] text-[12px]">{new Date(m.fecha_matricula).toLocaleDateString('es-CL')}</td>
                     <td className="px-4 py-3.5 text-[#1a2332] font-medium">${(m.monto_matricula ?? 0).toLocaleString('es-CL')}</td>
+                    <td className="px-4 py-3.5">
+                      <a href={`/api/contratos?matricula_id=${m.id}`} target="_blank" className="text-[11px] text-[var(--ar-accent)] hover:underline font-medium">
+                        Ver contrato
+                      </a>
+                    </td>
                   </tr>
                 ))}
               </tbody>
