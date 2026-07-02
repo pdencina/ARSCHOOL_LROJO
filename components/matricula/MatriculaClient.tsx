@@ -108,9 +108,14 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
                     <td className="px-4 py-3.5 text-[#6b7280] text-[12px]">{new Date(m.fecha_matricula).toLocaleDateString('es-CL')}</td>
                     <td className="px-4 py-3.5 text-[#1a2332] font-medium">${(m.monto_matricula ?? 0).toLocaleString('es-CL')}</td>
                     <td className="px-4 py-3.5">
-                      <a href={`/api/contratos?matricula_id=${m.id}`} target="_blank" className="text-[11px] text-[var(--ar-accent)] hover:underline font-medium">
-                        Ver contrato
-                      </a>
+                      <div className="flex gap-2">
+                        <a href={`/api/contratos?matricula_id=${m.id}`} target="_blank" className="text-[11px] text-[var(--ar-accent)] hover:underline font-medium">
+                          Contrato
+                        </a>
+                        <a href={`/matricula/firmar/${m.id}`} className="text-[11px] text-[#2c4a6e] hover:underline font-medium">
+                          {m.firma_apoderado ? '✓ Firmado' : 'Firmar'}
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 ))}
