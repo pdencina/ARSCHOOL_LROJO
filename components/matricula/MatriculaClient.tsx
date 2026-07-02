@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validarEmail, formatearFecha, fechaISOaDisplay, formatearMontoInput } from '@/lib/validaciones'
+import FirmaDigital from '@/components/ui/FirmaDigital'
 
 interface Props { planes: any[]; matriculas: any[]; cursos: string[] }
 
@@ -25,7 +26,7 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
     plan_cobro_id: '', monto_matricula: 0, monto_mensual: 0, meses_cobro: 10,
     // Config
     crear_cuenta_apoderado: true, password_apoderado: '',
-    observaciones: '',
+    observaciones: '', firma_apoderado: '',
   })
 
   async function handleMatricular() {
@@ -201,6 +202,17 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
             <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Observaciones</label>
             <textarea value={form.observaciones} onChange={e => setForm(p => ({...p, observaciones: e.target.value}))} className="input-base min-h-[60px] resize-none text-[12px]" placeholder="Notas adicionales sobre la matrícula..."/>
           </div>
+
+          {/* Firma digital */}
+          <FirmaDigital
+            label="Firma del Apoderado"
+            onFirmar={(dataUrl) => setForm(p => ({...p, firma_apoderado: dataUrl}))}
+          />
+          {form.firma_apoderado && (
+            <div className="flex items-center gap-2 text-[12px] text-[#1a7a4c]">
+              <i className="ti ti-check text-sm" aria-hidden="true"/> Firma registrada
+            </div>
+          )}
 
           {/* Botón */}
           <div className="flex gap-3">
