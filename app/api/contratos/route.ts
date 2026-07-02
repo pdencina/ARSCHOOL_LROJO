@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
 
   const anio = matricula?.anio_escolar ?? new Date().getFullYear()
   const montoMat = matricula?.monto_matricula ?? 130000
+  const fechaMat = matricula?.fecha_matricula ?? new Date().toISOString().split('T')[0]
   const sede = SEDES[colegio?.id] ?? 'Victoria 52, Comuna de Santiago'
 
   // Cobros
@@ -94,7 +95,7 @@ table th { background: #f5f5f5; font-weight: bold; }
 
 <h1>CONTRATO DE PRESTACIÓN DE SERVICIOS EDUCACIONALES</h1>
 
-<p>En Santiago, a __ de _______ de ${anio}, se celebra el presente Contrato de Prestación de Servicios Educacionales no adscritos al sistema escolar formal, entre la <strong>FUNDACIÓN EDUCACIONAL AR MINISTRIES</strong>, RUT 65.168.392-0, debidamente representada por <strong>PATRICIO FERNANDO BURGOS PÉREZ</strong>, RUT 12.274.490-6, ambos domiciliados en VICTORIA 52, Comuna de Santiago, Región Metropolitana, Santiago de Chile, que en adelante se denominará "<strong>EL CENTRO</strong>"; y don(ña) <strong class="highlight">${familia?.nombre_apoderado ?? '___'} ${familia?.apellido_apoderado ?? '___'}</strong>, RUT <strong class="highlight">${familia?.rut ?? 'XX.XXX.XXX-X'}</strong>, con domicilio en <strong class="highlight">${familia?.direccion ?? '___________________________________'}</strong>, que en adelante se denominará "<strong>EL APODERADO</strong>", y en conjunto como "<strong>LAS PARTES</strong>", acuerdan lo siguiente:</p>
+<p>En Santiago, a ${new Date(fechaMat).getDate()} de ${new Date(fechaMat).toLocaleDateString('es-CL', { month: 'long' })} de ${anio}, se celebra el presente Contrato de Prestación de Servicios Educacionales no adscritos al sistema escolar formal, entre la <strong>FUNDACIÓN EDUCACIONAL AR MINISTRIES</strong>, RUT 65.168.392-0, debidamente representada por <strong>PATRICIO FERNANDO BURGOS PÉREZ</strong>, RUT 12.274.490-6, ambos domiciliados en VICTORIA 52, Comuna de Santiago, Región Metropolitana, Santiago de Chile, que en adelante se denominará "<strong>EL CENTRO</strong>"; y don(ña) <strong class="highlight">${familia?.nombre_apoderado ?? '___'} ${familia?.apellido_apoderado ?? '___'}</strong>, RUT <strong class="highlight">${familia?.rut ?? 'XX.XXX.XXX-X'}</strong>, con domicilio en <strong class="highlight">${familia?.direccion ?? '___________________________________'}</strong>, que en adelante se denominará "<strong>EL APODERADO</strong>", y en conjunto como "<strong>LAS PARTES</strong>", acuerdan lo siguiente:</p>
 
 <div class="clausula">
 <p><span class="clausula-title">PRIMERO</span>: La <strong>FUNDACIÓN EDUCACIONAL AR MINISTRIES</strong>, organización sin fines de lucro legalmente constituida conforme a la Ley N° 20.500 y al Código Civil chileno, es la entidad responsable del programa educativo "<strong>AR SCHOOL GLOBAL</strong>", el cual funciona como Centro Educacional Alternativo de acompañamiento pedagógico y formativo, no adscrito al sistema escolar formal, destinado a niños y niñas de los niveles Preschool, Elementary School, Middle School y High School, en adelante "EL CENTRO".</p>
