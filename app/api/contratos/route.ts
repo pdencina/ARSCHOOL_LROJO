@@ -43,8 +43,32 @@ export async function GET(request: NextRequest) {
 
   if (!alumno) return new NextResponse('Alumno no encontrado', { status: 404 })
   colegio = alumno.colegio
-  const { data: fam } = await admin.from('familias').select('*').eq('alumno_id', alumno.id).limit(1).single()
-  familia = fam
+
+  // Buscar familia: primero por familia_id en matrícula, luego por alumno_id
+  if (matricula?.familia_id) {
+    const { data: fam } = await admin.from('familias').select('*').eq('id', matricula.familia_id).single()
+    familia = fam
+  }
+  if (!familia) {
+    const { data: fam } = await admin.from('familias').select('*').eq('alumno_id', alumno.id).limit(1).single()
+    familia = fam
+  }
+  // Fallback: buscar apoderado vinculado en tutor_alumnos + usuarios
+  if (!familia || (!familia.nombre_apoderado && !familia.rut)) {
+    const { data: vinculo } = await admin.from('tutor_alumnos').select('tutor_id').eq('alumno_id', alumno.id).limit(1).single()
+    if (vinculo) {
+      const { data: uApoderado } = await admin.from('usuarios').select('nombre, apellido, email').eq('id', (vinculo as any).tutor_id).single()
+      if (uApoderado) {
+        familia = {
+          ...familia,
+          nombre_apoderado: familia?.nombre_apoderado || (uApoderado as any).nombre,
+          apellido_apoderado: familia?.apellido_apoderado || (uApoderado as any).apellido,
+          rut: familia?.rut || null,
+          direccion: familia?.direccion || null,
+        }
+      }
+    }
+  }
 
   const anio = matricula?.anio_escolar ?? new Date().getFullYear()
   const montoMat = matricula?.monto_matricula ?? 130000
