@@ -83,9 +83,16 @@ ol li { margin-bottom: 8px; text-align: justify; }
 table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 12px; }
 table th, table td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
 table th { background: #f5f5f5; font-weight: bold; }
-.firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 80px; }
-.firma { text-align: center; }
-.firma-line { border-top: 1px solid #000; padding-top: 8px; margin-top: 80px; font-size: 12px; }
+.firmas-section { margin-top: 80px; page-break-inside: avoid; }
+.firmas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; }
+.firma-box { text-align: center; }
+.firma-espacio { height: 100px; display: flex; align-items: flex-end; justify-content: center; }
+.firma-img { max-height: 90px; max-width: 200px; object-fit: contain; }
+.firma-linea { border-top: 1.5px solid #1a2332; margin-top: 8px; margin-bottom: 10px; width: 100%; }
+.firma-nombre { font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 2px; }
+.firma-detalle { font-size: 11px; color: #4b5563; margin-bottom: 2px; }
+.firma-rol { font-size: 11px; color: #6b7280; }
+.firma-timestamp { font-size: 10px; color: #9ca3af; margin-top: 6px; font-style: italic; }
 .no-print { text-align: center; margin-top: 40px; }
 @media print { .no-print { display: none; } body { padding: 40px 50px; } }
 </style>
@@ -183,19 +190,32 @@ Fecha de nacimiento: <strong class="highlight">${alumno.fecha_nacimiento ? new D
 <p>El presente contrato se firma en dos ejemplares, quedando cada uno en poder de las partes.</p>
 </div>
 
-<div class="firmas">
-<div class="firma">
-<div class="firma-line">PATRICIO FERNANDO BURGOS PÉREZ<br/>RUT N° 12.274.490-6<br/>Representante Legal</div>
+<div class="firmas-section">
+<div class="firmas-grid">
+<div class="firma-box">
+<div class="firma-espacio"></div>
+<div class="firma-linea"></div>
+<div class="firma-nombre">PATRICIO FERNANDO BURGOS PÉREZ</div>
+<div class="firma-detalle">RUT N° 12.274.490-6</div>
+<div class="firma-rol">Representante Legal<br/>Fundación Educacional AR Ministries</div>
 </div>
-<div class="firma">
-${firmaApoderado ? `<img src="${firmaApoderado}" style="height:80px;margin:0 auto 8px;display:block;" alt="Firma"/>` : '<div style="height:80px;"></div>'}
-<div class="firma-line">${familia?.nombre_apoderado ?? '___'} ${familia?.apellido_apoderado ?? '___'}<br/>RUT N° ${familia?.rut ?? 'XX.XXX.XXX-X'}<br/>Apoderado/a${firmadoAt ? `<br/><small style="color:#6b7280;">Firmado digitalmente: ${firmadoAt}</small>` : ''}</div>
+<div class="firma-box">
+<div class="firma-espacio">
+${firmaApoderado ? `<img src="${firmaApoderado}" class="firma-img" alt="Firma del apoderado"/>` : ''}
+</div>
+<div class="firma-linea"></div>
+<div class="firma-nombre">${familia?.nombre_apoderado ?? '___'} ${familia?.apellido_apoderado ?? '___'}</div>
+<div class="firma-detalle">RUT N° ${familia?.rut ?? '___'}</div>
+<div class="firma-rol">Apoderado/a</div>
+${firmadoAt ? `<div class="firma-timestamp">Firmado digitalmente el ${firmadoAt}</div>` : ''}
+</div>
 </div>
 </div>
 
-<div class="no-print" style="margin-top:40px;text-align:center;">
-<button onclick="window.print()" style="background:#1a2332;color:white;border:none;padding:12px 32px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Imprimir / Guardar PDF</button>
-<button onclick="window.close()" style="background:white;color:#1a2332;border:1px solid #e8eaed;padding:12px 32px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-left:8px;">Cerrar</button>
+<div class="no-print" style="margin-top:50px;text-align:center;padding:20px 0;border-top:1px solid #e8eaed;">
+<p style="font-size:11px;color:#9ca3af;margin-bottom:12px;">Documento generado por AR School Global · ${new Date().toLocaleDateString('es-CL')}</p>
+<button onclick="window.print()" style="background:#1a2332;color:white;border:none;padding:12px 36px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;">🖨️ Imprimir / Guardar PDF</button>
+<button onclick="window.close()" style="background:white;color:#1a2332;border:1.5px solid #e8eaed;padding:12px 36px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-left:10px;transition:all .2s;">Cerrar</button>
 </div>
 
 </body>
