@@ -51,6 +51,10 @@ export async function GET(request: NextRequest) {
   const fechaMat = matricula?.fecha_matricula ?? new Date().toISOString().split('T')[0]
   const sede = SEDES[colegio?.id] ?? 'Victoria 52, Comuna de Santiago'
 
+  // Obtener firma si existe
+  const firmaApoderado = matricula?.firma_apoderado ?? null
+  const firmadoAt = matricula?.firmado_at ? new Date(matricula.firmado_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) : null
+
   // Cobros
   const { data: cobros } = await admin.from('cobros').select('monto, mes, anio').eq('alumno_id', alumno.id).eq('anio', anio).order('mes')
   const montoCuota = cobros && cobros.length > 0 ? (cobros as any[])[0].monto : 275000
@@ -184,7 +188,8 @@ Fecha de nacimiento: <strong class="highlight">${alumno.fecha_nacimiento ? new D
 <div class="firma-line">PATRICIO FERNANDO BURGOS PÉREZ<br/>RUT N° 12.274.490-6<br/>Representante Legal</div>
 </div>
 <div class="firma">
-<div class="firma-line">${familia?.nombre_apoderado ?? '___'} ${familia?.apellido_apoderado ?? '___'}<br/>RUT N° ${familia?.rut ?? 'XX.XXX.XXX-X'}<br/>Apoderado/a</div>
+${firmaApoderado ? `<img src="${firmaApoderado}" style="height:80px;margin:0 auto 8px;display:block;" alt="Firma"/>` : '<div style="height:80px;"></div>'}
+<div class="firma-line">${familia?.nombre_apoderado ?? '___'} ${familia?.apellido_apoderado ?? '___'}<br/>RUT N° ${familia?.rut ?? 'XX.XXX.XXX-X'}<br/>Apoderado/a${firmadoAt ? `<br/><small style="color:#6b7280;">Firmado digitalmente: ${firmadoAt}</small>` : ''}</div>
 </div>
 </div>
 
