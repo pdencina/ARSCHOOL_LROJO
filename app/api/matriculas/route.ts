@@ -112,15 +112,28 @@ export async function POST(request: NextRequest) {
           options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password` },
         })
 
+        // El action_link de Supabase tiene formato:
+        // https://SUPABASE_URL/auth/v1/verify?token=XXX&type=recovery&redirect_to=...
+        // Lo transformamos para que pase por nuestro auth/confirm endpoint
+        let linkAcceso = linkData?.properties?.action_link ?? ''
+        if (linkAcceso) {
+          // Extraer los params del link de Supabase y redirigir via nuestro endpoint
+          const url = new URL(linkAcceso)
+          const token_hash = url.searchParams.get('token')
+          const type = url.searchParams.get('type') || 'recovery'
+          // Construir link que pase por nuestro propio endpoint de confirmación
+          linkAcceso = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm?token_hash=${token_hash}&type=${type}&next=/reset-password`
+        }
+
         // Enviar email de bienvenida con Resend
-        if (linkData?.properties?.action_link) {
+        if (linkAcceso) {
           const { enviarEmail, templateInvitacionApoderado } = await import('@/lib/email')
           const nombreCompleto = `${nombre_apoderado.trim()} ${(apellido_apoderado || '').trim()}`.trim()
           const alumnoNombre = `${nombre.trim()} ${apellido.trim()}`
           const emailResult = await enviarEmail({
             to: email_apoderado.trim(),
             subject: `Bienvenido/a a AR School - Cuenta creada para ${alumnoNombre}`,
-            html: templateInvitacionApoderado(nombreCompleto, alumnoNombre, linkData.properties.action_link),
+            html: templateInvitacionApoderado(nombreCompleto, alumnoNombre, linkAcceso),
           })
           console.log('Email enviado:', emailResult)
         } else {
@@ -153,14 +166,21 @@ export async function POST(request: NextRequest) {
             email: email_apoderado.trim(),
             options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password` },
           })
-          if (linkData?.properties?.action_link) {
+          let linkAcceso2 = linkData?.properties?.action_link ?? ''
+          if (linkAcceso2) {
+            const url = new URL(linkAcceso2)
+            const token_hash = url.searchParams.get('token')
+            const type = url.searchParams.get('type') || 'recovery'
+            linkAcceso2 = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm?token_hash=${token_hash}&type=${type}&next=/reset-password`
+          }
+          if (linkAcceso2) {
             const { enviarEmail, templateInvitacionApoderado } = await import('@/lib/email')
             const nombreCompleto = `${nombre_apoderado.trim()} ${(apellido_apoderado || '').trim()}`.trim()
             const alumnoNombre = `${nombre.trim()} ${apellido.trim()}`
             const emailResult = await enviarEmail({
               to: email_apoderado.trim(),
               subject: `Bienvenido/a a AR School - Cuenta creada para ${alumnoNombre}`,
-              html: templateInvitacionApoderado(nombreCompleto, alumnoNombre, linkData.properties.action_link),
+              html: templateInvitacionApoderado(nombreCompleto, alumnoNombre, linkAcceso2),
             })
             console.log('Email enviado (usuario existente):', emailResult)
           } else {
