@@ -117,14 +117,17 @@ export async function POST(request: NextRequest) {
           const { enviarEmail, templateInvitacionApoderado } = await import('@/lib/email')
           const nombreCompleto = `${nombre_apoderado.trim()} ${(apellido_apoderado || '').trim()}`.trim()
           const alumnoNombre = `${nombre.trim()} ${apellido.trim()}`
-          await enviarEmail({
+          const emailResult = await enviarEmail({
             to: email_apoderado.trim(),
             subject: `Bienvenido/a a AR School - Cuenta creada para ${alumnoNombre}`,
             html: templateInvitacionApoderado(nombreCompleto, alumnoNombre, linkData.properties.action_link),
           })
+          console.log('Email enviado:', emailResult)
+        } else {
+          console.error('No se pudo generar link de acceso. linkData:', JSON.stringify(linkData))
         }
       } else if (authErr?.message?.includes('already been registered')) {
-        // Si el usuario ya existe, solo vincularlo
+        // Si el usuario ya existe, vincularlo Y enviar email de bienvenida
         const { data: existingUsers } = await admin.auth.admin.listUsers()
         const existingUser = existingUsers?.users?.find((u: any) => u.email === email_apoderado.trim())
         if (existingUser) {
@@ -143,6 +146,26 @@ export async function POST(request: NextRequest) {
             alumno_id: (alumno as any).id,
             parentesco: parentesco || 'apoderado',
           }, { onConflict: 'tutor_id,alumno_id' })
+
+          // Enviar email de bienvenida igual
+          const { data: linkData } = await admin.auth.admin.generateLink({
+            type: 'recovery',
+            email: email_apoderado.trim(),
+            options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password` },
+          })
+          if (linkData?.properties?.action_link) {
+            const { enviarEmail, templateInvitacionApoderado } = await import('@/lib/email')
+            const nombreCompleto = `${nombre_apoderado.trim()} ${(apellido_apoderado || '').trim()}`.trim()
+            const alumnoNombre = `${nombre.trim()} ${apellido.trim()}`
+            const emailResult = await enviarEmail({
+              to: email_apoderado.trim(),
+              subject: `Bienvenido/a a AR School - Cuenta creada para ${alumnoNombre}`,
+              html: templateInvitacionApoderado(nombreCompleto, alumnoNombre, linkData.properties.action_link),
+            })
+            console.log('Email enviado (usuario existente):', emailResult)
+          } else {
+            console.error('No se pudo generar link (usuario existente). linkData:', JSON.stringify(linkData))
+          }
         }
       }
     }
