@@ -42,13 +42,25 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. Crear alumno
+    const nivelAuto = curso.toLowerCase().includes('play') || curso.toLowerCase().includes('pre school')
+      ? 'PreSchool'
+      : curso.toLowerCase().includes('kinder')
+        ? 'Kinder'
+        : curso.toLowerCase().includes('elementary')
+          ? 'Elementary'
+          : curso.toLowerCase().includes('middle')
+            ? 'Middle School'
+            : curso.toLowerCase().includes('high')
+              ? 'High School'
+              : 'Elementary'
+
     const { data: alumno, error: errAlumno } = await admin.from('alumnos').insert({
       colegio_id: colegioId,
       nombre: nombre.trim(),
       apellido: apellido.trim(),
       rut: rut || null,
       curso,
-      nivel: curso.toLowerCase().includes('play') || curso.toLowerCase().includes('pre') ? 'PreSchool' : 'Básico',
+      nivel: nivelAuto,
       fecha_nacimiento: fecha_nacimiento || null,
       direccion: direccion || null,
       nacionalidad: nacionalidad || 'Chilena',

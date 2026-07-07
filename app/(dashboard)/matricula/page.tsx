@@ -29,7 +29,20 @@ export default async function MatriculaPage() {
     admin.from('matriculas').select('*, alumno:alumnos(nombre, apellido, curso)').eq('colegio_id', colegioId).eq('anio_escolar', new Date().getFullYear()).order('created_at', { ascending: false }),
   ])
 
-  const cursos = ['Play Group', 'PreSchool A', 'Elementary 1', 'Elementary 2', 'Elementary 3', 'Elementary 4', 'High School 1', 'High School 2', 'Middle 1', 'Middle 2']
+  const cursos = [
+    'Play Group (2-3 años)',
+    'Pre School (3-4 años)',
+    'Kinder (5 años)',
+    'Elementary 1 (1° básico)',
+    'Elementary 2 (2° básico)',
+    'Elementary 3 (3° básico)',
+    'Elementary 4 (4° básico)',
+    'Middle School 5 (5° básico)',
+    'Middle School 6 (6° básico)',
+    'Middle School 7 (7° básico)',
+    'Middle School 8 (8° básico)',
+    'High School',
+  ]
 
   return (
     <MatriculaClient
