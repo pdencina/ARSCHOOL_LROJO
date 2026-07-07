@@ -30,6 +30,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const usuario = usuarioRaw as any
   if (!usuario) redirect('/login')
 
+  // Apoderados y alumnos van al portal, no al dashboard admin
+  if (['apoderado', 'alumno'].includes(usuario.rol)) redirect('/portal')
+
   // Cargar permisos del rol (super_admin ve todo)
   let modulosHabilitados: string[] | null = null
   if (usuario.rol !== 'super_admin') {

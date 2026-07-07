@@ -64,8 +64,8 @@ export default function Topbar({ usuario }: Props) {
                   <div className="text-[12px] font-medium text-[var(--ar-text)]">{usuario?.nombre} {usuario?.apellido}</div>
                   <div className="text-[11px] text-[#b0b7c3] mt-0.5">{usuario?.email}</div>
                 </div>
-                <Link href="/configuracion" onClick={() => setShowMenu(false)} className="flex items-center gap-2.5 px-3.5 py-2.5 text-[12px] text-[#5f6876] hover:bg-[#f8f9fb] transition-colors">
-                  <i className="ti ti-settings text-[14px] text-[#b0b7c3]" aria-hidden="true"/> Configuración
+                <Link href={rol === 'apoderado' || rol === 'alumno' ? '/portal/perfil' : '/configuracion'} onClick={() => setShowMenu(false)} className="flex items-center gap-2.5 px-3.5 py-2.5 text-[12px] text-[#5f6876] hover:bg-[#f8f9fb] transition-colors">
+                  <i className={`ti ${rol === 'apoderado' || rol === 'alumno' ? 'ti-user' : 'ti-settings'} text-[14px] text-[#b0b7c3]`} aria-hidden="true"/> {rol === 'apoderado' || rol === 'alumno' ? 'Mi perfil' : 'Configuración'}
                 </Link>
                 <button onClick={logout} className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[12px] text-[var(--ar-danger)] hover:bg-red-50/50 transition-colors">
                   <i className="ti ti-logout text-[14px]" aria-hidden="true"/> Cerrar sesión
