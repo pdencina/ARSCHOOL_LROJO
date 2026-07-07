@@ -7,9 +7,10 @@ interface Props {
   rol: string
   stats: { pctAsist: number|null; promedio: string|null; totalNotas: number; deuda: number; totalAsistencias: number }
   comunicados: any[]
+  pendientesFirma?: number
 }
 
-export default function PortalInicio({ usuario, alumno, rol, stats, comunicados }: Props) {
+export default function PortalInicio({ usuario, alumno, rol, stats, comunicados, pendientesFirma = 0 }: Props) {
   const esApoderado = rol === 'apoderado'
   const HORA = new Date().getHours()
   const SALUDO = HORA < 12 ? 'Buenos días' : HORA < 19 ? 'Buenas tardes' : 'Buenas noches'
@@ -37,6 +38,23 @@ export default function PortalInicio({ usuario, alumno, rol, stats, comunicados 
           {esApoderado ? 'Portal de apoderado' : 'Portal del alumno'} · {usuario?.colegio?.nombre}
         </p>
       </div>
+
+      {/* Alerta firmas pendientes */}
+      {pendientesFirma > 0 && (
+        <Link href="/portal/documentos" className="block mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 hover:border-amber-300 transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <i className="ti ti-alert-triangle text-amber-600 text-lg" aria-hidden="true"/>
+            </div>
+            <div className="flex-1">
+              <div className="text-[13px] font-bold text-amber-800">
+                {pendientesFirma === 1 ? 'Tienes 1 contrato pendiente de firma' : `Tienes ${pendientesFirma} contratos pendientes de firma`}
+              </div>
+              <div className="text-[11px] text-amber-700">Ir a Documentos para revisar y firmar →</div>
+            </div>
+          </div>
+        </Link>
+      )}
 
       {/* Tarjeta alumno */}
       {alumno && (

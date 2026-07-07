@@ -41,6 +41,7 @@ const NAV_APODERADO: NavItem[] = [
   { label: 'Reporte del día', href: '/portal/reporte-diario', icon: 'ti-clipboard-heart', roles: ['apoderado'] },
   { label: 'Mensajes',        href: '/portal/mensajes',       icon: 'ti-message-2',       roles: ['apoderado'] },
   { label: 'Comunicados',     href: '/portal/comunicados',    icon: 'ti-speakerphone',    roles: ['apoderado'] },
+  { label: 'Documentos',      href: '/portal/documentos',     icon: 'ti-file-certificate', roles: ['apoderado'] },
   { label: 'Asistencias',     href: '/portal/asistencias',    icon: 'ti-clipboard-check', roles: ['apoderado'] },
   { label: 'Evaluaciones',   href: '/portal/calificaciones', icon: 'ti-chart-bar',       roles: ['apoderado'] },
   { label: 'Estado de pagos', href: '/portal/pagos',          icon: 'ti-cash',            roles: ['apoderado'] },
@@ -89,6 +90,7 @@ const HREF_TO_MODULO: Record<string, string> = {
   '/portal/asistencias': 'asistencias',
   '/portal/calificaciones': 'evaluaciones',
   '/portal/pagos': 'pagos',
+  '/portal/documentos': 'documentos',
   '/portal/perfil': 'perfil',
   '/portal/tareas': 'tareas',
 }

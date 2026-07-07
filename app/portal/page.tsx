@@ -1,7 +1,16 @@
 export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import PortalInicio from '@/components/portal/PortalInicio'
+
+function getAdmin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 export default async function PortalPage() {
   const supabase = createClient()
@@ -51,6 +60,18 @@ export default async function PortalPage() {
 
   const deuda = (cobros ?? []).filter((c: any) => c.estado !== 'pagado').reduce((a: number, c: any) => a + (c.monto - c.monto_pagado), 0)
 
+  // Check for pending signatures
+  const admin = getAdmin()
+  let pendientesFirma = 0
+  if (rol === 'apoderado') {
+    const { data: vinculos } = await admin.from('tutor_alumnos').select('alumno_id').eq('tutor_id', user.id)
+    const ids = (vinculos ?? []).map((v: any) => v.alumno_id)
+    if (ids.length > 0) {
+      const { data: mats } = await admin.from('matriculas').select('id, firma_apoderado').in('alumno_id', ids).is('firma_apoderado', null)
+      pendientesFirma = (mats ?? []).length
+    }
+  }
+
   return (
     <PortalInicio
       usuario={u}
@@ -58,6 +79,7 @@ export default async function PortalPage() {
       rol={rol}
       stats={{ pctAsist, promedio, totalNotas: notas.length, deuda, totalAsistencias: (asistencias ?? []).length }}
       comunicados={(comunicados as any[]) ?? []}
+      pendientesFirma={pendientesFirma}
     />
   )
 }
