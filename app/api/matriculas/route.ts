@@ -75,14 +75,16 @@ export async function POST(request: NextRequest) {
       if (!errFam) familiaId = (familia as any).id
     }
 
-    // 3. Crear cuenta apoderado (invitación por email para que defina su password)
+    // 3. Crear cuenta apoderado y enviar invitación por Resend (sin SMTP de Supabase)
     let apoderadoUserId = null
     if (crear_cuenta_apoderado && email_apoderado) {
-      // Usar inviteUserByEmail — Supabase envía email para que el usuario cree su password
-      const { data: authData, error: authErr } = await admin.auth.admin.inviteUserByEmail(
-        email_apoderado.trim(),
-        { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password` }
-      )
+      // Crear usuario con password temporal (el apoderado lo cambiará via link)
+      const tempPassword = crypto.randomUUID()
+      const { data: authData, error: authErr } = await admin.auth.admin.createUser({
+        email: email_apoderado.trim(),
+        password: tempPassword,
+        email_confirm: true, // Marcar email como confirmado
+      })
 
       if (!authErr && authData.user) {
         apoderadoUserId = authData.user.id
@@ -102,6 +104,46 @@ export async function POST(request: NextRequest) {
           alumno_id: (alumno as any).id,
           parentesco: parentesco || 'apoderado',
         }, { onConflict: 'tutor_id,alumno_id' })
+
+        // Generar link de reset password para que el apoderado cree su clave
+        const { data: linkData } = await admin.auth.admin.generateLink({
+          type: 'recovery',
+          email: email_apoderado.trim(),
+          options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password` },
+        })
+
+        // Enviar email de bienvenida con Resend
+        if (linkData?.properties?.action_link) {
+          const { enviarEmail, templateInvitacionApoderado } = await import('@/lib/email')
+          const nombreCompleto = `${nombre_apoderado.trim()} ${(apellido_apoderado || '').trim()}`.trim()
+          const alumnoNombre = `${nombre.trim()} ${apellido.trim()}`
+          await enviarEmail({
+            to: email_apoderado.trim(),
+            subject: `Bienvenido/a a AR School - Cuenta creada para ${alumnoNombre}`,
+            html: templateInvitacionApoderado(nombreCompleto, alumnoNombre, linkData.properties.action_link),
+          })
+        }
+      } else if (authErr?.message?.includes('already been registered')) {
+        // Si el usuario ya existe, solo vincularlo
+        const { data: existingUsers } = await admin.auth.admin.listUsers()
+        const existingUser = existingUsers?.users?.find((u: any) => u.email === email_apoderado.trim())
+        if (existingUser) {
+          apoderadoUserId = existingUser.id
+          await admin.from('usuarios').upsert({
+            id: existingUser.id,
+            email: email_apoderado.trim(),
+            nombre: nombre_apoderado.trim(),
+            apellido: (apellido_apoderado || '').trim(),
+            rol: 'apoderado',
+            colegio_id: colegioId,
+            activo: true,
+          }, { onConflict: 'id' })
+          await admin.from('tutor_alumnos').upsert({
+            tutor_id: existingUser.id,
+            alumno_id: (alumno as any).id,
+            parentesco: parentesco || 'apoderado',
+          }, { onConflict: 'tutor_id,alumno_id' })
+        }
       }
     }
 
