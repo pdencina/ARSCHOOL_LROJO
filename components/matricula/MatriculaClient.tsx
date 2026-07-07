@@ -15,6 +15,8 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
   const [fechaDisplay, setFechaDisplay] = useState('')
   const [montoMatDisplay, setMontoMatDisplay] = useState('')
   const [montoMensDisplay, setMontoMensDisplay] = useState('')
+  const [apoderadoExiste, setApoderadoExiste] = useState<any>(null)
+  const [buscandoApoderado, setBuscandoApoderado] = useState(false)
   const [form, setForm] = useState({
     // Alumno
     nombre: '', apellido: '', rut: '', curso: cursos[0] ?? '', fecha_nacimiento: '',
@@ -28,6 +30,31 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
     crear_cuenta_apoderado: true, password_apoderado: '',
     observaciones: '', firma_apoderado: '',
   })
+
+  async function buscarApoderado(email: string) {
+    if (!validarEmail(email)) { setApoderadoExiste(null); return }
+    setBuscandoApoderado(true)
+    try {
+      const res = await fetch(`/api/usuarios?email=${encodeURIComponent(email)}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data && data.id) {
+          setApoderadoExiste(data)
+          // Auto-rellenar datos del apoderado
+          setForm(p => ({
+            ...p,
+            nombre_apoderado: data.nombre || p.nombre_apoderado,
+            apellido_apoderado: data.apellido || p.apellido_apoderado,
+          }))
+        } else {
+          setApoderadoExiste(null)
+        }
+      } else {
+        setApoderadoExiste(null)
+      }
+    } catch { setApoderadoExiste(null) }
+    setBuscandoApoderado(false)
+  }
 
   async function handleMatricular() {
     if (!form.nombre || !form.apellido || !form.curso) { toast.error('Datos del alumno incompletos'); return }
@@ -163,8 +190,18 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Apellido</label><input value={form.apellido_apoderado} onChange={e => setForm(p => ({...p, apellido_apoderado: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Apellido"/></div>
               <div>
                 <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Email *</label>
-                <input type="email" value={form.email_apoderado} onChange={e => setForm(p => ({...p, email_apoderado: e.target.value.toLowerCase()}))} className={`input-base ${form.email_apoderado && !validarEmail(form.email_apoderado) ? 'border-red-300 focus:ring-red-200' : ''}`} placeholder="correo@email.com"/>
+                <input type="email" value={form.email_apoderado} onChange={e => setForm(p => ({...p, email_apoderado: e.target.value.toLowerCase()}))} onBlur={e => buscarApoderado(e.target.value)} className={`input-base ${form.email_apoderado && !validarEmail(form.email_apoderado) ? 'border-red-300 focus:ring-red-200' : ''}`} placeholder="correo@email.com"/>
                 {form.email_apoderado && !validarEmail(form.email_apoderado) && <span className="text-[10px] text-[#c53030] mt-0.5 block">Email inválido</span>}
+                {buscandoApoderado && <span className="text-[10px] text-[#6b7280] mt-0.5 block">Verificando...</span>}
+                {apoderadoExiste && (
+                  <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-2.5 flex items-start gap-2">
+                    <i className="ti ti-info-circle text-blue-500 text-sm mt-0.5 flex-shrink-0" aria-hidden="true"/>
+                    <div>
+                      <span className="text-[11px] text-blue-800 font-medium block">Apoderado existente: {apoderadoExiste.nombre} {apoderadoExiste.apellido}</span>
+                      <span className="text-[10px] text-blue-600">El nuevo alumno se vinculará a esta misma cuenta.</span>
+                    </div>
+                  </div>
+                )}
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Teléfono</label><input value={form.telefono_apoderado} onChange={e => setForm(p => ({...p, telefono_apoderado: formatearTelefono(e.target.value)}))} className="input-base" placeholder="+56 9 1234 5678" maxLength={16}/></div>
               <div>

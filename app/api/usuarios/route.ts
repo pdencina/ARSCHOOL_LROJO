@@ -11,7 +11,7 @@ function getAdmin() {
 }
 
 // GET: admin del colegio ve los usuarios de su colegio
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -22,6 +22,18 @@ export async function GET() {
 
   if (!['super_admin', 'admin'].includes(usuario?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
+  // Búsqueda por email específico (para verificar si apoderado ya existe)
+  const { searchParams } = new URL(request.url)
+  const emailBuscar = searchParams.get('email')
+  if (emailBuscar) {
+    const { data: encontrado } = await admin
+      .from('usuarios')
+      .select('id, nombre, apellido, email, rol')
+      .eq('email', emailBuscar)
+      .single()
+    return NextResponse.json(encontrado ?? null)
   }
 
   const { data } = await admin
