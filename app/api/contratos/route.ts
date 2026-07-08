@@ -79,12 +79,21 @@ export async function GET(request: NextRequest) {
   const firmaApoderado = matricula?.firma_apoderado ?? null
   const firmadoAt = matricula?.firmado_at ? new Date(matricula.firmado_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) : null
 
-  // Cobros
-  const { data: cobros } = await admin.from('cobros').select('monto, mes, anio').eq('alumno_id', alumno.id).eq('anio', anio).order('mes')
-  const montoCuota = cobros && cobros.length > 0 ? (cobros as any[])[0].monto : 275000
-  const meses = ['marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
-
-  const tablaP = meses.map((m, i) => `<tr><td>1 ${m} ${anio}</td><td>$${montoCuota.toLocaleString('es-CL')} CLP</td><td></td><td></td></tr>`).join('')
+  // Cobros — usar montos reales, no hardcodeados
+  const { data: cobros } = await admin.from('cobros').select('monto, mes, anio').eq('alumno_id', alumno.id).order('anio').order('mes')
+  // Filtrar solo cobros mensuales (excluir matrícula)
+  const cobrosmensuales = (cobros ?? []).filter((c: any) => c.monto !== montoMat)
+  const montoCuota = cobrosmensuales.length > 0 ? (cobrosmensuales as any[])[0].monto : (matricula?.monto_mensual ?? 0)
+  
+  // Construir tabla con los meses reales de cobro
+  let tablaP = ''
+  if (cobrosmensuales.length > 0) {
+    const mesesNombres = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+    tablaP = (cobrosmensuales as any[]).map((c: any) => `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td><td></td><td></td></tr>`).join('')
+  } else {
+    const meses = ['marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+    tablaP = meses.map((m) => `<tr><td>1 ${m} ${anio}</td><td>$${montoCuota.toLocaleString('es-CL')} CLP</td><td></td><td></td></tr>`).join('')
+  }
 
   const html = `<!DOCTYPE html>
 <html lang="es">

@@ -223,6 +223,10 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
                 </select>
               </div>
             </div>
+            <div className="mt-3">
+              <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Dirección del apoderado</label>
+              <input value={form.direccion_apoderado} onChange={e => setForm(p => ({...p, direccion_apoderado: e.target.value}))} className="input-base w-full" placeholder="Av. Ejemplo 1234, Comuna, Ciudad"/>
+            </div>
             <label className="flex items-center gap-2 mt-4 cursor-pointer">
               <input type="checkbox" checked={form.crear_cuenta_apoderado} onChange={e => setForm(p => ({...p, crear_cuenta_apoderado: e.target.checked}))} className="rounded"/>
               <span className="text-[13px] text-[#4b5563]">Crear cuenta de acceso al portal para el apoderado</span>

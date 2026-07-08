@@ -254,6 +254,7 @@ export async function POST(request: NextRequest) {
       familia_id: familiaId,
       plan_cobro_id: plan_cobro_id || null,
       monto_matricula: monto_matricula || 0,
+      monto_mensual: monto_mensual || 0,
       observaciones,
       registrado_por: user.id,
       firma_apoderado: firma_apoderado || null,
