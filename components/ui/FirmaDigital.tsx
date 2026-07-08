@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 
 interface Props {
   onFirmar: (firmaDataUrl: string) => void
@@ -12,24 +12,41 @@ export default function FirmaDigital({ onFirmar, label = 'Firma del Apoderado' }
   const [dibujando, setDibujando] = useState(false)
   const [haFirmado, setHaFirmado] = useState(false)
 
-  useEffect(() => {
+  const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    const rect = canvas.getBoundingClientRect()
+    // Ajustar resolución del canvas al tamaño real en pantalla
+    const dpr = window.devicePixelRatio || 1
+    canvas.width = rect.width * dpr
+    canvas.height = rect.height * dpr
+    const ctx = canvas.getContext('2d')!
+    ctx.scale(dpr, dpr)
     ctx.strokeStyle = '#1a2332'
-    ctx.lineWidth = 2
+    ctx.lineWidth = 2.5
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
   }, [])
+
+  useEffect(() => {
+    setupCanvas()
+    window.addEventListener('resize', setupCanvas)
+    return () => window.removeEventListener('resize', setupCanvas)
+  }, [setupCanvas])
 
   function getPos(e: React.MouseEvent | React.TouchEvent) {
     const canvas = canvasRef.current!
     const rect = canvas.getBoundingClientRect()
     if ('touches' in e) {
-      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top }
+      return {
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top,
+      }
     }
-    return { x: (e as React.MouseEvent).clientX - rect.left, y: (e as React.MouseEvent).clientY - rect.top }
+    return {
+      x: (e as React.MouseEvent).clientX - rect.left,
+      y: (e as React.MouseEvent).clientY - rect.top,
+    }
   }
 
   function startDraw(e: React.MouseEvent | React.TouchEvent) {
@@ -60,6 +77,7 @@ export default function FirmaDigital({ onFirmar, label = 'Firma del Apoderado' }
     const ctx = canvas.getContext('2d')!
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     setHaFirmado(false)
+    setupCanvas()
   }
 
   function confirmar() {
@@ -86,9 +104,7 @@ export default function FirmaDigital({ onFirmar, label = 'Firma del Apoderado' }
       <div className="border border-dashed border-[#d1d5db] rounded-lg overflow-hidden bg-[#fafbfc] relative">
         <canvas
           ref={canvasRef}
-          width={500}
-          height={150}
-          className="w-full h-[150px] cursor-crosshair touch-none"
+          className="w-full h-[150px] cursor-crosshair touch-none block"
           onMouseDown={startDraw}
           onMouseMove={draw}
           onMouseUp={stopDraw}

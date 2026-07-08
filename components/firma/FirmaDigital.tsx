@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 
 interface Props {
   onFirmar: (firmaDataUrl: string) => void
@@ -12,18 +12,17 @@ export default function FirmaDigital({ onFirmar, firma }: Props) {
   const [dibujando, setDibujando] = useState(false)
   const [hayFirma, setHayFirma] = useState(false)
 
-  useEffect(() => {
+  const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    // Configurar canvas
-    canvas.width = canvas.offsetWidth * 2
-    canvas.height = canvas.offsetHeight * 2
-    ctx.scale(2, 2)
+    const rect = canvas.getBoundingClientRect()
+    const dpr = window.devicePixelRatio || 1
+    canvas.width = rect.width * dpr
+    canvas.height = rect.height * dpr
+    const ctx = canvas.getContext('2d')!
+    ctx.scale(dpr, dpr)
     ctx.strokeStyle = '#1a2332'
-    ctx.lineWidth = 2
+    ctx.lineWidth = 2.5
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
 
@@ -31,21 +30,26 @@ export default function FirmaDigital({ onFirmar, firma }: Props) {
     if (firma) {
       const img = new Image()
       img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvas.offsetWidth, canvas.offsetHeight)
+        ctx.drawImage(img, 0, 0, rect.width, rect.height)
         setHayFirma(true)
       }
       img.src = firma
     }
-  }, [])
+  }, [firma])
+
+  useEffect(() => {
+    setupCanvas()
+    window.addEventListener('resize', setupCanvas)
+    return () => window.removeEventListener('resize', setupCanvas)
+  }, [setupCanvas])
 
   function getPos(e: React.MouseEvent | React.TouchEvent) {
-    const canvas = canvasRef.current
-    if (!canvas) return { x: 0, y: 0 }
+    const canvas = canvasRef.current!
     const rect = canvas.getBoundingClientRect()
     if ('touches' in e) {
       return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top }
     }
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    return { x: (e as React.MouseEvent).clientX - rect.left, y: (e as React.MouseEvent).clientY - rect.top }
   }
 
   function iniciar(e: React.MouseEvent | React.TouchEvent) {
@@ -74,12 +78,8 @@ export default function FirmaDigital({ onFirmar, firma }: Props) {
   }
 
   function limpiar() {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
     setHayFirma(false)
+    setupCanvas()
   }
 
   function confirmar() {
@@ -95,7 +95,7 @@ export default function FirmaDigital({ onFirmar, firma }: Props) {
       <div className="border border-[var(--ar-border)] rounded-xl overflow-hidden bg-white" style={{ boxShadow: 'var(--shadow-sm)' }}>
         <canvas
           ref={canvasRef}
-          className="w-full h-[160px] cursor-crosshair touch-none"
+          className="w-full h-[160px] cursor-crosshair touch-none block"
           onMouseDown={iniciar}
           onMouseMove={dibujar}
           onMouseUp={terminar}
