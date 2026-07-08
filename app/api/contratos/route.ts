@@ -198,6 +198,15 @@ Fecha de nacimiento: <strong class="highlight">${alumno.fecha_nacimiento ? new D
 <tbody>${tablaP}</tbody>
 </table>
 <p><strong>OPCIÓN 3:</strong> Entrega presencial, por transferencia o depósito bancario.</p>
+<div style="background:#f8f9fb;border-radius:8px;padding:12px 16px;margin:12px 0;">
+<p style="margin:0 0 4px;font-weight:bold;font-size:12px;">Datos bancarios para transferencia:</p>
+<p style="margin:0;font-size:12px;line-height:1.6;">
+Banco: BancoEstado · Cuenta Corriente N° 291-0-008051-4<br/>
+RUT: 65.168.392-0<br/>
+Nombre: Fundación Educacional AR Ministries<br/>
+Correo: adm@arschoolglobal.com
+</p>
+</div>
 <p><strong>NOTA 1:</strong> Cualquier atraso generará un interés de un 3% diario a partir del vencimiento.</p>
 </div>
 

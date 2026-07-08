@@ -21,6 +21,8 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
     // Alumno
     nombre: '', apellido: '', rut: '', curso: cursos[0] ?? '', fecha_nacimiento: '',
     direccion: '', nacionalidad: 'Chilena', necesidades_especiales: '',
+    // Jornada
+    jornada: 'completa',
     // Apoderado
     nombre_apoderado: '', apellido_apoderado: '', email_apoderado: '', telefono_apoderado: '',
     rut_apoderado: '', direccion_apoderado: '', parentesco: 'apoderado',
@@ -172,6 +174,13 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Curso *</label>
                 <select value={form.curso} onChange={e => setForm(p => ({...p, curso: e.target.value}))} className="select-base w-full">
                   {cursos.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Jornada</label>
+                <select value={form.jornada} onChange={e => setForm(p => ({...p, jornada: e.target.value}))} className="select-base w-full">
+                  <option value="completa">Jornada Completa</option>
+                  <option value="am">Media Jornada AM (08:00 - 13:00)</option>
+                  <option value="pm">Media Jornada PM (13:00 - 18:00)</option>
                 </select>
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Fecha nacimiento</label><input value={fechaDisplay} onChange={e => { const f = formatearFecha(e.target.value); setFechaDisplay(f.display); if(f.value) setForm(p => ({...p, fecha_nacimiento: f.value})) }} className="input-base" placeholder="DD-MM-AAAA" maxLength={10}/></div>
