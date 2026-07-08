@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
   const {
     // Datos alumno
     nombre, apellido, rut, curso, fecha_nacimiento, direccion, nacionalidad, necesidades_especiales,
+    sexo, comuna, prevision_salud, contacto_emergencia, telefono_emergencia, tipo_ingreso, jornada, sede,
     // Datos apoderado
     nombre_apoderado, apellido_apoderado, email_apoderado, telefono_apoderado, rut_apoderado, direccion_apoderado, parentesco,
     // Plan de cobro
@@ -63,8 +64,16 @@ export async function POST(request: NextRequest) {
       nivel: nivelAuto,
       fecha_nacimiento: fecha_nacimiento || null,
       direccion: direccion || null,
+      comuna: comuna || null,
       nacionalidad: nacionalidad || 'Chilena',
       necesidades_especiales: necesidades_especiales || null,
+      sexo: sexo || null,
+      prevision_salud: prevision_salud || null,
+      contacto_emergencia: contacto_emergencia || null,
+      telefono_emergencia: telefono_emergencia || null,
+      jornada: jornada || 'completa',
+      sede: sede || null,
+      tipo_ingreso: tipo_ingreso || 'nuevo',
       activo: true,
     }).select().single()
 

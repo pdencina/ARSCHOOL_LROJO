@@ -19,9 +19,11 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
   const [form, setForm] = useState({
     // Alumno
     nombre: '', apellido: '', rut: '', curso: cursos[0] ?? '', fecha_nacimiento: '',
-    direccion: '', nacionalidad: 'Chilena', necesidades_especiales: '',
-    // Jornada
-    jornada: 'completa',
+    sexo: '', direccion: '', comuna: '', nacionalidad: 'Chilena', necesidades_especiales: '',
+    prevision_salud: '', contacto_emergencia: '', telefono_emergencia: '',
+    tipo_ingreso: 'nuevo',
+    // Jornada y sede
+    jornada: 'completa', sede: '',
     // Apoderado
     nombre_apoderado: '', apellido_apoderado: '', email_apoderado: '', telefono_apoderado: '',
     rut_apoderado: '', direccion_apoderado: '', parentesco: 'apoderado',
@@ -73,7 +75,7 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
 
     const data = await res.json()
     if (res.ok) {
-      toast.success(`Matrícula completada — ${data.cobros_generados} cobros generados`)
+      toast.success('Matrícula completada exitosamente')
       // Abrir contrato en nueva pestaña
       if (data.matricula?.id) {
         window.open(`/api/contratos?matricula_id=${data.matricula.id}`, '_blank')
@@ -166,10 +168,19 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre} onChange={e => setForm(p => ({...p, nombre: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Nombre"/></div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Apellido *</label><input value={form.apellido} onChange={e => setForm(p => ({...p, apellido: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Apellido"/></div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">RUT</label>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">RUT / Pasaporte</label>
                 <input value={form.rut} onChange={e => setForm(p => ({...p, rut: formatearRut(e.target.value)}))} className={`input-base ${form.rut && !validarRut(form.rut) ? 'border-red-300 focus:ring-red-200' : ''}`} placeholder="12.345.678-9" maxLength={12}/>
                 {form.rut && !validarRut(form.rut) && <span className="text-[10px] text-[#c53030] mt-0.5 block">RUT inválido</span>}
               </div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Sexo</label>
+                <select value={form.sexo} onChange={e => setForm(p => ({...p, sexo: e.target.value}))} className="select-base w-full">
+                  <option value="">Seleccionar</option>
+                  <option value="femenino">Femenino</option>
+                  <option value="masculino">Masculino</option>
+                </select>
+              </div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Fecha nacimiento</label><input value={fechaDisplay} onChange={e => { const f = formatearFecha(e.target.value); setFechaDisplay(f.display); if(f.value) setForm(p => ({...p, fecha_nacimiento: f.value})) }} className="input-base" placeholder="DD-MM-AAAA" maxLength={10}/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nacionalidad</label><input value={form.nacionalidad} onChange={e => setForm(p => ({...p, nacionalidad: capitalizarNombre(e.target.value)}))} className="input-base"/></div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Curso *</label>
                 <select value={form.curso} onChange={e => setForm(p => ({...p, curso: e.target.value}))} className="select-base w-full">
                   {cursos.map(c => <option key={c} value={c}>{c}</option>)}
@@ -180,10 +191,36 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
                   <option value="completa">Jornada Completa</option>
                   <option value="am">Media Jornada AM (08:00 - 13:00)</option>
                   <option value="pm">Media Jornada PM (13:00 - 18:00)</option>
+                  <option value="especial">Jornada Especial</option>
                 </select>
               </div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Fecha nacimiento</label><input value={fechaDisplay} onChange={e => { const f = formatearFecha(e.target.value); setFechaDisplay(f.display); if(f.value) setForm(p => ({...p, fecha_nacimiento: f.value})) }} className="input-base" placeholder="DD-MM-AAAA" maxLength={10}/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nacionalidad</label><input value={form.nacionalidad} onChange={e => setForm(p => ({...p, nacionalidad: capitalizarNombre(e.target.value)}))} className="input-base"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Sede</label>
+                <select value={form.sede} onChange={e => setForm(p => ({...p, sede: e.target.value}))} className="select-base w-full">
+                  <option value="">Según colegio asignado</option>
+                  <option value="santiago">Santiago (Victoria 52)</option>
+                  <option value="puente_alto">Puente Alto (Irarrázaval 0565)</option>
+                  <option value="punta_arenas">Punta Arenas (Chiloé 862)</option>
+                </select>
+              </div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Tipo de ingreso</label>
+                <select value={form.tipo_ingreso} onChange={e => setForm(p => ({...p, tipo_ingreso: e.target.value}))} className="select-base w-full">
+                  <option value="nuevo">Nuevo ingreso</option>
+                  <option value="continuidad">Continuidad</option>
+                </select>
+              </div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Previsión de salud</label>
+                <select value={form.prevision_salud} onChange={e => setForm(p => ({...p, prevision_salud: e.target.value}))} className="select-base w-full">
+                  <option value="">Seleccionar</option>
+                  <option value="fonasa">FONASA</option>
+                  <option value="isapre">ISAPRE</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Domicilio</label><input value={form.direccion} onChange={e => setForm(p => ({...p, direccion: e.target.value}))} className="input-base" placeholder="Av. Ejemplo 1234"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Comuna</label><input value={form.comuna} onChange={e => setForm(p => ({...p, comuna: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Santiago"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Contacto emergencia</label><input value={form.contacto_emergencia} onChange={e => setForm(p => ({...p, contacto_emergencia: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Nombre completo"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Teléfono emergencia</label><input value={form.telefono_emergencia} onChange={e => setForm(p => ({...p, telefono_emergencia: formatearTelefono(e.target.value)}))} className="input-base" placeholder="+56 9 1234 5678" maxLength={16}/></div>
             </div>
           </div>
 
