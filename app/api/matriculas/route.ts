@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     plan_cobro_id, monto_matricula, meses_cobro, monto_mensual,
     // Config
     crear_cuenta_apoderado, password_apoderado,
-    observaciones,
+    observaciones, firma_apoderado,
   } = body
 
   if (!nombre || !apellido || !curso) {
@@ -256,6 +256,8 @@ export async function POST(request: NextRequest) {
       monto_matricula: monto_matricula || 0,
       observaciones,
       registrado_por: user.id,
+      firma_apoderado: firma_apoderado || null,
+      firmado_at: firma_apoderado ? new Date().toISOString() : null,
     }).select().single()
 
     return NextResponse.json({
