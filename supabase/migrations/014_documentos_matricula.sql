@@ -41,3 +41,16 @@ CREATE TABLE IF NOT EXISTS public.pagos (
 
 GRANT ALL ON public.pagos TO authenticated;
 GRANT ALL ON public.pagos TO service_role;
+
+
+-- Tabla para sesiones de captura móvil (QR sync)
+CREATE TABLE IF NOT EXISTS public.sesiones_captura (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  codigo text UNIQUE NOT NULL,
+  documentos jsonb DEFAULT '{}',
+  expira_at timestamptz NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+GRANT ALL ON public.sesiones_captura TO authenticated;
+GRANT ALL ON public.sesiones_captura TO service_role;

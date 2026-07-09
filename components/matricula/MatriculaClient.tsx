@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validarEmail, formatearFecha, fechaISOaDisplay, formatearMontoInput } from '@/lib/validaciones'
 import CapturaDocumento from '@/components/ui/CapturaDocumento'
+import CapturaMovilSection from '@/components/matricula/CapturaMovilSection'
 
 interface Props { planes: any[]; matriculas: any[]; cursos: string[] }
 
@@ -300,17 +301,24 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
               <div className="w-7 h-7 rounded-full bg-[#1a2332] flex items-center justify-center text-white text-[11px] font-bold">4</div>
               <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Documentos adjuntos</h2>
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <CapturaDocumento label="CI Alumno (frente)" tipo="ci_frente" onCaptura={handleDocumento} valor={documentos.ci_frente}/>
-              <CapturaDocumento label="CI Alumno (reverso)" tipo="ci_reverso" onCaptura={handleDocumento} valor={documentos.ci_reverso}/>
-              <CapturaDocumento label="Foto del alumno" tipo="foto_alumno" onCaptura={handleDocumento} valor={documentos.foto_alumno}/>
-              <CapturaDocumento label="CI Apoderado (frente)" tipo="ci_apoderado_frente" onCaptura={handleDocumento} valor={documentos.ci_apoderado_frente}/>
-              <CapturaDocumento label="CI Apoderado (reverso)" tipo="ci_apoderado_reverso" onCaptura={handleDocumento} valor={documentos.ci_apoderado_reverso}/>
-              <CapturaDocumento label="Certificado nacimiento" tipo="certificado_nacimiento" onCaptura={handleDocumento} valor={documentos.certificado_nacimiento}/>
-              <CapturaDocumento label="Cuenta servicio básico" tipo="cuenta_servicios" onCaptura={handleDocumento} valor={documentos.cuenta_servicios}/>
-              <CapturaDocumento label="Certificado médico" tipo="certificado_medico" onCaptura={handleDocumento} valor={documentos.certificado_medico}/>
-            </div>
-            <p className="text-[10px] text-[#9ca3af] mt-3">Puede tomar fotos directamente o subir archivos. El certificado médico es requerido solo si el alumno tiene un diagnóstico.</p>
+
+            {/* Opción: Captura móvil */}
+            <CapturaMovilSection documentos={documentos} onDocumentos={setDocumentos}/>
+
+            {/* Opción manual: upload directo */}
+            <details className="mt-4">
+              <summary className="text-[11px] text-[#6b7280] cursor-pointer hover:text-[#1a2332]">O subir archivos manualmente desde este dispositivo</summary>
+              <div className="grid grid-cols-3 gap-4 mt-3">
+                <CapturaDocumento label="CI Alumno (frente)" tipo="ci_frente" onCaptura={handleDocumento} valor={documentos.ci_frente}/>
+                <CapturaDocumento label="CI Alumno (reverso)" tipo="ci_reverso" onCaptura={handleDocumento} valor={documentos.ci_reverso}/>
+                <CapturaDocumento label="Foto del alumno" tipo="foto_alumno" onCaptura={handleDocumento} valor={documentos.foto_alumno}/>
+                <CapturaDocumento label="CI Apoderado (frente)" tipo="ci_apoderado_frente" onCaptura={handleDocumento} valor={documentos.ci_apoderado_frente}/>
+                <CapturaDocumento label="CI Apoderado (reverso)" tipo="ci_apoderado_reverso" onCaptura={handleDocumento} valor={documentos.ci_apoderado_reverso}/>
+                <CapturaDocumento label="Certificado nacimiento" tipo="certificado_nacimiento" onCaptura={handleDocumento} valor={documentos.certificado_nacimiento}/>
+                <CapturaDocumento label="Cuenta servicio básico" tipo="cuenta_servicios" onCaptura={handleDocumento} valor={documentos.cuenta_servicios}/>
+                <CapturaDocumento label="Certificado médico" tipo="certificado_medico" onCaptura={handleDocumento} valor={documentos.certificado_medico}/>
+              </div>
+            </details>
           </div>
 
           {/* Observaciones */}
