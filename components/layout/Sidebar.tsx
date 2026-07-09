@@ -23,7 +23,7 @@ const NAV_PRINCIPAL: NavItem[] = [
 ]
 
 const NAV_GESTION: NavItem[] = [
-  { label: 'Cobranzas',          href: '/contable',     icon: 'ti-cash',             roles: ['super_admin','admin'] },
+  { label: 'Aportes',             href: '/contable',     icon: 'ti-cash',             roles: ['super_admin','admin'] },
   { label: 'Documentos',         href: '/documentos',   icon: 'ti-folder',           roles: ['super_admin','admin','tutor'] },
   { label: 'Calendario',         href: '/calendario',   icon: 'ti-calendar',         roles: ['super_admin','admin','tutor'] },
   { label: 'Fichas pedagógicas', href: '/fichas',       icon: 'ti-books',            roles: ['super_admin','admin','tutor'] },

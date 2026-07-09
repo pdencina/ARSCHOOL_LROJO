@@ -270,6 +270,23 @@ export async function POST(request: NextRequest) {
       firmado_at: firma_apoderado ? new Date().toISOString() : null,
     }).select().single()
 
+    // 6. Guardar documentos adjuntos
+    const documentos = body.documentos as Record<string, string> | undefined
+    if (documentos && matricula) {
+      const docsToInsert = Object.entries(documentos)
+        .filter(([_, url]) => url && url.length > 0)
+        .map(([tipo, url]) => ({
+          matricula_id: (matricula as any).id,
+          alumno_id: (alumno as any).id,
+          tipo,
+          url,
+          nombre_archivo: `${tipo}_${(alumno as any).nombre}_${(alumno as any).apellido}`,
+        }))
+      if (docsToInsert.length > 0) {
+        await admin.from('documentos_matricula').insert(docsToInsert)
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       alumno,

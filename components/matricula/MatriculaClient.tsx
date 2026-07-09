@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validarEmail, formatearFecha, fechaISOaDisplay, formatearMontoInput } from '@/lib/validaciones'
+import CapturaDocumento from '@/components/ui/CapturaDocumento'
 
 interface Props { planes: any[]; matriculas: any[]; cursos: string[] }
 
@@ -16,6 +17,11 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
   const [montoMensDisplay, setMontoMensDisplay] = useState('')
   const [apoderadoExiste, setApoderadoExiste] = useState<any>(null)
   const [buscandoApoderado, setBuscandoApoderado] = useState(false)
+  const [documentos, setDocumentos] = useState<Record<string, string>>({})
+
+  function handleDocumento(dataUrl: string, tipo: string) {
+    setDocumentos(prev => ({ ...prev, [tipo]: dataUrl }))
+  }
   const [form, setForm] = useState({
     // Alumno
     nombre: '', apellido: '', rut: '', curso: cursos[0] ?? '', fecha_nacimiento: '',
@@ -70,7 +76,7 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
     const res = await fetch('/api/matriculas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, documentos }),
     })
 
     const data = await res.json()
@@ -270,22 +276,41 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
             </label>
           </div>
 
-          {/* Paso 3: Plan de cobro */}
+          {/* Paso 3: Plan de aportes */}
           <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-7 h-7 rounded-full bg-[#1a2332] flex items-center justify-center text-white text-[11px] font-bold">3</div>
-              <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Plan de cobro</h2>
+              <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Plan de aportes</h2>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Monto matrícula ($)</label><input value={montoMatDisplay} onChange={e => { const m = formatearMontoInput(e.target.value); setMontoMatDisplay(m.display); setForm(p => ({...p, monto_matricula: m.value})) }} className="input-base" placeholder="0"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Mensualidad ($)</label><input value={montoMensDisplay} onChange={e => { const m = formatearMontoInput(e.target.value); setMontoMensDisplay(m.display); setForm(p => ({...p, monto_mensual: m.value})) }} className="input-base" placeholder="0"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Aporte inicial ($)</label><input value={montoMatDisplay} onChange={e => { const m = formatearMontoInput(e.target.value); setMontoMatDisplay(m.display); setForm(p => ({...p, monto_matricula: m.value})) }} className="input-base" placeholder="0"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Aporte mensual ($)</label><input value={montoMensDisplay} onChange={e => { const m = formatearMontoInput(e.target.value); setMontoMensDisplay(m.display); setForm(p => ({...p, monto_mensual: m.value})) }} className="input-base" placeholder="0"/></div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Meses a cobrar</label><input type="number" min="1" max="12" value={form.meses_cobro} onChange={e => setForm(p => ({...p, meses_cobro: parseInt(e.target.value) || 10}))} className="input-base"/></div>
             </div>
             {form.monto_mensual > 0 && (
               <div className="mt-3 bg-[#f9fafb] rounded-lg p-3 text-[12px] text-[#4b5563]">
-                <strong>Resumen:</strong> Matrícula ${form.monto_matricula.toLocaleString('es-CL')} + {form.meses_cobro} cuotas de ${form.monto_mensual.toLocaleString('es-CL')} = <strong className="text-[#1a2332]">${(form.monto_matricula + form.monto_mensual * form.meses_cobro).toLocaleString('es-CL')} total año</strong>
+                <strong>Resumen:</strong> Aporte inicial ${form.monto_matricula.toLocaleString('es-CL')} + {form.meses_cobro} aportes de ${form.monto_mensual.toLocaleString('es-CL')} = <strong className="text-[#1a2332]">${(form.monto_matricula + form.monto_mensual * form.meses_cobro).toLocaleString('es-CL')} total año</strong>
               </div>
             )}
+          </div>
+
+          {/* Paso 4: Documentos */}
+          <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-full bg-[#1a2332] flex items-center justify-center text-white text-[11px] font-bold">4</div>
+              <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Documentos adjuntos</h2>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <CapturaDocumento label="CI Alumno (frente)" tipo="ci_frente" onCaptura={handleDocumento} valor={documentos.ci_frente}/>
+              <CapturaDocumento label="CI Alumno (reverso)" tipo="ci_reverso" onCaptura={handleDocumento} valor={documentos.ci_reverso}/>
+              <CapturaDocumento label="Foto del alumno" tipo="foto_alumno" onCaptura={handleDocumento} valor={documentos.foto_alumno}/>
+              <CapturaDocumento label="CI Apoderado (frente)" tipo="ci_apoderado_frente" onCaptura={handleDocumento} valor={documentos.ci_apoderado_frente}/>
+              <CapturaDocumento label="CI Apoderado (reverso)" tipo="ci_apoderado_reverso" onCaptura={handleDocumento} valor={documentos.ci_apoderado_reverso}/>
+              <CapturaDocumento label="Certificado nacimiento" tipo="certificado_nacimiento" onCaptura={handleDocumento} valor={documentos.certificado_nacimiento}/>
+              <CapturaDocumento label="Cuenta servicio básico" tipo="cuenta_servicios" onCaptura={handleDocumento} valor={documentos.cuenta_servicios}/>
+              <CapturaDocumento label="Certificado médico" tipo="certificado_medico" onCaptura={handleDocumento} valor={documentos.certificado_medico}/>
+            </div>
+            <p className="text-[10px] text-[#9ca3af] mt-3">Puede tomar fotos directamente o subir archivos. El certificado médico es requerido solo si el alumno tiene un diagnóstico.</p>
           </div>
 
           {/* Observaciones */}
