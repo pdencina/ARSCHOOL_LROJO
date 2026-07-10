@@ -37,12 +37,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A1628] flex">
+    <div className="min-h-screen bg-[#1B3A5C] flex">
       {/* Panel izquierdo */}
       <div className="hidden lg:flex flex-col justify-between w-[45%] p-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-900/10 via-transparent to-blue-900/10" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#E8722A]/5 via-transparent to-[#5B8FA8]/10" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#E8722A]/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#5B8FA8]/5 rounded-full blur-3xl" />
         
         <div className="relative">
           <div className="flex items-center gap-4 mb-16">
@@ -54,7 +54,7 @@ export default function LoginPage() {
             Sistema integral de<br/>gestión escolar
           </h1>
           <p className="text-white/50 text-base leading-relaxed max-w-md">
-            Administra comunicados, asistencias, calificaciones y cobranzas de manera centralizada y profesional.
+            Administra comunicados, asistencias, calificaciones y aportes de manera centralizada y profesional.
           </p>
         </div>
 

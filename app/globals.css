@@ -6,19 +6,21 @@
 
 @layer base {
   :root {
-    --ar-navy:    #1a2332;
-    --ar-primary: #2c4a6e;
+    --ar-navy:    #1B3A5C;
+    --ar-primary: #1B3A5C;
     --ar-primary-l: #f0f4f8;
-    --ar-accent:  #b8860b;
-    --ar-accent-l: #fdf8ee;
-    --ar-success: #1a7a4c;
-    --ar-danger:  #c53030;
-    --ar-warn:    #b7791f;
+    --ar-accent:  #E8722A;
+    --ar-accent-l: #FEF3EC;
+    --ar-success: #3D6B4F;
+    --ar-danger:  #C15A3B;
+    --ar-warn:    #E8722A;
     --ar-surface: #ffffff;
-    --ar-bg:      #fafbfc;
+    --ar-bg:      #FDF8F3;
     --ar-border:  #eef0f3;
-    --ar-text:    #1a2332;
+    --ar-text:    #1B3A5C;
     --ar-muted:   #6b7280;
+    --ar-green:   #3D6B4F;
+    --ar-blue:    #5B8FA8;
     --shadow-sm:  0 1px 2px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02);
     --shadow-md:  0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
     --shadow-lg:  0 8px 24px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.03);
@@ -41,10 +43,15 @@
   /* Buttons */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--ar-navy)] text-white text-[13px] font-semibold rounded-lg border-0 cursor-pointer;
-    @apply hover:bg-[#253344] active:scale-[0.97] transition-all duration-200;
+    @apply hover:bg-[#143050] active:scale-[0.97] transition-all duration-200;
     box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.04);
   }
   .btn-primary:hover { box-shadow: var(--shadow-md); }
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--ar-accent)] text-white text-[13px] font-semibold rounded-lg border-0 cursor-pointer;
+    @apply hover:bg-[#d4621f] active:scale-[0.97] transition-all duration-200;
+    box-shadow: var(--shadow-sm);
+  }
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-[var(--ar-text)] text-[13px] font-medium rounded-lg border border-[var(--ar-border)] cursor-pointer;
     @apply hover:bg-[#f8f9fb] hover:border-[#dfe1e6] active:scale-[0.97] transition-all duration-200;
@@ -52,20 +59,20 @@
   }
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--ar-danger)] text-white text-[13px] font-semibold rounded-lg border-0 cursor-pointer;
-    @apply hover:bg-[#9b2c2c] active:scale-[0.97] transition-all duration-200;
+    @apply hover:bg-[#a04a30] active:scale-[0.97] transition-all duration-200;
     box-shadow: var(--shadow-sm);
   }
 
   /* Inputs */
   .input-base {
     @apply w-full px-3.5 py-2.5 bg-white border border-[var(--ar-border)] rounded-lg text-[13px] text-[var(--ar-text)] placeholder-[#b0b7c3] outline-none;
-    @apply focus:ring-2 focus:ring-[#2c4a6e]/20 focus:border-[#2c4a6e] transition-all duration-200;
+    @apply focus:ring-2 focus:ring-[#1B3A5C]/20 focus:border-[#1B3A5C] transition-all duration-200;
     box-shadow: var(--shadow-sm);
   }
   .input-base:hover:not(:focus) { border-color: #dfe1e6; }
   .select-base {
     @apply px-3.5 py-2.5 bg-white border border-[var(--ar-border)] rounded-lg text-[13px] text-[var(--ar-text)] outline-none cursor-pointer;
-    @apply focus:ring-2 focus:ring-[#2c4a6e]/20 transition-all duration-200;
+    @apply focus:ring-2 focus:ring-[#1B3A5C]/20 transition-all duration-200;
     box-shadow: var(--shadow-sm);
   }
 
