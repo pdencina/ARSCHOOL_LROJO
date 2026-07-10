@@ -46,9 +46,9 @@ export default function NavigationProgress() {
   if (!loading && progress === 0) return null
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 h-[2px]">
+    <div className="fixed top-0 left-0 right-0 z-50 h-[3px]">
       <div
-        className="h-full bg-[var(--ar-accent)] transition-all duration-300 ease-out"
+        className="h-full bg-gradient-to-r from-[var(--ar-accent)] to-[#f5a623] transition-all duration-300 ease-out rounded-r-full"
         style={{ width: `${progress}%`, opacity: progress === 100 ? 0 : 1 }}
       />
     </div>

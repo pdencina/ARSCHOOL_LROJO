@@ -53,7 +53,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Topbar usuario={usuario}/>
       <div className="flex">
         <SidebarWrapper rol={usuario.rol} modulosHabilitadosInicial={modulosHabilitados}/>
-        <main className="flex-1 min-h-[calc(100vh-56px)] overflow-auto">
+        <main className="flex-1 min-h-[calc(100vh-56px)] overflow-auto animate-[fadeIn_0.2s_ease-out]">
           {children}
         </main>
       </div>
