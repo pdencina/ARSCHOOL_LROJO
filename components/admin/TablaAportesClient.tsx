@@ -83,7 +83,18 @@ export default function TablaAportesClient({ aportes: initial }: Props) {
                   <td className="px-4 py-3 font-medium text-[#1B3A5C]">{a.nivel}</td>
                   <td className="px-4 py-3 text-[#6b7280]">{MODALIDADES[a.modalidad] ?? a.modalidad}</td>
                   <td className="px-4 py-3 text-[#6b7280]">{a.jornada ? JORNADAS[a.jornada] ?? a.jornada : 'Todas'}</td>
-                  <td className="px-4 py-3 text-[#6b7280]">{a.sede ? SEDES[a.sede] ?? a.sede : 'Todas'}</td>
+                  <td className="px-4 py-3 text-[#6b7280]">
+                    {a.sede ? (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+                        a.sede === 'santiago' ? 'bg-blue-50 text-blue-700' :
+                        a.sede === 'punta_arenas' ? 'bg-emerald-50 text-emerald-700' :
+                        a.sede === 'puente_alto' ? 'bg-violet-50 text-violet-700' :
+                        'bg-gray-50 text-gray-600'
+                      }`}>
+                        {SEDES[a.sede] ?? a.sede}
+                      </span>
+                    ) : <span className="text-[#9ca3af]">Todas</span>}
+                  </td>
                   <td className="px-4 py-3 text-right font-medium text-[#1B3A5C]">
                     {editando === a.id ? (
                       <input type="number" value={editMonto} onChange={e => setEditMonto(parseInt(e.target.value) || 0)} className="w-24 px-2 py-1 border border-[var(--ar-border)] rounded text-right text-[12px]" autoFocus/>
