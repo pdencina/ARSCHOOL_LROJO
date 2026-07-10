@@ -7,9 +7,9 @@ import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validar
 import CapturaDocumento from '@/components/ui/CapturaDocumento'
 import CapturaMovilSection from '@/components/matricula/CapturaMovilSection'
 
-interface Props { planes: any[]; matriculas: any[]; cursos: string[] }
+interface Props { planes: any[]; matriculas: any[]; cursos: string[]; aportes: any[] }
 
-export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
+export default function MatriculaClient({ planes, matriculas, cursos, aportes }: Props) {
   const router = useRouter()
   const [vista, setVista] = useState<'lista' | 'nueva'>('lista')
   const [saving, setSaving] = useState(false)
@@ -22,6 +22,30 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
 
   function handleDocumento(dataUrl: string, tipo: string) {
     setDocumentos(prev => ({ ...prev, [tipo]: dataUrl }))
+  }
+
+  // Auto-completar montos desde tabla de aportes
+  function calcularMontos(curso: string, jornada: string, sede: string) {
+    const anioActual = new Date().getFullYear()
+    const esPlaygroup = curso.toLowerCase().includes('play group') || curso.toLowerCase().includes('pre school')
+    const nivel = esPlaygroup ? 'Playgroup' : 'Preschool a High School'
+    const jornadaTipo = jornada === 'completa' ? 'completa' : 'media'
+    const sedeKey = sede || null
+
+    // Buscar aporte inicial
+    let inicial = aportes.find(a => a.tipo === 'inicial' && a.nivel === nivel && a.anio === anioActual && (a.sede === sedeKey || (!sedeKey && !a.sede)))
+    if (!inicial) inicial = aportes.find(a => a.tipo === 'inicial' && a.nivel === nivel && a.anio === anioActual && !a.sede)
+
+    // Buscar aporte mensual
+    let mensual = aportes.find(a => a.tipo === 'mensual' && a.nivel === nivel && a.anio === anioActual && (a.jornada === jornadaTipo || !a.jornada) && (a.sede === sedeKey || (!sedeKey && !a.sede)))
+    if (!mensual) mensual = aportes.find(a => a.tipo === 'mensual' && a.nivel === nivel && a.anio === anioActual && (a.jornada === jornadaTipo || !a.jornada) && !a.sede)
+
+    const montoInicial = inicial?.monto ?? 0
+    const montoMensual = mensual?.monto ?? 0
+
+    setForm(p => ({ ...p, monto_matricula: montoInicial, monto_mensual: montoMensual }))
+    setMontoMatDisplay(montoInicial > 0 ? montoInicial.toLocaleString('es-CL') : '')
+    setMontoMensDisplay(montoMensual > 0 ? montoMensual.toLocaleString('es-CL') : '')
   }
   const [form, setForm] = useState({
     // Alumno
@@ -189,12 +213,12 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Fecha nacimiento</label><input value={fechaDisplay} onChange={e => { const f = formatearFecha(e.target.value); setFechaDisplay(f.display); if(f.value) setForm(p => ({...p, fecha_nacimiento: f.value})) }} className="input-base" placeholder="DD-MM-AAAA" maxLength={10}/></div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nacionalidad</label><input value={form.nacionalidad} onChange={e => setForm(p => ({...p, nacionalidad: capitalizarNombre(e.target.value)}))} className="input-base"/></div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Curso *</label>
-                <select value={form.curso} onChange={e => setForm(p => ({...p, curso: e.target.value}))} className="select-base w-full">
+                <select value={form.curso} onChange={e => { setForm(p => ({...p, curso: e.target.value})); calcularMontos(e.target.value, form.jornada, form.sede) }} className="select-base w-full">
                   {cursos.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Jornada</label>
-                <select value={form.jornada} onChange={e => setForm(p => ({...p, jornada: e.target.value}))} className="select-base w-full">
+                <select value={form.jornada} onChange={e => { setForm(p => ({...p, jornada: e.target.value})); calcularMontos(form.curso, e.target.value, form.sede) }} className="select-base w-full">
                   <option value="completa">Jornada Completa (Lun-Jue 08:00-18:00, Vie 08:00-17:00)</option>
                   <option value="am">Media Jornada AM (Lun-Vie 08:00-13:00)</option>
                   <option value="pm">Media Jornada PM (Lun-Jue 13:00-18:00, Vie 13:00-17:00)</option>
@@ -202,7 +226,7 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
                 </select>
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Sede</label>
-                <select value={form.sede} onChange={e => setForm(p => ({...p, sede: e.target.value}))} className="select-base w-full">
+                <select value={form.sede} onChange={e => { setForm(p => ({...p, sede: e.target.value})); calcularMontos(form.curso, form.jornada, e.target.value) }} className="select-base w-full">
                   <option value="">Según colegio asignado</option>
                   <option value="santiago">Santiago (Victoria 52)</option>
                   <option value="puente_alto">Puente Alto (Irarrázaval 0565)</option>
@@ -282,12 +306,23 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
             <div className="flex items-center gap-2 mb-4">
               <div className="w-7 h-7 rounded-full bg-[#1a2332] flex items-center justify-center text-white text-[11px] font-bold">3</div>
               <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Plan de aportes</h2>
+              {form.monto_matricula > 0 && <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md font-medium">Auto-calculado desde tabla de aportes</span>}
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Aporte inicial ($)</label><input value={montoMatDisplay} onChange={e => { const m = formatearMontoInput(e.target.value); setMontoMatDisplay(m.display); setForm(p => ({...p, monto_matricula: m.value})) }} className="input-base" placeholder="80.000"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Aporte mensual ($)</label><input value={montoMensDisplay} onChange={e => { const m = formatearMontoInput(e.target.value); setMontoMensDisplay(m.display); setForm(p => ({...p, monto_mensual: m.value})) }} className="input-base" placeholder="260.000"/></div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Aporte inicial ($)</label>
+                <div className="w-full px-3.5 py-2.5 bg-[#f9fafb] border border-[var(--ar-border)] rounded-lg text-[13px] text-[#1B3A5C] font-medium">
+                  {form.monto_matricula > 0 ? `$${form.monto_matricula.toLocaleString('es-CL')}` : <span className="text-[#9ca3af]">Seleccione curso y sede</span>}
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Aporte mensual ($)</label>
+                <div className="w-full px-3.5 py-2.5 bg-[#f9fafb] border border-[var(--ar-border)] rounded-lg text-[13px] text-[#1B3A5C] font-medium">
+                  {form.monto_mensual > 0 ? `$${form.monto_mensual.toLocaleString('es-CL')}` : <span className="text-[#9ca3af]">Seleccione curso y sede</span>}
+                </div>
+              </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Meses</label><input type="number" min="1" max="12" value={form.meses_cobro} onChange={e => setForm(p => ({...p, meses_cobro: parseInt(e.target.value) || 10}))} className="input-base"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Beca (%)</label><input type="number" min="0" max="100" value={form.porcentaje_beca || ''} onChange={e => setForm(p => ({...p, porcentaje_beca: parseInt(e.target.value) || 0}))} className="input-base" placeholder="0"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Beca / Descuento (%)</label><input type="number" min="0" max="100" value={form.porcentaje_beca || ''} onChange={e => setForm(p => ({...p, porcentaje_beca: parseInt(e.target.value) || 0}))} className="input-base" placeholder="0"/></div>
             </div>
 
             {/* Cálculo automático con beca */}
@@ -310,7 +345,7 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
                     {form.porcentaje_beca > 0 && <span className="line-through text-[#9ca3af] mr-2">${form.monto_mensual.toLocaleString('es-CL')}</span>}
                     <span className="text-[#1a2332]">${Math.round(form.monto_mensual * (1 - form.porcentaje_beca / 100)).toLocaleString('es-CL')}</span>
                   </div>
-                  <div className="border-t border-[#e8eaed] pt-2 mt-1 font-semibold">Total año:</div>
+                  <div className="border-t border-[#e8eaed] pt-2 mt-1 font-semibold">Total año ({form.meses_cobro} meses):</div>
                   <div className="border-t border-[#e8eaed] pt-2 mt-1 font-bold text-[#1a2332] text-right">
                     ${Math.round((form.monto_matricula + form.monto_mensual * form.meses_cobro) * (1 - form.porcentaje_beca / 100)).toLocaleString('es-CL')}
                   </div>

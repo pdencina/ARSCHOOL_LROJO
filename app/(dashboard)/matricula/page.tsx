@@ -24,9 +24,10 @@ export default async function MatriculaPage() {
   if (!['super_admin', 'admin'].includes((ur as any)?.rol)) redirect('/inicio')
 
   const colegioId = (ur as any)?.colegio_id
-  const [{ data: planes }, { data: matriculas }] = await Promise.all([
+  const [{ data: planes }, { data: matriculas }, { data: aportes }] = await Promise.all([
     admin.from('planes_cobro').select('*').eq('colegio_id', colegioId).eq('activo', true),
     admin.from('matriculas').select('*, alumno:alumnos(nombre, apellido, curso)').eq('colegio_id', colegioId).eq('anio_escolar', new Date().getFullYear()).order('created_at', { ascending: false }),
+    admin.from('tabla_aportes').select('*').eq('activo', true).eq('anio', new Date().getFullYear()),
   ])
 
   const cursos = [
@@ -52,6 +53,7 @@ export default async function MatriculaPage() {
       planes={(planes as any[]) ?? []}
       matriculas={(matriculas as any[]) ?? []}
       cursos={cursos}
+      aportes={(aportes as any[]) ?? []}
     />
   )
 }
