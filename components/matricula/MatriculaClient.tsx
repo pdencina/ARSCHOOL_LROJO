@@ -35,7 +35,7 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
     nombre_apoderado: '', apellido_apoderado: '', email_apoderado: '', telefono_apoderado: '',
     rut_apoderado: '', direccion_apoderado: '', parentesco: 'apoderado',
     // Cobros
-    plan_cobro_id: '', monto_matricula: 0, monto_mensual: 0, meses_cobro: 10,
+    plan_cobro_id: '', monto_matricula: 0, monto_mensual: 0, meses_cobro: 10, porcentaje_beca: 0,
     // Config
     crear_cuenta_apoderado: true, password_apoderado: '',
     observaciones: '', firma_apoderado: '',
@@ -172,8 +172,8 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
               <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Datos del alumno</h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre} onChange={e => setForm(p => ({...p, nombre: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Nombre"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Apellido *</label><input value={form.apellido} onChange={e => setForm(p => ({...p, apellido: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Apellido"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombres *</label><input value={form.nombre} onChange={e => setForm(p => ({...p, nombre: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Nombres completos"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Apellidos *</label><input value={form.apellido} onChange={e => setForm(p => ({...p, apellido: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Apellidos completos"/></div>
               <div>
                 <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">RUT / Pasaporte</label>
                 <input value={form.rut} onChange={e => setForm(p => ({...p, rut: formatearRut(e.target.value)}))} className={`input-base ${form.rut && !validarRut(form.rut) ? 'border-red-300 focus:ring-red-200' : ''}`} placeholder="12.345.678-9" maxLength={12}/>
@@ -195,10 +195,10 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Jornada</label>
                 <select value={form.jornada} onChange={e => setForm(p => ({...p, jornada: e.target.value}))} className="select-base w-full">
-                  <option value="completa">Jornada Completa</option>
-                  <option value="am">Media Jornada AM (08:00 - 13:00)</option>
-                  <option value="pm">Media Jornada PM (13:00 - 18:00)</option>
-                  <option value="especial">Jornada Especial</option>
+                  <option value="completa">Jornada Completa (Lun-Jue 08:00-18:00, Vie 08:00-17:00)</option>
+                  <option value="am">Media Jornada AM (Lun-Vie 08:00-13:00)</option>
+                  <option value="pm">Media Jornada PM (Lun-Jue 13:00-18:00, Vie 13:00-17:00)</option>
+                  <option value="especial">Jornada Especial (1 a 4 días por semana)</option>
                 </select>
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Sede</label>
@@ -283,14 +283,38 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
               <div className="w-7 h-7 rounded-full bg-[#1a2332] flex items-center justify-center text-white text-[11px] font-bold">3</div>
               <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Plan de aportes</h2>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Aporte inicial ($)</label><input value={montoMatDisplay} onChange={e => { const m = formatearMontoInput(e.target.value); setMontoMatDisplay(m.display); setForm(p => ({...p, monto_matricula: m.value})) }} className="input-base" placeholder="0"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Aporte mensual ($)</label><input value={montoMensDisplay} onChange={e => { const m = formatearMontoInput(e.target.value); setMontoMensDisplay(m.display); setForm(p => ({...p, monto_mensual: m.value})) }} className="input-base" placeholder="0"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Meses a cobrar</label><input type="number" min="1" max="12" value={form.meses_cobro} onChange={e => setForm(p => ({...p, meses_cobro: parseInt(e.target.value) || 10}))} className="input-base"/></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Aporte inicial ($)</label><input value={montoMatDisplay} onChange={e => { const m = formatearMontoInput(e.target.value); setMontoMatDisplay(m.display); setForm(p => ({...p, monto_matricula: m.value})) }} className="input-base" placeholder="80.000"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Aporte mensual ($)</label><input value={montoMensDisplay} onChange={e => { const m = formatearMontoInput(e.target.value); setMontoMensDisplay(m.display); setForm(p => ({...p, monto_mensual: m.value})) }} className="input-base" placeholder="260.000"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Meses</label><input type="number" min="1" max="12" value={form.meses_cobro} onChange={e => setForm(p => ({...p, meses_cobro: parseInt(e.target.value) || 10}))} className="input-base"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Beca (%)</label><input type="number" min="0" max="100" value={form.porcentaje_beca || ''} onChange={e => setForm(p => ({...p, porcentaje_beca: parseInt(e.target.value) || 0}))} className="input-base" placeholder="0"/></div>
             </div>
+
+            {/* Cálculo automático con beca */}
             {form.monto_mensual > 0 && (
-              <div className="mt-3 bg-[#f9fafb] rounded-lg p-3 text-[12px] text-[#4b5563]">
-                <strong>Resumen:</strong> Aporte inicial ${form.monto_matricula.toLocaleString('es-CL')} + {form.meses_cobro} aportes de ${form.monto_mensual.toLocaleString('es-CL')} = <strong className="text-[#1a2332]">${(form.monto_matricula + form.monto_mensual * form.meses_cobro).toLocaleString('es-CL')} total año</strong>
+              <div className="mt-3 bg-[#f9fafb] rounded-lg p-4 text-[12px] text-[#4b5563] space-y-2">
+                {form.porcentaje_beca > 0 && (
+                  <div className="flex items-center gap-2 text-[var(--ar-accent)] font-medium">
+                    <i className="ti ti-discount-2 text-sm" aria-hidden="true"/>
+                    Beca aplicada: {form.porcentaje_beca}% de descuento
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+                  <div>Aporte inicial:</div>
+                  <div className="font-medium text-right">
+                    {form.porcentaje_beca > 0 && <span className="line-through text-[#9ca3af] mr-2">${form.monto_matricula.toLocaleString('es-CL')}</span>}
+                    <span className="text-[#1a2332]">${Math.round(form.monto_matricula * (1 - form.porcentaje_beca / 100)).toLocaleString('es-CL')}</span>
+                  </div>
+                  <div>Aporte mensual:</div>
+                  <div className="font-medium text-right">
+                    {form.porcentaje_beca > 0 && <span className="line-through text-[#9ca3af] mr-2">${form.monto_mensual.toLocaleString('es-CL')}</span>}
+                    <span className="text-[#1a2332]">${Math.round(form.monto_mensual * (1 - form.porcentaje_beca / 100)).toLocaleString('es-CL')}</span>
+                  </div>
+                  <div className="border-t border-[#e8eaed] pt-2 mt-1 font-semibold">Total año:</div>
+                  <div className="border-t border-[#e8eaed] pt-2 mt-1 font-bold text-[#1a2332] text-right">
+                    ${Math.round((form.monto_matricula + form.monto_mensual * form.meses_cobro) * (1 - form.porcentaje_beca / 100)).toLocaleString('es-CL')}
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -315,9 +339,11 @@ export default function MatriculaClient({ planes, matriculas, cursos }: Props) {
                 <CapturaDocumento label="CI Apoderado (frente)" tipo="ci_apoderado_frente" onCaptura={handleDocumento} valor={documentos.ci_apoderado_frente}/>
                 <CapturaDocumento label="CI Apoderado (reverso)" tipo="ci_apoderado_reverso" onCaptura={handleDocumento} valor={documentos.ci_apoderado_reverso}/>
                 <CapturaDocumento label="Certificado nacimiento" tipo="certificado_nacimiento" onCaptura={handleDocumento} valor={documentos.certificado_nacimiento}/>
+                <CapturaDocumento label="Cert. estudios último año" tipo="certificado_estudios" onCaptura={handleDocumento} valor={documentos.certificado_estudios}/>
                 <CapturaDocumento label="Cuenta servicio básico" tipo="cuenta_servicios" onCaptura={handleDocumento} valor={documentos.cuenta_servicios}/>
                 <CapturaDocumento label="Certificado médico" tipo="certificado_medico" onCaptura={handleDocumento} valor={documentos.certificado_medico}/>
               </div>
+              <p className="text-[10px] text-[#9ca3af] mt-3">El certificado de estudios no es requerido para postulantes a Ciclo 0 (Kinder) y Ciclo 1. El certificado médico aplica solo si el alumno tiene un diagnóstico.</p>
             </details>
           </div>
 

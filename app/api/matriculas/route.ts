@@ -211,25 +211,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Generar cobros del año
+    // 4. Generar cobros del año (con beca aplicada)
     const cobrosGenerados = []
+    const porcentaje_beca = body.porcentaje_beca || 0
+    const factorBeca = 1 - (porcentaje_beca / 100)
+    const montoMatFinal = Math.round((monto_matricula || 0) * factorBeca)
+    const montoMensFinal = Math.round((monto_mensual || 0) * factorBeca)
+
     if (monto_mensual && meses_cobro) {
       const anio = new Date().getFullYear()
       const mesInicio = new Date().getMonth() + 1
 
-      // Cobro de matrícula (si aplica)
-      if (monto_matricula && monto_matricula > 0) {
+      // Cobro de aporte inicial (si aplica)
+      if (montoMatFinal > 0) {
         const { data: cobroMat } = await admin.from('cobros').insert({
           colegio_id: colegioId,
           familia_id: familiaId,
           alumno_id: (alumno as any).id,
           concepto_id: plan_cobro_id || null,
-          monto: monto_matricula,
+          monto: montoMatFinal,
           mes: mesInicio,
           anio,
           fecha_vencimiento: new Date().toISOString().split('T')[0],
           estado: 'pendiente',
-          observaciones: 'Matrícula ' + anio,
+          tipo_concepto: 'aporte_inicial',
+          observaciones: `Aporte inicial ${anio}${porcentaje_beca > 0 ? ` (beca ${porcentaje_beca}%)` : ''}`,
         }).select().single()
         if (cobroMat) cobrosGenerados.push(cobroMat)
       }
@@ -245,12 +251,13 @@ export async function POST(request: NextRequest) {
           familia_id: familiaId,
           alumno_id: (alumno as any).id,
           concepto_id: plan_cobro_id || null,
-          monto: monto_mensual,
+          monto: montoMensFinal,
           mes,
           anio: anioC,
           fecha_vencimiento: vencimiento,
           estado: 'pendiente',
-          observaciones: `Mensualidad ${mes}/${anioC}`,
+          tipo_concepto: 'aporte_mensual',
+          observaciones: `Aporte mensual ${mes}/${anioC}${porcentaje_beca > 0 ? ` (beca ${porcentaje_beca}%)` : ''}`,
         }).select().single()
         if (cobro) cobrosGenerados.push(cobro)
       }
