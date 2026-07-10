@@ -173,7 +173,10 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
                         <a href={`/api/contratos?matricula_id=${m.id}`} target="_blank" className="text-[11px] text-[var(--ar-accent)] hover:underline font-medium">
                           Contrato
                         </a>
-                        <a href={`/matricula/firmar/${m.id}`} className="text-[11px] text-[#2c4a6e] hover:underline font-medium">
+                        <a href={`/api/contratos?matricula_id=${m.id}&tipo=pagare`} target="_blank" className="text-[11px] text-[#5B8FA8] hover:underline font-medium">
+                          Pagaré
+                        </a>
+                        <a href={`/matricula/firmar/${m.id}`} className="text-[11px] text-[#1B3A5C] hover:underline font-medium">
                           {m.firma_apoderado ? '✓ Firmado' : 'Firmar'}
                         </a>
                       </div>

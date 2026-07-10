@@ -105,7 +105,14 @@ export default function PortalDocumentosClient({ matriculas, documentos, usuario
                       target="_blank"
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#f4f5f7] text-[#4b5563] text-[11px] font-medium rounded-lg hover:bg-[#e8eaed] transition-colors"
                     >
-                      <i className="ti ti-eye text-xs" aria-hidden="true"/> Ver
+                      <i className="ti ti-file-text text-xs" aria-hidden="true"/> Contrato
+                    </a>
+                    <a
+                      href={`/api/contratos?matricula_id=${m.id}&tipo=pagare`}
+                      target="_blank"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#f4f5f7] text-[#5B8FA8] text-[11px] font-medium rounded-lg hover:bg-[#e8eaed] transition-colors"
+                    >
+                      <i className="ti ti-file-dollar text-xs" aria-hidden="true"/> Pagaré
                     </a>
                     {!firmado && (
                       <a
