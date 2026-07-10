@@ -1,63 +1,124 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 
+function getAdmin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
+
+// POST: Reportar un pago (apoderado sube comprobante) o registrar pago (admin)
 export async function POST(request: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  const admin = getAdmin()
   const body = await request.json()
-  const { cobro_id, monto, medio_pago, observaciones } = body
+  const { cobro_id, comprobante_url, metodo, monto: montoManual, observaciones } = body
 
-  if (!cobro_id || !monto || !medio_pago) {
-    return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
-  }
+  if (!cobro_id) return NextResponse.json({ error: 'cobro_id requerido' }, { status: 400 })
 
-  const { data: usuarioRaw } = await supabase.from('usuarios').select('colegio_id').eq('id', user.id).single()
-  const colegioId = (usuarioRaw as { colegio_id: string } | null)?.colegio_id ?? ''
+  // Obtener el cobro
+  const { data: cobro } = await admin.from('cobros').select('*').eq('id', cobro_id).single()
+  if (!cobro) return NextResponse.json({ error: 'Cobro no encontrado' }, { status: 404 })
 
-  const { data: cobro } = await supabase.from('cobros').select('*').eq('id', cobro_id).single()
-  const cobroTyped = cobro as { colegio_id: string; monto: number; monto_pagado: number } | null
+  const cobroData = cobro as any
+  const montoPago = montoManual || cobroData.monto
 
-  if (!cobroTyped || cobroTyped.colegio_id !== colegioId) {
-    return NextResponse.json({ error: 'Cobro no encontrado' }, { status: 404 })
-  }
-
-  const { data: pago, error } = await supabase.from('pagos').insert({
+  // Crear registro de pago
+  const { data: pago, error } = await admin.from('pagos').insert({
     cobro_id,
-    monto,
-    medio_pago,
-    referencia: observaciones ?? null,
+    alumno_id: cobroData.alumno_id,
+    colegio_id: cobroData.colegio_id,
+    monto: montoPago,
+    metodo: metodo || 'transferencia',
+    comprobante_url: comprobante_url || null,
+    estado: comprobante_url ? 'pendiente' : 'confirmado', // Si tiene comprobante, queda pendiente de validación
     registrado_por: user.id,
+    observaciones: observaciones || null,
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const nuevoMonto = cobroTyped.monto_pagado + monto
-  const nuevoEstado = nuevoMonto >= cobroTyped.monto ? 'pagado' : 'parcial'
+  // Si es pago directo (sin comprobante por validar), marcar cobro como pagado
+  if (!comprobante_url) {
+    const nuevoMontoPagado = (cobroData.monto_pagado ?? 0) + montoPago
+    const nuevoEstado = nuevoMontoPagado >= cobroData.monto ? 'pagado' : 'parcial'
+    await admin.from('cobros').update({
+      monto_pagado: nuevoMontoPagado,
+      estado: nuevoEstado,
+    }).eq('id', cobro_id)
+  }
 
-  await supabase.from('cobros').update({
-    monto_pagado: nuevoMonto,
-    estado: nuevoEstado,
-    medio_pago,
-    fecha_pago: nuevoEstado === 'pagado' ? new Date().toISOString().split('T')[0] : null,
-  }).eq('id', cobro_id)
-
-  return NextResponse.json({ pago, estado: nuevoEstado })
+  return NextResponse.json({ ok: true, pago })
 }
 
+// GET: Listar pagos (para admin: todos del colegio, para apoderado: solo los suyos)
 export async function GET(request: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  const admin = getAdmin()
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
+  const usuario = ur as any
+
   const { searchParams } = new URL(request.url)
-  const cobro_id = searchParams.get('cobro_id')
+  const estado = searchParams.get('estado') // pendiente, confirmado
 
-  let query = supabase.from('pagos').select('*').order('created_at', { ascending: false })
-  if (cobro_id) query = query.eq('cobro_id', cobro_id)
+  let query = admin.from('pagos').select('*, cobro:cobros(mes, anio, alumno:alumnos(nombre, apellido))').order('created_at', { ascending: false })
 
-  const { data, error } = await query
+  if (['super_admin', 'admin'].includes(usuario?.rol)) {
+    if (usuario.colegio_id) query = query.eq('colegio_id', usuario.colegio_id)
+  } else {
+    query = query.eq('registrado_por', user.id)
+  }
+
+  if (estado) query = query.eq('estado', estado)
+
+  const { data, error } = await query.limit(50)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+  return NextResponse.json(data ?? [])
+}
+
+// PUT: Validar/rechazar pago (admin)
+export async function PUT(request: NextRequest) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const admin = getAdmin()
+  const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
+  if (!['super_admin', 'admin'].includes((ur as any)?.rol)) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
+  const { pago_id, accion } = await request.json() // accion: 'confirmar' | 'rechazar'
+  if (!pago_id || !accion) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
+
+  const { data: pago } = await admin.from('pagos').select('*').eq('id', pago_id).single()
+  if (!pago) return NextResponse.json({ error: 'Pago no encontrado' }, { status: 404 })
+
+  const pagoData = pago as any
+
+  if (accion === 'confirmar') {
+    // Marcar pago como confirmado
+    await admin.from('pagos').update({ estado: 'confirmado' }).eq('id', pago_id)
+    // Actualizar cobro
+    const { data: cobro } = await admin.from('cobros').select('monto, monto_pagado').eq('id', pagoData.cobro_id).single()
+    if (cobro) {
+      const nuevoMonto = ((cobro as any).monto_pagado ?? 0) + pagoData.monto
+      const nuevoEstado = nuevoMonto >= (cobro as any).monto ? 'pagado' : 'parcial'
+      await admin.from('cobros').update({ monto_pagado: nuevoMonto, estado: nuevoEstado }).eq('id', pagoData.cobro_id)
+    }
+  } else {
+    // Rechazar
+    await admin.from('pagos').update({ estado: 'rechazado' }).eq('id', pago_id)
+  }
+
+  return NextResponse.json({ ok: true })
 }
