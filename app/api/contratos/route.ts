@@ -98,6 +98,15 @@ export async function GET(request: NextRequest) {
     tablaAportes = meses.map(m => `<tr><td>1 ${m} ${anio}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td><td></td><td></td></tr>`).join('')
   }
 
+  // Tabla para pagaré (solo 2 columnas: fecha + monto)
+  let tablaPagare = ''
+  if (cobrosmensuales.length > 0) {
+    tablaPagare = (cobrosmensuales as any[]).map((c: any) => `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td></tr>`).join('')
+  } else {
+    const meses = ['marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+    tablaPagare = meses.map(m => `<tr><td>1 ${m} ${anio}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td></tr>`).join('')
+  }
+
   const fechaFormateada = `${new Date(fechaMat).getDate()} de ${mesesNombres[new Date(fechaMat).getMonth()]} de ${anio}`
   const fechaNacDisplay = alumno.fecha_nacimiento ? new Date(alumno.fecha_nacimiento + 'T12:00').toLocaleDateString('es-CL') : '___'
 
@@ -132,7 +141,7 @@ export async function GET(request: NextRequest) {
   if (tipoDoc === 'pagare') {
     titulo = `Pagaré — ${alumno.nombre} ${alumno.apellido}`
     const montoAnual = montoMensualReal * mesesCobro
-    contenido = generarPagare({ ...datosBase, montoAnual, montoMensual: montoMensualReal })
+    contenido = generarPagare({ ...datosBase, montoAnual, montoMensual: montoMensualReal, tablaAportes: tablaPagare })
   } else if (esPreschool) {
     titulo = `Contrato Preschool — ${alumno.nombre} ${alumno.apellido}`
     contenido = generarContratoPreschool(datosBase)
