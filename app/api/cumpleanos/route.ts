@@ -29,24 +29,32 @@ export async function GET(request: NextRequest) {
   if (!alumnos) return NextResponse.json([])
 
   const cumpleaneros = (alumnos as any[]).filter(a => {
-    const fecha = new Date(a.fecha_nacimiento + 'T12:00')
-    const mes = fecha.getMonth() + 1
-    const dia = fecha.getDate()
+    if (!a.fecha_nacimiento) return false
+    // Extraer mes y día directamente del string (YYYY-MM-DD) para evitar problemas de timezone
+    const parts = a.fecha_nacimiento.split('-')
+    const mes = parseInt(parts[1])
+    const dia = parseInt(parts[2])
 
     if (rango === 'hoy') return mes === mesHoy && dia === diaHoy
     if (rango === 'semana') {
-      const inicio = new Date(hoy)
-      const fin = new Date(hoy)
-      fin.setDate(fin.getDate() + 7)
-      const cumple = new Date(hoy.getFullYear(), mes - 1, dia)
-      return cumple >= inicio && cumple <= fin
+      // Verificar si el cumpleaños cae dentro de los próximos 7 días
+      for (let i = 0; i <= 7; i++) {
+        const d = new Date(hoy)
+        d.setDate(d.getDate() + i)
+        if (mes === d.getMonth() + 1 && dia === d.getDate()) return true
+      }
+      return false
     }
     if (rango === 'mes') return mes === mesHoy
     return false
   }).map(a => {
-    const fecha = new Date(a.fecha_nacimiento + 'T12:00')
-    const edad = hoy.getFullYear() - fecha.getFullYear()
-    return { ...a, edad, dia_cumple: fecha.getDate(), mes_cumple: fecha.getMonth() + 1 }
+    const parts = a.fecha_nacimiento.split('-')
+    const anioNac = parseInt(parts[0])
+    const mesNac = parseInt(parts[1])
+    const diaNac = parseInt(parts[2])
+    let edad = hoy.getFullYear() - anioNac
+    if (mesHoy < mesNac || (mesHoy === mesNac && diaHoy < diaNac)) edad--
+    return { ...a, edad, dia_cumple: diaNac, mes_cumple: mesNac }
   }).sort((a, b) => a.dia_cumple - b.dia_cumple)
 
   return NextResponse.json(cumpleaneros)
