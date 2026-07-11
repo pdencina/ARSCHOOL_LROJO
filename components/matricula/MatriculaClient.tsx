@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validarEmail, formatearFecha, fechaISOaDisplay, formatearMontoInput } from '@/lib/validaciones'
 import CapturaDocumento from '@/components/ui/CapturaDocumento'
 import CapturaMovilSection from '@/components/matricula/CapturaMovilSection'
+import SelectorRegionComuna from '@/components/ui/SelectorRegionComuna'
 
 interface Props { planes: any[]; matriculas: any[]; cursos: string[]; aportes: any[] }
 
@@ -50,7 +51,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
   const [form, setForm] = useState({
     // Alumno
     nombre: '', apellido: '', rut: '', curso: cursos[0] ?? '', fecha_nacimiento: '',
-    sexo: '', direccion: '', comuna: '', nacionalidad: 'Chilena', necesidades_especiales: '',
+    sexo: '', direccion: '', comuna: '', region: '', nacionalidad: 'Chilena', necesidades_especiales: '',
     prevision_salud: '', contacto_emergencia: '', telefono_emergencia: '',
     tipo_ingreso: 'nuevo',
     // Jornada y sede
@@ -278,8 +279,16 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-3">
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Domicilio</label><input value={form.direccion} onChange={e => setForm(p => ({...p, direccion: e.target.value}))} className="input-base" placeholder="Av. Ejemplo 1234"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Comuna</label><input value={form.comuna} onChange={e => setForm(p => ({...p, comuna: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Santiago"/></div>
+              <div className="col-span-2">
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Domicilio</label>
+                <input value={form.direccion} onChange={e => setForm(p => ({...p, direccion: e.target.value}))} className="input-base" placeholder="Av. Ejemplo 1234"/>
+              </div>
+              <SelectorRegionComuna
+                region={form.region}
+                comuna={form.comuna}
+                onRegionChange={r => setForm(p => ({...p, region: r, comuna: ''}))}
+                onComunaChange={c => setForm(p => ({...p, comuna: c}))}
+              />
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Contacto emergencia</label><input value={form.contacto_emergencia} onChange={e => setForm(p => ({...p, contacto_emergencia: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Nombre completo"/></div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Teléfono emergencia</label><input value={form.telefono_emergencia} onChange={e => setForm(p => ({...p, telefono_emergencia: formatearTelefono(e.target.value)}))} className="input-base" placeholder="+56 9 1234 5678" maxLength={16}/></div>
             </div>
