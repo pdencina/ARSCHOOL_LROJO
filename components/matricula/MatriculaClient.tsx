@@ -213,7 +213,23 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
                   <option value="masculino">Masculino</option>
                 </select>
               </div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Fecha nacimiento</label><input value={fechaDisplay} onChange={e => { const f = formatearFecha(e.target.value); setFechaDisplay(f.display); if(f.value) setForm(p => ({...p, fecha_nacimiento: f.value})) }} className="input-base" placeholder="DD-MM-AAAA" maxLength={10}/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Fecha nacimiento</label>
+                <input value={fechaDisplay} onChange={e => { const f = formatearFecha(e.target.value); setFechaDisplay(f.display); if(f.value) setForm(p => ({...p, fecha_nacimiento: f.value})) }} className="input-base" placeholder="DD-MM-AAAA" maxLength={10}/>
+                {form.fecha_nacimiento && (() => {
+                  const nacimiento = new Date(form.fecha_nacimiento + 'T12:00')
+                  const hoy = new Date()
+                  let edad = hoy.getFullYear() - nacimiento.getFullYear()
+                  const mesActual = hoy.getMonth() - nacimiento.getMonth()
+                  if (mesActual < 0 || (mesActual === 0 && hoy.getDate() < nacimiento.getDate())) edad--
+                  const meses = (hoy.getMonth() - nacimiento.getMonth() + 12) % 12
+                  return (
+                    <div className="mt-1.5 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 flex items-center gap-2">
+                      <i className="ti ti-cake text-blue-500 text-sm" aria-hidden="true"/>
+                      <span className="text-[12px] text-blue-800 font-medium">Edad: <strong>{edad} años{meses > 0 ? ` y ${meses} meses` : ''}</strong></span>
+                    </div>
+                  )
+                })()}
+              </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nacionalidad</label><input value={form.nacionalidad} onChange={e => setForm(p => ({...p, nacionalidad: capitalizarNombre(e.target.value)}))} className="input-base"/></div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Curso *</label>
                 <select value={form.curso} onChange={e => { setForm(p => ({...p, curso: e.target.value})); calcularMontos(e.target.value, form.jornada, form.sede) }} className="select-base w-full">
