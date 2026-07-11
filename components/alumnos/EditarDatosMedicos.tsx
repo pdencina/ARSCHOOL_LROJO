@@ -54,13 +54,14 @@ export default function EditarDatosMedicos({ alumnoId, datos }: Props) {
   }
 
   return (
-    <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5 mt-4" style={{ boxShadow: 'var(--shadow-sm)' }}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[13px] font-bold text-[#1B3A5C]">Editar datos médicos y emergencia</h3>
-        <button onClick={() => setAbierto(false)} className="text-[#9ca3af] hover:text-[#1B3A5C]">
-          <i className="ti ti-x text-sm"/>
-        </button>
-      </div>
+    <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4" onClick={() => setAbierto(false)}>
+      <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()} style={{ boxShadow: 'var(--shadow-lg)' }}>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-[15px] font-bold text-[#1B3A5C]">Editar datos médicos y emergencia</h3>
+          <button onClick={() => setAbierto(false)} className="text-[#9ca3af] hover:text-[#1B3A5C]">
+            <i className="ti ti-x text-lg"/>
+          </button>
+        </div>
 
       {/* Datos médicos */}
       <div className="mb-4">
@@ -130,11 +131,12 @@ export default function EditarDatosMedicos({ alumnoId, datos }: Props) {
       </div>
 
       {/* Botones */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 mt-5">
         <button onClick={() => setAbierto(false)} className="btn-secondary text-xs flex-1">Cancelar</button>
         <button onClick={guardar} disabled={saving} className="btn-primary text-xs flex-1 disabled:opacity-50">
           {saving ? 'Guardando...' : 'Guardar cambios'}
         </button>
+      </div>
       </div>
     </div>
   )
