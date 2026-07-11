@@ -222,10 +222,21 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Jornada</label>
                 <select value={form.jornada} onChange={e => { setForm(p => ({...p, jornada: e.target.value})); calcularMontos(form.curso, e.target.value, form.sede) }} className="select-base w-full">
-                  <option value="completa">Jornada Completa (Lun-Jue 08:00-18:00, Vie 08:00-17:00)</option>
-                  <option value="am">Media Jornada AM (Lun-Vie 08:00-13:00)</option>
-                  <option value="pm">Media Jornada PM (Lun-Jue 13:00-18:00, Vie 13:00-17:00)</option>
-                  <option value="especial">Jornada Especial (1 a 4 días por semana)</option>
+                  {form.sede === 'punta_arenas' ? (
+                    <>
+                      <option value="completa">Jornada Completa (Lun-Jue 07:45-18:00, Vie 07:45-17:00)</option>
+                      <option value="am">Media Jornada AM (Lun-Vie 07:45-13:00)</option>
+                      <option value="pm">Media Jornada PM (Lun-Jue 13:00-18:00, Vie 13:00-17:00)</option>
+                      <option value="especial">Jornada Especial (1 a 4 días por semana)</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="completa">Jornada Completa (Lun-Jue 08:00-18:00, Vie 08:00-17:00)</option>
+                      <option value="am">Media Jornada AM (Lun-Vie 08:00-13:00)</option>
+                      <option value="pm">Media Jornada PM (Lun-Jue 13:00-18:00, Vie 13:00-17:00)</option>
+                      <option value="especial">Jornada Especial (1 a 4 días por semana)</option>
+                    </>
+                  )}
                 </select>
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Sede</label>
