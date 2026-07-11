@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { formatMonto } from '@/lib/utils'
+import EditarDatosMedicos from '@/components/alumnos/EditarDatosMedicos'
 
 export const metadata = { title: 'Ficha del Alumno — AR School' }
 
@@ -143,6 +144,8 @@ export default async function FichaAlumnoPage({ params }: { params: { id: string
               </div>
             </div>
           )}
+
+          <EditarDatosMedicos alumnoId={params.id} datos={al} />
         </div>
 
         {/* Columna 2: Evaluaciones + Asistencia reciente */}
