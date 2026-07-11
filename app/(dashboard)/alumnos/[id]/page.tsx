@@ -79,6 +79,9 @@ export default async function FichaAlumnoPage({ params }: { params: { id: string
           <a href={`/api/reportes/boletin?alumno_id=${params.id}`} target="_blank" className="btn-secondary text-xs">
             <i className="ti ti-report text-sm" aria-hidden="true"/> Boletín
           </a>
+          <a href={`/api/fichas/emergencia?alumno_id=${params.id}`} target="_blank" className="btn-accent text-xs">
+            <i className="ti ti-first-aid-kit text-sm" aria-hidden="true"/> Ficha Emergencia
+          </a>
           <Link href="/alumnos" className="btn-secondary text-xs">
             <i className="ti ti-arrow-left text-sm" aria-hidden="true"/> Volver
           </Link>
