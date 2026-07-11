@@ -187,22 +187,20 @@ export default function PortalPagosClient({ cobros }: Props) {
         </div>
       )}
 
-      {/* Opciones de pago externas */}
+      {/* Opciones de pago */}
       <div className="mt-8 bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
-        <h3 className="text-[13px] font-bold text-[#1B3A5C] mb-3">Otras formas de pago</h3>
-        <div className="grid grid-cols-3 gap-3">
-          <a href="https://www.arschoolglobal.com/pago" target="_blank" className="flex flex-col items-center gap-1.5 p-3 border border-[var(--ar-border)] rounded-lg hover:border-blue-300 transition-colors">
-            <i className="ti ti-credit-card text-blue-600 text-lg" aria-hidden="true"/>
-            <span className="text-[10px] font-medium text-[#4b5563]">Webpay</span>
+        <h3 className="text-[13px] font-bold text-[#1B3A5C] mb-3">Formas de pago</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <a href="https://www.webpay.cl/company/41244" target="_blank" className="flex flex-col items-center gap-2 p-4 border border-[var(--ar-border)] rounded-lg hover:border-[#E8722A] hover:bg-[#FEF3EC]/30 transition-colors">
+            <i className="ti ti-credit-card text-[#E8722A] text-xl" aria-hidden="true"/>
+            <span className="text-[11px] font-semibold text-[#1B3A5C]">Pagar con Webpay</span>
+            <span className="text-[9px] text-[#9ca3af]">Tarjeta débito o crédito</span>
           </a>
-          <a href="/pago" target="_blank" className="flex flex-col items-center gap-1.5 p-3 border border-[var(--ar-border)] rounded-lg hover:border-emerald-300 transition-colors">
-            <i className="ti ti-qrcode text-emerald-600 text-lg" aria-hidden="true"/>
-            <span className="text-[10px] font-medium text-[#4b5563]">SumUp / QR</span>
-          </a>
-          <a href="https://wa.me/56936902642?text=Hola%2C+necesito+ayuda+con+mi+pago" target="_blank" className="flex flex-col items-center gap-1.5 p-3 border border-[var(--ar-border)] rounded-lg hover:border-green-300 transition-colors">
-            <i className="ti ti-brand-whatsapp text-green-600 text-lg" aria-hidden="true"/>
-            <span className="text-[10px] font-medium text-[#4b5563]">WhatsApp</span>
-          </a>
+          <button onClick={() => setReportandoId(pendientes[0]?.id || null)} className="flex flex-col items-center gap-2 p-4 border border-[var(--ar-border)] rounded-lg hover:border-[#5B8FA8] hover:bg-blue-50/30 transition-colors">
+            <i className="ti ti-building-bank text-[#5B8FA8] text-xl" aria-hidden="true"/>
+            <span className="text-[11px] font-semibold text-[#1B3A5C]">Reportar transferencia</span>
+            <span className="text-[9px] text-[#9ca3af]">Subir comprobante</span>
+          </button>
         </div>
       </div>
 
