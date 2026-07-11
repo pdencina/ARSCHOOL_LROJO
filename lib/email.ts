@@ -127,3 +127,37 @@ export function templatePagoMora(apoderado: string, alumno: string, monto: strin
     </div>
   `
 }
+
+
+export function templateCumpleanos(nombre: string, apellido: string, edad: number, nombreApoderado: string) {
+  return `
+    <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="border-bottom: 2px solid #1B3A5C; padding-bottom: 16px; margin-bottom: 24px;">
+        <strong style="font-size: 16px; color: #1B3A5C;">AR SCHOOL GLOBAL</strong>
+      </div>
+      <div style="text-align: center; margin: 30px 0;">
+        <div style="font-size: 60px; margin-bottom: 12px;">🎂</div>
+        <h1 style="color: #1B3A5C; font-size: 24px; margin: 0 0 8px;">¡Feliz cumpleaños, ${nombre}!</h1>
+        <p style="color: #E8722A; font-size: 18px; font-weight: bold; margin: 0;">¡Hoy cumple ${edad} años!</p>
+      </div>
+      <div style="background: #FEF3EC; border-radius: 12px; padding: 20px; margin: 20px 0;">
+        <p style="color: #4b5563; font-size: 14px; line-height: 1.6; margin: 0;">
+          Estimado/a <strong>${nombreApoderado}</strong>,
+        </p>
+        <p style="color: #4b5563; font-size: 14px; line-height: 1.6; margin: 12px 0 0;">
+          Desde la familia de AR School queremos enviar un cariñoso saludo a <strong>${nombre} ${apellido}</strong> en este día tan especial. 
+          Que este nuevo año de vida esté lleno de aprendizajes, aventuras y mucho amor.
+        </p>
+        <p style="color: #4b5563; font-size: 14px; line-height: 1.6; margin: 12px 0 0; font-style: italic;">
+          "Que tu meta más alta sea siempre el amor."
+        </p>
+      </div>
+      <p style="color: #4b5563; font-size: 14px; text-align: center; margin-top: 20px;">
+        Con cariño,<br/><strong style="color: #1B3A5C;">Equipo AR School Global</strong>
+      </p>
+      <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e8eaed; color: #9ca3af; font-size: 11px; text-align: center;">
+        Fundación Educacional AR Ministries · Modelo Educativo A.M.O.R.
+      </div>
+    </div>
+  `
+}

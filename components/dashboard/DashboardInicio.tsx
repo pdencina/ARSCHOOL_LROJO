@@ -2,6 +2,7 @@
 
 import { formatMonto } from '@/lib/utils'
 import Link from 'next/link'
+import CumpleanosWidget from '@/components/dashboard/CumpleanosWidget'
 
 interface Props {
   usuario: any
@@ -167,6 +168,11 @@ export default function DashboardInicio({ usuario, rol, stats, notificaciones, u
               </div>
             </Link>
           )}
+
+          {/* Widget cumpleaños */}
+          <div className="mt-3">
+            <CumpleanosWidget />
+          </div>
         </div>
       </div>
     </div>
