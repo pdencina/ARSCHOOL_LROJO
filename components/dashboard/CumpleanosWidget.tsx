@@ -9,7 +9,7 @@ export default function CumpleanosWidget() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/cumpleanos?rango=semana')
+    fetch('/api/cumpleanos?rango=mes')
       .then(r => r.json())
       .then(data => { setCumpleaneros(Array.isArray(data) ? data : []); setLoading(false) })
       .catch(() => setLoading(false))
@@ -27,7 +27,7 @@ export default function CumpleanosWidget() {
     <div className="bg-white border border-[var(--ar-border)] rounded-xl p-4" style={{ boxShadow: 'var(--shadow-sm)' }}>
       <div className="flex items-center gap-2 mb-3">
         <span className="text-lg">🎂</span>
-        <h3 className="text-[13px] font-bold text-[#1B3A5C]">Cumpleaños esta semana</h3>
+        <h3 className="text-[13px] font-bold text-[#1B3A5C]">Cumpleaños del mes</h3>
       </div>
       <div className="space-y-2">
         {cumpleaneros.map(c => {
