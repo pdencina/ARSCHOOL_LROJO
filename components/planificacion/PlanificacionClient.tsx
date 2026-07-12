@@ -27,7 +27,7 @@ export default function PlanificacionClient({ propuestas, resumenCursos }: Props
     if (res.ok) {
       const data = await res.json()
       setPropuestaActual(data.propuesta)
-      toast.success('Propuesta generada por IA')
+      toast.success('Propuesta generada')
     } else {
       toast.error('Error al generar propuesta')
     }
@@ -41,7 +41,7 @@ export default function PlanificacionClient({ propuestas, resumenCursos }: Props
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="page-title">Planificación de horarios</h1>
-          <p className="page-subtitle">Genera propuestas de distribución con IA basadas en tus alumnos y recursos</p>
+          <p className="page-subtitle">Genera propuestas de distribución basadas en tus alumnos y recursos</p>
         </div>
       </div>
 
@@ -69,7 +69,7 @@ export default function PlanificacionClient({ propuestas, resumenCursos }: Props
       <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5 mb-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
         <div className="flex items-center gap-2 mb-4">
           <i className="ti ti-sparkles text-[var(--ar-accent)] text-lg" aria-hidden="true"/>
-          <h2 className="text-[14px] font-bold text-[#1B3A5C]">Generar propuesta con IA</h2>
+          <h2 className="text-[14px] font-bold text-[#1B3A5C]">Generar propuesta automática</h2>
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-4">
@@ -93,7 +93,7 @@ export default function PlanificacionClient({ propuestas, resumenCursos }: Props
           </div>
           <button onClick={generarPropuesta} disabled={generando} className="btn-accent text-xs disabled:opacity-50">
             <i className={`ti ${generando ? 'ti-loader animate-spin' : 'ti-sparkles'} text-sm`} aria-hidden="true"/>
-            {generando ? 'Generando propuesta...' : 'Generar con IA'}
+            {generando ? 'Generando...' : 'Generar propuesta'}
           </button>
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function PlanificacionClient({ propuestas, resumenCursos }: Props
           {/* Notas */}
           {propuestaActual.notas && propuestaActual.notas.length > 0 && (
             <div className="mt-4 bg-[#FEF3EC] border border-[#E8722A]/20 rounded-lg p-3">
-              <div className="text-[10px] font-semibold text-[#E8722A] uppercase mb-1">Notas de la IA</div>
+              <div className="text-[10px] font-semibold text-[#E8722A] uppercase mb-1">Notas</div>
               <ul className="text-[11px] text-[#6b4d3a] space-y-0.5">
                 {propuestaActual.notas.map((n: string, i: number) => <li key={i}>• {n}</li>)}
               </ul>
