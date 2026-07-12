@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import EditorHorario from './EditorHorario'
 
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes']
 const DIAS_LABEL: Record<string, string> = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes' }
@@ -24,6 +25,7 @@ export default function PlanificacionClient({ propuestas, resumenCursos }: Props
   const [sede, setSede] = useState('santiago')
   const [restricciones, setRestricciones] = useState('')
   const [publicando, setPublicando] = useState(false)
+  const [editandoBloques, setEditandoBloques] = useState(false)
   const router = useRouter()
 
   async function generarPropuesta() {
@@ -74,6 +76,24 @@ export default function PlanificacionClient({ propuestas, resumenCursos }: Props
       router.refresh()
     } else {
       toast.error('Error al archivar')
+    }
+  }
+
+  async function guardarEdicionBloques(horarioEditado: Record<string, any[]>) {
+    if (!propuestaId) return
+    const propuestaActualizada = { ...propuestaData, horario: horarioEditado }
+    const res = await fetch(`/api/horarios/${propuestaId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ propuesta: propuestaActualizada }),
+    })
+    if (res.ok) {
+      toast.success('Horario editado guardado correctamente')
+      setPropuestaActual((prev: any) => prev ? { ...prev, propuesta: propuestaActualizada } : prev)
+      setEditandoBloques(false)
+      router.refresh()
+    } else {
+      toast.error('Error al guardar edición')
     }
   }
 
@@ -183,6 +203,15 @@ export default function PlanificacionClient({ propuestas, resumenCursos }: Props
               </span>
               {propuestaEstado === 'borrador' && propuestaId && (
                 <button
+                  onClick={() => setEditandoBloques(true)}
+                  className="btn-secondary text-xs py-1.5 px-3"
+                >
+                  <i className="ti ti-drag-drop text-sm mr-1" aria-hidden="true"/>
+                  Editar bloques
+                </button>
+              )}
+              {propuestaEstado === 'borrador' && propuestaId && (
+                <button
                   onClick={() => publicarPropuesta(propuestaId)}
                   disabled={publicando}
                   className="btn-primary text-xs py-1.5 px-3 disabled:opacity-50"
@@ -259,6 +288,15 @@ export default function PlanificacionClient({ propuestas, resumenCursos }: Props
             <pre className="mt-4 bg-[#f9fafb] rounded-lg p-4 text-[11px] text-[#4b5563] overflow-auto max-h-[400px] whitespace-pre-wrap">{propuestaData.raw}</pre>
           )}
         </div>
+      )}
+
+      {/* Editor de bloques (modal drag & drop) */}
+      {editandoBloques && propuestaData && (
+        <EditorHorario
+          propuesta={propuestaData}
+          onSave={guardarEdicionBloques}
+          onCancel={() => setEditandoBloques(false)}
+        />
       )}
     </div>
   )

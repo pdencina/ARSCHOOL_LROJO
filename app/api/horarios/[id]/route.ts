@@ -10,7 +10,7 @@ function getAdmin() {
   )
 }
 
-// PATCH /api/horarios/[id] — Cambiar estado de una propuesta
+// PATCH /api/horarios/[id] — Cambiar estado o propuesta de un horario
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,19 +19,32 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
   if (!['super_admin', 'admin'].includes((ur as any)?.rol)) {
-    return NextResponse.json({ error: 'Solo administradores pueden publicar horarios' }, { status: 403 })
+    return NextResponse.json({ error: 'Solo administradores pueden modificar horarios' }, { status: 403 })
   }
 
   const body = await request.json()
-  const { estado } = body
+  const updatePayload: Record<string, any> = {}
 
-  if (!['borrador', 'publicado', 'archivado'].includes(estado)) {
-    return NextResponse.json({ error: 'Estado inválido' }, { status: 400 })
+  // Actualizar estado
+  if (body.estado) {
+    if (!['borrador', 'publicado', 'archivado'].includes(body.estado)) {
+      return NextResponse.json({ error: 'Estado inválido' }, { status: 400 })
+    }
+    updatePayload.estado = body.estado
+  }
+
+  // Actualizar propuesta (edición de bloques)
+  if (body.propuesta) {
+    updatePayload.propuesta = body.propuesta
+  }
+
+  if (Object.keys(updatePayload).length === 0) {
+    return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
   }
 
   const { data, error } = await admin
     .from('propuestas_horario')
-    .update({ estado })
+    .update(updatePayload)
     .eq('id', params.id)
     .eq('colegio_id', (ur as any).colegio_id)
     .select()
