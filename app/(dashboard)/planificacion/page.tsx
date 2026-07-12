@@ -1,41 +1,43 @@
 export const dynamic = 'force-dynamic'
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import PlanificacionClient from '@/components/tutor/PlanificacionClient'
+import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
+import PlanificacionClient from '@/components/planificacion/PlanificacionClient'
 
-export const metadata = { title: 'Planificación — AR School' }
+function getAdmin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 export default async function PlanificacionPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: ur } = await supabase.from('usuarios').select('colegio_id, rol').eq('id', user.id).single()
-  const u = ur as any
-  if (!['tutor','admin','super_admin'].includes(u?.rol)) redirect('/inicio')
+  const admin = getAdmin()
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
+  const colegioId = (ur as any)?.colegio_id
 
-  const colegioId = u.colegio_id ?? ''
+  // Obtener propuestas existentes
+  const { data: propuestas } = await admin
+    .from('propuestas_horario')
+    .select('*')
+    .eq('colegio_id', colegioId)
+    .order('created_at', { ascending: false })
+    .limit(5)
 
-  const [{ data: planificaciones }, { data: alumnos }] = await Promise.all([
-    supabase.from('planificaciones')
-      .select('*')
-      .eq('colegio_id', colegioId)
-      .order('fecha', { ascending: false })
-      .limit(50),
-    supabase.from('alumnos')
-      .select('curso')
-      .eq('colegio_id', colegioId)
-      .eq('activo', true),
-  ])
-
-  const cursos = [...new Set((alumnos ?? []).map((a: any) => a.curso))].sort()
+  // Resumen de alumnos por curso
+  const { data: alumnos } = await admin.from('alumnos').select('curso').eq('colegio_id', colegioId).eq('activo', true)
+  const resumenCursos: Record<string, number> = {}
+  ;(alumnos ?? []).forEach((a: any) => { resumenCursos[a.curso] = (resumenCursos[a.curso] || 0) + 1 })
 
   return (
     <PlanificacionClient
-      planificaciones={(planificaciones as any[]) ?? []}
-      cursos={cursos}
-      colegioId={colegioId}
-      tutorId={user.id}
+      propuestas={(propuestas as any[]) ?? []}
+      resumenCursos={resumenCursos}
     />
   )
 }
