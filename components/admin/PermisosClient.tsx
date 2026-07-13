@@ -16,6 +16,7 @@ const ROLES = [
 
 const MODULOS = [
   { key: 'inicio', label: 'Inicio', icon: 'ti-home', grupo: 'Principal' },
+  { key: 'matricula', label: 'Matrícula', icon: 'ti-user-plus', grupo: 'Principal' },
   { key: 'alumnos', label: 'Alumnos', icon: 'ti-users', grupo: 'Principal' },
   { key: 'planificacion', label: 'Planificación', icon: 'ti-layout-board', grupo: 'Principal' },
   { key: 'asistencias', label: 'Asistencias', icon: 'ti-clipboard-check', grupo: 'Principal' },
@@ -24,12 +25,12 @@ const MODULOS = [
   { key: 'mensajes', label: 'Mensajes', icon: 'ti-message-2', grupo: 'Principal' },
   { key: 'libro_clases', label: 'Libro de clases', icon: 'ti-notebook', grupo: 'Principal' },
   { key: 'reporte_diario', label: 'Reporte diario', icon: 'ti-clipboard-heart', grupo: 'Principal' },
+  { key: 'tareas', label: 'Tareas', icon: 'ti-checklist', grupo: 'Principal' },
   { key: 'cobranzas', label: 'Cobranzas', icon: 'ti-cash', grupo: 'Gestión' },
   { key: 'documentos', label: 'Documentos', icon: 'ti-folder', grupo: 'Gestión' },
   { key: 'calendario', label: 'Calendario', icon: 'ti-calendar', grupo: 'Gestión' },
   { key: 'fichas', label: 'Fichas pedagógicas', icon: 'ti-books', grupo: 'Gestión' },
   { key: 'reportes', label: 'Reportes', icon: 'ti-file-analytics', grupo: 'Gestión' },
-  { key: 'tareas', label: 'Tareas', icon: 'ti-checklist', grupo: 'Portal' },
   { key: 'pagos', label: 'Estado de pagos', icon: 'ti-cash', grupo: 'Portal' },
   { key: 'perfil', label: 'Mi perfil', icon: 'ti-user', grupo: 'Portal' },
 ]

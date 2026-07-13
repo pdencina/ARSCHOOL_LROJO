@@ -74,6 +74,7 @@ interface Props { rol?: string; modulosHabilitados?: string[] | null }
 // Mapeo: href del sidebar → key del módulo en BD
 const HREF_TO_MODULO: Record<string, string> = {
   '/inicio': 'inicio',
+  '/matricula': 'matricula',
   '/alumnos': 'alumnos',
   '/planificacion': 'planificacion',
   '/asistencias': 'asistencias',
