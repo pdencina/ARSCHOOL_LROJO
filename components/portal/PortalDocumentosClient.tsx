@@ -3,10 +3,11 @@
 interface Props {
   matriculas: any[]
   documentos: any[]
+  fichas?: any[]
   usuario: any
 }
 
-export default function PortalDocumentosClient({ matriculas, documentos, usuario }: Props) {
+export default function PortalDocumentosClient({ matriculas, documentos, fichas = [], usuario }: Props) {
   const pendientesFirma = matriculas.filter(m => !m.firma_apoderado)
   const firmados = matriculas.filter(m => m.firma_apoderado)
 
@@ -154,6 +155,45 @@ export default function PortalDocumentosClient({ matriculas, documentos, usuario
                 {doc.url && (
                   <a href={doc.url} target="_blank" className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#f4f5f7] text-[#4b5563] text-[11px] font-medium rounded-lg hover:bg-[#e8eaed] transition-colors">
                     <i className="ti ti-download text-xs" aria-hidden="true"/> Descargar
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Fichas pedagógicas compartidas */}
+      {fichas.length > 0 && (
+        <div className="mt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <i className="ti ti-books text-emerald-600 text-lg" aria-hidden="true"/>
+            <h2 className="text-[15px] font-bold text-[#1a2332]">Material de apoyo</h2>
+            <span className="text-[11px] text-slate-400 ml-1">Fichas compartidas por el equipo pedagógico</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {fichas.map((ficha: any) => (
+              <div key={ficha.id} className="bg-white border border-[var(--ar-border)] rounded-xl p-4 flex items-start gap-3 hover:border-emerald-200 transition-colors" style={{ boxShadow: 'var(--shadow-sm)' }}>
+                <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <i className="ti ti-file-type-pdf text-emerald-600 text-lg" aria-hidden="true"/>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-medium text-[#1a2332] mb-0.5">{ficha.titulo}</div>
+                  <div className="text-[11px] text-[#9ca3af] flex items-center gap-2 flex-wrap">
+                    <span className="capitalize">{ficha.materia}</span>
+                    <span>·</span>
+                    <span>{ficha.grado}</span>
+                    {ficha.tipo && <><span>·</span><span className="capitalize">{ficha.tipo}</span></>}
+                  </div>
+                  {ficha.descripcion && (
+                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{ficha.descripcion}</p>
+                  )}
+                </div>
+                {ficha.pdf_url && (
+                  <a href={ficha.pdf_url} target="_blank" rel="noopener"
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 text-[11px] font-medium rounded-lg hover:bg-emerald-100 transition-colors flex-shrink-0">
+                    <i className="ti ti-download text-xs" aria-hidden="true"/> PDF
                   </a>
                 )}
               </div>

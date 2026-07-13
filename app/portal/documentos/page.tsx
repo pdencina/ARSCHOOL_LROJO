@@ -49,10 +49,24 @@ export default async function PortalDocumentosPage() {
     documentos = (docs ?? []) as any[]
   }
 
+  // Obtener fichas compartidas con apoderados
+  let fichasPortal: any[] = []
+  if (usuario.colegio_id) {
+    const { data: fichas } = await admin
+      .from('fichas')
+      .select('id, titulo, materia, grado, tipo, pdf_url, pdf_nombre, descripcion, descargas')
+      .eq('colegio_id', usuario.colegio_id)
+      .eq('visible_portal', true)
+      .order('created_at', { ascending: false })
+      .limit(20)
+    fichasPortal = (fichas ?? []) as any[]
+  }
+
   return (
     <PortalDocumentosClient
       matriculas={matriculas}
       documentos={documentos}
+      fichas={fichasPortal}
       usuario={usuario}
     />
   )

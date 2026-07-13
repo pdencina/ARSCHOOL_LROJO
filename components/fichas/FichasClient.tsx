@@ -169,9 +169,12 @@ export default function FichasClient({ fichas, conteosPorMateria, filtrosActivos
             ))}
             {canEdit && (
               <button onClick={() => setShowNueva(true)}
-                className="border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-4 min-h-44 hover:border-blue-400 hover:bg-blue-50 transition-colors group">
-                <i className="ti ti-plus text-2xl text-slate-300 group-hover:text-blue-400 mb-2" aria-hidden="true"/>
-                <span className="text-xs text-center text-slate-400 group-hover:text-blue-500 font-medium">Subir nueva ficha</span>
+                className="border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-4 min-h-44 hover:border-blue-400 hover:bg-blue-50 transition-all group">
+                <div className="w-12 h-12 rounded-full bg-slate-100 group-hover:bg-blue-100 flex items-center justify-center mb-3 transition-colors">
+                  <i className="ti ti-upload text-xl text-slate-400 group-hover:text-blue-500 transition-colors" aria-hidden="true"/>
+                </div>
+                <span className="text-sm text-slate-500 group-hover:text-blue-600 font-medium transition-colors">Subir ficha</span>
+                <span className="text-[10px] text-slate-400 group-hover:text-blue-400 mt-0.5">PDF, guía o evaluación</span>
               </button>
             )}
           </div>
