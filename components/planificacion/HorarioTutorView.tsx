@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { exportarHorarioTutor } from '@/lib/horario-pdf'
 
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes']
 const DIAS_LABEL: Record<string, string> = {
@@ -75,9 +76,18 @@ export default function HorarioTutorView({ propuesta, nombreTutor }: Props) {
           <h1 className="page-title">Mi horario</h1>
           <p className="page-subtitle">{propuesta.titulo ?? 'Horario semanal asignado'}</p>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
-          Publicado
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportarHorarioTutor(propuesta, nombreTutor)}
+            className="btn-secondary text-xs py-1.5 px-3"
+          >
+            <i className="ti ti-file-type-pdf text-sm mr-1" aria-hidden="true"/>
+            Exportar PDF
+          </button>
+          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
+            Publicado
+          </span>
+        </div>
       </div>
 
       {/* Info del tutor */}

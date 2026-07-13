@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import EditorHorario from './EditorHorario'
+import { exportarHorarioCompleto } from '@/lib/horario-pdf'
 
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes']
 const DIAS_LABEL: Record<string, string> = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes' }
@@ -227,6 +228,15 @@ export default function PlanificacionClient({ propuestas, resumenCursos }: Props
                 >
                   <i className="ti ti-archive text-sm mr-1" aria-hidden="true"/>
                   Archivar
+                </button>
+              )}
+              {propuestaData && (
+                <button
+                  onClick={() => exportarHorarioCompleto(propuestaData)}
+                  className="btn-secondary text-xs py-1.5 px-3"
+                >
+                  <i className="ti ti-file-type-pdf text-sm mr-1" aria-hidden="true"/>
+                  Exportar PDF
                 </button>
               )}
             </div>
