@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import toast from 'react-hot-toast'
 
 interface Tarea {
@@ -297,6 +298,13 @@ export default function TareasClient({ tareas, cursos }: Props) {
                     >
                       <i className="ti ti-edit text-sm" aria-hidden="true"/>
                     </button>
+                    <Link
+                      href={`/tareas/${t.id}`}
+                      className="text-slate-400 hover:text-violet-600 p-1.5 rounded-lg hover:bg-violet-50 transition-colors"
+                      title="Ver entregas"
+                    >
+                      <i className="ti ti-inbox text-sm" aria-hidden="true"/>
+                    </Link>
                     <button
                       onClick={() => handleEliminar(t.id)}
                       className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
