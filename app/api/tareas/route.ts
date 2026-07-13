@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { notificarNuevaTarea } from '@/lib/notificaciones'
 
 function getAdmin() {
   return createAdminClient(
@@ -80,6 +81,10 @@ export async function POST(request: NextRequest) {
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Notificar apoderados del curso (fire and forget)
+  notificarNuevaTarea(u.colegio_id, titulo.trim(), curso, materia || null, fecha_entrega || null).catch(console.error)
+
   return NextResponse.json(data, { status: 201 })
 }
 
