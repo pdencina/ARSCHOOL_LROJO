@@ -20,9 +20,21 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
   const [apoderadoExiste, setApoderadoExiste] = useState<any>(null)
   const [buscandoApoderado, setBuscandoApoderado] = useState(false)
   const [documentos, setDocumentos] = useState<Record<string, string>>({})
+  const [rutDuplicado, setRutDuplicado] = useState<any>(null)
 
   function handleDocumento(dataUrl: string, tipo: string) {
     setDocumentos(prev => ({ ...prev, [tipo]: dataUrl }))
+  }
+
+  async function verificarRutDuplicado(rut: string) {
+    if (!rut || !validarRut(rut)) { setRutDuplicado(null); return }
+    try {
+      const res = await fetch(`/api/alumnos/check-rut?rut=${encodeURIComponent(rut)}`)
+      if (res.ok) {
+        const data = await res.json()
+        setRutDuplicado(data.existe ? data.alumno : null)
+      }
+    } catch { /* silently fail */ }
   }
 
   // Auto-completar montos desde tabla de aportes
@@ -114,6 +126,13 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
       }
       setVista('lista')
       router.refresh()
+    } else if (res.status === 409 && data.duplicado) {
+      // Alumno ya existe con ese RUT
+      const al = data.alumno_existente
+      toast.error(
+        `⚠️ ${data.error}`,
+        { duration: 8000, style: { maxWidth: '500px' } }
+      )
     } else {
       toast.error(data.error ?? 'Error al matricular')
     }
@@ -204,8 +223,14 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Apellidos *</label><input value={form.apellido} onChange={e => setForm(p => ({...p, apellido: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Apellidos completos"/></div>
               <div>
                 <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">RUT / Pasaporte</label>
-                <input value={form.rut} onChange={e => setForm(p => ({...p, rut: formatearRut(e.target.value)}))} className={`input-base ${form.rut && !validarRut(form.rut) ? 'border-red-300 focus:ring-red-200' : ''}`} placeholder="12.345.678-9" maxLength={12}/>
+                <input value={form.rut} onChange={e => { setForm(p => ({...p, rut: formatearRut(e.target.value)})); setRutDuplicado(null) }} onBlur={() => verificarRutDuplicado(form.rut)} className={`input-base ${form.rut && !validarRut(form.rut) ? 'border-red-300 focus:ring-red-200' : rutDuplicado ? 'border-amber-300 focus:ring-amber-200' : ''}`} placeholder="12.345.678-9" maxLength={12}/>
                 {form.rut && !validarRut(form.rut) && <span className="text-[10px] text-[#c53030] mt-0.5 block">RUT inválido</span>}
+                {rutDuplicado && (
+                  <div className="mt-1.5 bg-amber-50 border border-amber-200 rounded-lg p-2 text-[11px] text-amber-800">
+                    <i className="ti ti-alert-triangle text-xs mr-1" aria-hidden="true"/>
+                    <strong>Alumno ya registrado:</strong> {rutDuplicado.nombre} {rutDuplicado.apellido} ({rutDuplicado.curso}){!rutDuplicado.activo && ' [inactivo]'}
+                  </div>
+                )}
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Sexo</label>
                 <select value={form.sexo} onChange={e => setForm(p => ({...p, sexo: e.target.value}))} className="select-base w-full">

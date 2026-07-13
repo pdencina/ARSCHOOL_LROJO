@@ -42,6 +42,26 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Verificar duplicado por RUT
+    if (rut) {
+      const { data: existente } = await admin
+        .from('alumnos')
+        .select('id, nombre, apellido, curso, activo')
+        .eq('colegio_id', colegioId)
+        .eq('rut', rut)
+        .limit(1)
+        .single()
+
+      if (existente) {
+        const al = existente as any
+        return NextResponse.json({
+          error: `Ya existe un alumno con RUT ${rut}: ${al.nombre} ${al.apellido} (${al.curso})${!al.activo ? ' [inactivo]' : ''}`,
+          duplicado: true,
+          alumno_existente: { id: al.id, nombre: al.nombre, apellido: al.apellido, curso: al.curso, activo: al.activo },
+        }, { status: 409 })
+      }
+    }
+
     // 1. Crear alumno
     const nivelAuto = curso.toLowerCase().includes('play') || curso.toLowerCase().includes('pre school')
       ? 'PreSchool'
