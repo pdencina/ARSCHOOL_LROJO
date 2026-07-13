@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
 
 type Rol = 'super_admin' | 'admin' | 'tutor' | 'apoderado' | 'alumno'
 
@@ -104,6 +105,29 @@ export default function Sidebar({ rol = 'admin', modulosHabilitados = null }: Pr
   const badge     = ROL_BADGE[rolTyped]
   const isPortal  = rolTyped === 'apoderado' || rolTyped === 'alumno'
 
+  // Mensajes no leídos
+  const [unreadMessages, setUnreadMessages] = useState(0)
+
+  useEffect(() => {
+    let mounted = true
+
+    async function fetchUnread() {
+      try {
+        const res = await fetch('/api/chat')
+        if (res.ok) {
+          const convs = await res.json()
+          const total = (convs as any[]).reduce((acc: number, c: any) => acc + (c.no_leidos ?? 0), 0)
+          if (mounted) setUnreadMessages(total)
+        }
+      } catch { /* silently fail */ }
+    }
+
+    fetchUnread()
+    const interval = setInterval(fetchUnread, 30000) // Cada 30s
+
+    return () => { mounted = false; clearInterval(interval) }
+  }, [])
+
   function renderGroup(items: NavItem[], section: string) {
     let visibles = items.filter(i => i.roles.includes(rolTyped))
     // Filtrar por permisos de BD si existen
@@ -114,6 +138,13 @@ export default function Sidebar({ rol = 'admin', modulosHabilitados = null }: Pr
         return modulosHabilitados.includes(modKey)
       })
     }
+    // Inyectar badge de mensajes no leídos
+    visibles = visibles.map(i => {
+      if ((i.href === '/mensajes' || i.href === '/portal/mensajes') && unreadMessages > 0) {
+        return { ...i, badge: unreadMessages }
+      }
+      return i
+    })
     if (!visibles.length) return null
     return (
       <div className="mb-6">
