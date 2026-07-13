@@ -16,6 +16,14 @@ interface BloqueHorario {
   espacio: string
 }
 
+interface Conflicto {
+  tipo: 'tutor' | 'espacio'
+  recurso: string
+  dia: string
+  hora: string
+  bloques: { grupo: string; experiencia: string }[]
+}
+
 interface Props {
   propuesta: {
     titulo?: string
@@ -26,6 +34,73 @@ interface Props {
   }
   onSave: (horarioEditado: Record<string, BloqueHorario[]>) => void
   onCancel: () => void
+}
+
+/** Detecta conflictos: tutor o espacio asignado a dos bloques en la misma hora del mismo día */
+function detectarConflictos(horario: Record<string, BloqueHorario[]>): Conflicto[] {
+  const conflictos: Conflicto[] = []
+
+  Object.entries(horario).forEach(([dia, bloques]) => {
+    // Agrupar por hora
+    const porHora: Record<string, BloqueHorario[]> = {}
+    bloques.forEach(b => {
+      if (!porHora[b.hora]) porHora[b.hora] = []
+      porHora[b.hora].push(b)
+    })
+
+    Object.entries(porHora).forEach(([hora, bloquesEnHora]) => {
+      if (bloquesEnHora.length < 2) return
+
+      // Conflictos de tutor
+      const tutorMap: Record<string, BloqueHorario[]> = {}
+      bloquesEnHora.forEach(b => {
+        if (!tutorMap[b.tutor]) tutorMap[b.tutor] = []
+        tutorMap[b.tutor].push(b)
+      })
+      Object.entries(tutorMap).forEach(([tutor, bqs]) => {
+        if (bqs.length > 1) {
+          conflictos.push({
+            tipo: 'tutor',
+            recurso: tutor,
+            dia,
+            hora,
+            bloques: bqs.map(b => ({ grupo: b.grupo, experiencia: b.experiencia })),
+          })
+        }
+      })
+
+      // Conflictos de espacio
+      const espacioMap: Record<string, BloqueHorario[]> = {}
+      bloquesEnHora.forEach(b => {
+        if (!espacioMap[b.espacio]) espacioMap[b.espacio] = []
+        espacioMap[b.espacio].push(b)
+      })
+      Object.entries(espacioMap).forEach(([espacio, bqs]) => {
+        if (bqs.length > 1) {
+          conflictos.push({
+            tipo: 'espacio',
+            recurso: espacio,
+            dia,
+            hora,
+            bloques: bqs.map(b => ({ grupo: b.grupo, experiencia: b.experiencia })),
+          })
+        }
+      })
+    })
+  })
+
+  return conflictos
+}
+
+/** Genera un set de claves "dia:hora:tutor" y "dia:hora:espacio" que tienen conflicto */
+function getConflictKeys(conflictos: Conflicto[]): Set<string> {
+  const keys = new Set<string>()
+  conflictos.forEach(c => {
+    c.bloques.forEach(b => {
+      keys.add(`${c.dia}:${c.hora}:${b.grupo}`)
+    })
+  })
+  return keys
 }
 
 export default function EditorHorario({ propuesta, onSave, onCancel }: Props) {
@@ -68,6 +143,10 @@ export default function EditorHorario({ propuesta, onSave, onCancel }: Props) {
 
   // Grupos
   const grupos = useMemo(() => propuesta.grupos.map(g => g.nombre), [propuesta])
+
+  // Detectar conflictos
+  const conflictos = useMemo(() => detectarConflictos(horario), [horario])
+  const conflictKeys = useMemo(() => getConflictKeys(conflictos), [conflictos])
 
   // --- DRAG & DROP ---
   function handleDragStart(e: DragEvent, dia: string, idx: number) {
@@ -144,6 +223,10 @@ export default function EditorHorario({ propuesta, onSave, onCancel }: Props) {
 
   // --- GUARDAR ---
   function handleGuardar() {
+    if (conflictos.length > 0) {
+      const confirmar = confirm(`Hay ${conflictos.length} conflicto${conflictos.length > 1 ? 's' : ''} sin resolver (tutores o espacios duplicados en la misma hora). ¿Guardar de todas formas?`)
+      if (!confirmar) return
+    }
     onSave(horario)
   }
 
@@ -186,6 +269,18 @@ export default function EditorHorario({ propuesta, onSave, onCancel }: Props) {
             <option value="">Todos los grupos</option>
             {grupos.map(g => <option key={g} value={g}>{g}</option>)}
           </select>
+          {conflictos.length > 0 && (
+            <span className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 text-[10px] font-bold px-2.5 py-1 rounded-full">
+              <i className="ti ti-alert-triangle text-xs" aria-hidden="true"/>
+              {conflictos.length} conflicto{conflictos.length > 1 ? 's' : ''}
+            </span>
+          )}
+          {conflictos.length === 0 && (
+            <span className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-full">
+              <i className="ti ti-check text-xs" aria-hidden="true"/>
+              Sin conflictos
+            </span>
+          )}
           <div className="ml-auto flex items-center gap-2 text-[10px] text-slate-400">
             <span className="flex items-center gap-1">
               <i className="ti ti-drag-drop text-sm text-blue-400" aria-hidden="true"/>
@@ -197,6 +292,31 @@ export default function EditorHorario({ propuesta, onSave, onCancel }: Props) {
             </span>
           </div>
         </div>
+
+        {/* Panel de conflictos detallado */}
+        {conflictos.length > 0 && (
+          <div className="px-6 py-3 bg-red-50 border-b border-red-100">
+            <div className="text-[10px] font-bold text-red-700 uppercase mb-2">
+              <i className="ti ti-alert-triangle text-xs mr-1" aria-hidden="true"/>
+              Conflictos detectados — resolver antes de publicar
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {conflictos.map((c, i) => (
+                <div key={i} className="bg-white border border-red-200 rounded-lg px-2.5 py-1.5 text-[10px]">
+                  <span className="font-bold text-red-700">
+                    {c.tipo === 'tutor' ? '👤' : '📍'} {c.recurso}
+                  </span>
+                  <span className="text-red-600 ml-1">
+                    {DIAS_LABEL[c.dia]} {c.hora} →
+                  </span>
+                  <span className="text-red-500 ml-1">
+                    {c.bloques.map(b => b.grupo).join(' y ')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Grilla por día */}
         <div className="p-6 overflow-x-auto">
@@ -216,6 +336,7 @@ export default function EditorHorario({ propuesta, onSave, onCancel }: Props) {
                     {bloques.map((b) => {
                       const isDraggedOver = dragOver?.dia === dia && dragOver.idx === b.originalIdx
                       const isDragging = dragSource?.dia === dia && dragSource.idx === b.originalIdx
+                      const hasConflict = conflictKeys.has(`${dia}:${b.hora}:${b.grupo}`)
                       return (
                         <div
                           key={`${dia}-${b.originalIdx}`}
@@ -228,9 +349,17 @@ export default function EditorHorario({ propuesta, onSave, onCancel }: Props) {
                           className={`
                             rounded-lg p-2 cursor-grab active:cursor-grabbing border transition-all select-none
                             ${isDragging ? 'opacity-40 scale-95 border-blue-300 bg-blue-50' : ''}
-                            ${isDraggedOver ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-200 scale-[1.02]' : 'border-slate-200 bg-white hover:border-blue-200 hover:shadow-sm'}
+                            ${isDraggedOver ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-200 scale-[1.02]' : ''}
+                            ${hasConflict && !isDragging && !isDraggedOver ? 'border-red-300 bg-red-50 ring-1 ring-red-200' : ''}
+                            ${!isDragging && !isDraggedOver && !hasConflict ? 'border-slate-200 bg-white hover:border-blue-200 hover:shadow-sm' : ''}
                           `}
                         >
+                          {hasConflict && (
+                            <div className="text-[8px] text-red-600 font-bold mb-0.5 flex items-center gap-0.5">
+                              <i className="ti ti-alert-triangle text-[8px]" aria-hidden="true"/>
+                              CONFLICTO
+                            </div>
+                          )}
                           <div className="text-[9px] font-mono font-bold text-slate-400 mb-0.5">{b.hora}</div>
                           <div className="text-[10px] font-semibold text-[#1B3A5C] leading-tight">{b.experiencia}</div>
                           <div className="flex items-center justify-between mt-1">
@@ -252,6 +381,11 @@ export default function EditorHorario({ propuesta, onSave, onCancel }: Props) {
         <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50 rounded-b-2xl">
           <div className="text-[11px] text-slate-400">
             {Object.values(horario).flat().length} bloques totales
+            {conflictos.length > 0 && (
+              <span className="text-red-600 font-semibold ml-2">
+                · {conflictos.length} conflicto{conflictos.length > 1 ? 's' : ''} pendiente{conflictos.length > 1 ? 's' : ''}
+              </span>
+            )}
           </div>
           <div className="flex gap-2">
             <button onClick={onCancel} className="btn-secondary text-xs">Cancelar</button>
