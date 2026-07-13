@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
@@ -22,7 +21,6 @@ export default function ComunicadosClient({ comunicados, colegioId, cursos }: Pr
   const [busqueda, setBusqueda] = useState('')
   const [form, setForm] = useState({ titulo: '', contenido: '', tipo: 'general', cursos: [] as string[], urgente: false })
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
 
   const comunicadosFiltrados = useMemo(() =>
     comunicados.filter(c => {
@@ -48,16 +46,19 @@ export default function ComunicadosClient({ comunicados, colegioId, cursos }: Pr
   async function handleEnviar() {
     if (!form.titulo || !form.contenido) { toast.error('Titulo y contenido son requeridos'); return }
     setLoading(true)
-    const { error } = await supabase.from('comunicados').insert({
-      colegio_id: colegioId,
-      titulo: form.titulo,
-      contenido: form.contenido,
-      tipo: form.urgente ? 'urgente' : form.tipo,
-      cursos: form.cursos.length > 0 ? form.cursos : null,
-      enviado_at: new Date().toISOString(),
+    const res = await fetch('/api/comunicados', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        titulo: form.titulo,
+        contenido: form.contenido,
+        tipo: form.urgente ? 'urgente' : form.tipo,
+        cursos: form.cursos.length > 0 ? form.cursos : null,
+        notificar: true,
+      }),
     })
-    if (error) { toast.error('Error al enviar comunicado'); setLoading(false); return }
-    toast.success('Comunicado enviado a todas las familias')
+    if (!res.ok) { toast.error('Error al enviar comunicado'); setLoading(false); return }
+    toast.success('Comunicado enviado y notificado a las familias')
     setShowModal(false)
     setForm({ titulo: '', contenido: '', tipo: 'general', cursos: [], urgente: false })
     setLoading(false)

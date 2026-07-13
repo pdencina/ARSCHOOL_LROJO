@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { notificarHorarioPublicado } from '@/lib/notificaciones'
 
 function getAdmin() {
   return createAdminClient(
@@ -22,6 +23,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     return NextResponse.json({ error: 'Solo administradores pueden modificar horarios' }, { status: 403 })
   }
 
+  const colegioId = (ur as any).colegio_id
   const body = await request.json()
   const updatePayload: Record<string, any> = {}
 
@@ -46,12 +48,19 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     .from('propuestas_horario')
     .update(updatePayload)
     .eq('id', params.id)
-    .eq('colegio_id', (ur as any).colegio_id)
+    .eq('colegio_id', colegioId)
     .select()
     .single()
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // Notificar tutores cuando se publica un horario
+  if (body.estado === 'publicado' && data) {
+    const titulo = (data as any).propuesta?.titulo ?? 'Horario semanal'
+    // Fire and forget — no bloquear la respuesta
+    notificarHorarioPublicado(colegioId, titulo).catch(console.error)
   }
 
   return NextResponse.json({ ok: true, propuesta: data })
