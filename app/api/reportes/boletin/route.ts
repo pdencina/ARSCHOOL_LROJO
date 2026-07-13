@@ -10,7 +10,6 @@ function getAdmin() {
   )
 }
 
-// GET: Generar boletín HTML para un alumno (imprimible como PDF)
 export async function GET(request: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -22,135 +21,140 @@ export async function GET(request: NextRequest) {
 
   const admin = getAdmin()
 
-  // Datos del alumno
-  const { data: alumno } = await admin.from('alumnos').select('*, colegio:colegios(nombre)').eq('id', alumnoId).single()
+  // Obtener alumno
+  const { data: alumno } = await admin
+    .from('alumnos')
+    .select('*, colegio:colegios(nombre)')
+    .eq('id', alumnoId)
+    .single()
+
   if (!alumno) return new NextResponse('Alumno no encontrado', { status: 404 })
-
-  // Calificaciones del alumno con evaluaciones
-  const { data: calificaciones } = await admin
-    .from('calificaciones')
-    .select('nota, evaluacion:evaluaciones(nombre, materia, fecha)')
-    .eq('alumno_id', alumnoId)
-    .order('created_at', { ascending: false })
-
-  // Asistencias
-  const { data: asistencias } = await admin
-    .from('asistencias')
-    .select('estado')
-    .eq('alumno_id', alumnoId)
-
-  const totalAsist = asistencias?.length ?? 0
-  const presentes = asistencias?.filter((a: any) => a.estado === 'presente').length ?? 0
-  const pctAsist = totalAsist > 0 ? Math.round(presentes / totalAsist * 100) : 0
-
-  // Agrupar por materia
-  const porMateria: Record<string, number[]> = {}
-  ;(calificaciones ?? []).forEach((c: any) => {
-    const materia = c.evaluacion?.materia ?? 'Otro'
-    if (!porMateria[materia]) porMateria[materia] = []
-    porMateria[materia].push(c.nota)
-  })
-
-  const fecha = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })
   const al = alumno as any
 
-  // Generar HTML del boletín
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="utf-8"/>
-  <title>Boletín - ${al.nombre} ${al.apellido}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', -apple-system, sans-serif; color: #1a2332; padding: 40px; max-width: 800px; margin: 0 auto; }
-    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #1a2332; }
-    .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
-    .logo small { display: block; font-size: 11px; font-weight: 400; color: #6b7280; letter-spacing: 0.05em; }
-    .info { text-align: right; font-size: 12px; color: #6b7280; }
-    .student { background: #f8f9fb; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
-    .student h2 { font-size: 18px; margin-bottom: 4px; }
-    .student p { font-size: 13px; color: #6b7280; }
-    .section-title { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 24px 0 12px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7280; padding: 8px 12px; border-bottom: 1px solid #e8eaed; }
-    td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
-    .pct { font-weight: 700; font-size: 15px; }
-    .pct.high { color: #1a7a4c; }
-    .pct.mid { color: #b7791f; }
-    .pct.low { color: #c53030; }
-    .summary { display: flex; gap: 16px; margin-bottom: 24px; }
-    .summary-card { flex: 1; background: #f8f9fb; border-radius: 8px; padding: 16px; text-align: center; }
-    .summary-card .val { font-size: 24px; font-weight: 700; }
-    .summary-card .lbl { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
-    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e8eaed; font-size: 11px; color: #9ca3af; text-align: center; }
-    @media print { body { padding: 20px; } .no-print { display: none; } }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="logo">AR SCHOOL<small>${al.colegio?.nombre ?? 'Gestión Educacional'}</small></div>
-    <div class="info">Boletín de evaluación<br/>${fecha}</div>
-  </div>
+  // Obtener calificaciones con evaluación
+  const { data: calificaciones } = await admin
+    .from('calificaciones')
+    .select('nota, observacion, evaluacion:evaluaciones(nombre, materia, fecha, ponderacion)')
+    .eq('alumno_id', alumnoId)
+    .order('created_at', { ascending: true })
 
-  <div class="student">
-    <h2>${al.nombre} ${al.apellido}</h2>
-    <p>${al.curso} · ${al.rut ?? ''}</p>
-  </div>
+  const cals = (calificaciones ?? []) as any[]
 
-  <div class="summary">
-    <div class="summary-card">
-      <div class="val">${Object.keys(porMateria).length > 0 ? Math.round(Object.values(porMateria).flat().reduce((a, b) => a + b, 0) / Object.values(porMateria).flat().length) + '%' : '—'}</div>
-      <div class="lbl">Logro general</div>
-    </div>
-    <div class="summary-card">
-      <div class="val">${pctAsist}%</div>
-      <div class="lbl">Asistencia</div>
-    </div>
-    <div class="summary-card">
-      <div class="val">${Object.values(porMateria).flat().length}</div>
-      <div class="lbl">Evaluaciones</div>
-    </div>
-  </div>
+  // Agrupar por materia
+  const porMateria: Record<string, { notas: { nombre: string; nota: number; fecha: string }[]; promedio: number }> = {}
 
-  <div class="section-title">Resultados por materia</div>
-  <table>
-    <thead><tr><th>Materia</th><th>Evaluaciones</th><th>Promedio de logro</th></tr></thead>
-    <tbody>
-      ${Object.entries(porMateria).map(([materia, notas]) => {
-        const prom = Math.round(notas.reduce((a, b) => a + b, 0) / notas.length)
-        const cls = prom >= 80 ? 'high' : prom >= 60 ? 'mid' : 'low'
-        return `<tr><td>${materia}</td><td>${notas.length}</td><td><span class="pct ${cls}">${prom}%</span></td></tr>`
-      }).join('')}
-      ${Object.keys(porMateria).length === 0 ? '<tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:20px;">Sin evaluaciones registradas</td></tr>' : ''}
-    </tbody>
-  </table>
+  cals.forEach(c => {
+    const materia = c.evaluacion?.materia ?? 'Sin materia'
+    if (!porMateria[materia]) porMateria[materia] = { notas: [], promedio: 0 }
+    porMateria[materia].notas.push({
+      nombre: c.evaluacion?.nombre ?? 'Evaluación',
+      nota: c.nota,
+      fecha: c.evaluacion?.fecha ?? '',
+    })
+  })
 
-  <div class="section-title">Asistencia</div>
-  <table>
-    <thead><tr><th>Total días</th><th>Presentes</th><th>Ausentes</th><th>Asistencia</th></tr></thead>
-    <tbody>
-      <tr>
-        <td>${totalAsist}</td>
-        <td>${presentes}</td>
-        <td>${totalAsist - presentes}</td>
-        <td><span class="pct ${pctAsist >= 85 ? 'high' : pctAsist >= 70 ? 'mid' : 'low'}">${pctAsist}%</span></td>
-      </tr>
-    </tbody>
-  </table>
+  Object.values(porMateria).forEach(m => {
+    m.promedio = m.notas.length > 0
+      ? Math.round((m.notas.reduce((a, b) => a + b.nota, 0) / m.notas.length) * 10) / 10
+      : 0
+  })
 
-  <div class="footer">
-    AR School · ${al.colegio?.nombre ?? ''} · Generado el ${fecha}
-  </div>
+  const todasNotas = cals.map(c => c.nota)
+  const promedioGeneral = todasNotas.length > 0
+    ? Math.round((todasNotas.reduce((a: number, b: number) => a + b, 0) / todasNotas.length) * 10) / 10
+    : 0
 
-  <div class="no-print" style="text-align:center;margin-top:24px;">
-    <button onclick="window.print()" style="background:#1a2332;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
-      Imprimir / Guardar PDF
-    </button>
-  </div>
-</body>
-</html>`
+  const materias = Object.entries(porMateria).sort((a, b) => a[0].localeCompare(b[0]))
+  const fecha = new Date().toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  // Generar HTML
+  const html = generarBoletinHTML({
+    alumno: { nombre: al.nombre, apellido: al.apellido, curso: al.curso, colegio: al.colegio?.nombre ?? 'AR School' },
+    materias,
+    promedioGeneral,
+    totalEvaluaciones: cals.length,
+    fecha,
+  })
 
   return new NextResponse(html, {
     headers: { 'Content-Type': 'text/html; charset=utf-8' },
   })
+}
+
+function generarBoletinHTML(params: {
+  alumno: { nombre: string; apellido: string; curso: string; colegio: string }
+  materias: [string, { notas: { nombre: string; nota: number; fecha: string }[]; promedio: number }][]
+  promedioGeneral: number
+  totalEvaluaciones: number
+  fecha: string
+}) {
+  const { alumno, materias, promedioGeneral, totalEvaluaciones, fecha } = params
+
+  function notaClass(nota: number) {
+    if (nota >= 5.5) return 'color:#059669;'
+    if (nota >= 4.0) return 'color:#d97706;'
+    return 'color:#dc2626;'
+  }
+
+  let materiasHTML = ''
+  materias.forEach(([materia, data]) => {
+    materiasHTML += `<div style="margin-bottom:18px;">`
+    materiasHTML += `<div style="font-size:13px;font-weight:700;color:#1a2332;padding:6px 10px;background:#f1f5f9;border-left:3px solid #3b82f6;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+      <span>${materia}</span><span style="font-size:14px;font-weight:800;${notaClass(data.promedio)}">${data.promedio}</span>
+    </div>`
+    materiasHTML += `<table style="width:100%;border-collapse:collapse;font-size:11px;">
+      <thead><tr><th style="background:#f8fafc;padding:5px 10px;text-align:left;font-size:9px;text-transform:uppercase;color:#6b7280;font-weight:600;border-bottom:1px solid #e2e8f0;">Evaluación</th>
+      <th style="background:#f8fafc;padding:5px 10px;text-align:left;font-size:9px;text-transform:uppercase;color:#6b7280;font-weight:600;border-bottom:1px solid #e2e8f0;">Fecha</th>
+      <th style="background:#f8fafc;padding:5px 10px;text-align:center;font-size:9px;text-transform:uppercase;color:#6b7280;font-weight:600;border-bottom:1px solid #e2e8f0;width:60px;">Nota</th></tr></thead><tbody>`
+
+    data.notas.forEach(n => {
+      const fechaStr = n.fecha ? new Date(n.fecha + 'T12:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }) : '—'
+      materiasHTML += `<tr><td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;">${n.nombre}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;">${fechaStr}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;font-weight:700;text-align:center;${notaClass(n.nota)}">${n.nota}</td></tr>`
+    })
+    materiasHTML += `</tbody></table></div>`
+  })
+
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Boletín — ${alumno.nombre} ${alumno.apellido}</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:#1a2332; padding:40px; font-size:12px; max-width:800px; margin:0 auto; }
+.no-print { margin-top:30px; text-align:center; }
+@media print { .no-print { display:none; } body { padding:20px; } }
+@page { size:portrait; margin:15mm; }
+</style></head><body>
+
+<div style="text-align:center;margin-bottom:30px;border-bottom:2px solid #1a2332;padding-bottom:20px;">
+  <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">${alumno.colegio}</div>
+  <h1 style="font-size:20px;color:#1a2332;margin-top:4px;">Boletín de Calificaciones</h1>
+</div>
+
+<div style="display:flex;justify-content:space-between;margin-bottom:24px;background:#f8fafc;border-radius:8px;padding:14px 18px;border:1px solid #e2e8f0;">
+  <div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;font-weight:600;letter-spacing:0.05em;">Alumno</div><div style="font-size:14px;font-weight:700;color:#1a2332;">${alumno.nombre} ${alumno.apellido}</div></div>
+  <div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;font-weight:600;letter-spacing:0.05em;">Curso</div><div style="font-size:14px;font-weight:700;color:#1a2332;">${alumno.curso}</div></div>
+  <div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;font-weight:600;letter-spacing:0.05em;">Evaluaciones</div><div style="font-size:14px;font-weight:700;color:#1a2332;">${totalEvaluaciones}</div></div>
+  <div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;font-weight:600;letter-spacing:0.05em;">Promedio General</div><div style="font-size:14px;font-weight:700;${notaClass(promedioGeneral)}">${promedioGeneral}</div></div>
+</div>
+
+${materiasHTML}
+
+${materias.length === 0 ? '<div style="text-align:center;padding:40px;color:#9ca3af;">No hay calificaciones registradas para este alumno.</div>' : ''}
+
+<div style="margin-top:24px;background:#1a2332;color:white;border-radius:10px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
+  <div><div style="font-size:11px;opacity:0.7;text-transform:uppercase;letter-spacing:0.05em;">Promedio general</div><div style="font-size:28px;font-weight:800;">${promedioGeneral}</div></div>
+  <div style="text-align:center;"><div style="font-size:11px;opacity:0.7;text-transform:uppercase;letter-spacing:0.05em;">Total evaluaciones</div><div style="font-size:28px;font-weight:800;">${totalEvaluaciones}</div></div>
+  <div style="text-align:right;"><div style="font-size:11px;opacity:0.7;text-transform:uppercase;letter-spacing:0.05em;">Materias</div><div style="font-size:28px;font-weight:800;">${materias.length}</div></div>
+</div>
+
+<div style="margin-top:30px;text-align:center;color:#9ca3af;font-size:9px;border-top:1px solid #e8eaed;padding-top:12px;">
+  AR School Global · Boletín generado el ${fecha} · Este documento es informativo
+</div>
+
+<div class="no-print">
+  <button onclick="window.print()" style="background:#1a2332;color:white;border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">🖨️ Imprimir / Guardar PDF</button>
+  <button onclick="window.close()" style="background:white;color:#1a2332;border:1.5px solid #e2e8f0;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-left:8px;">Cerrar</button>
+</div>
+
+</body></html>`
 }
