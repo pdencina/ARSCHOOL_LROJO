@@ -16,6 +16,7 @@ const TIPO_CONFIG: Record<string, { label: string; color: string; bg: string; ic
 export default function ComunicadosClient({ comunicados, colegioId, cursos }: Props) {
   const router = useRouter()
   const [showModal, setShowModal] = useState(false)
+  const [showConfirmacion, setShowConfirmacion] = useState(false)
   const [detalle, setDetalle] = useState<any>(null)
   const [filtroTipo, setFiltroTipo] = useState('')
   const [busqueda, setBusqueda] = useState('')
@@ -45,6 +46,13 @@ export default function ComunicadosClient({ comunicados, colegioId, cursos }: Pr
 
   async function handleEnviar() {
     if (!form.titulo || !form.contenido) { toast.error('Titulo y contenido son requeridos'); return }
+
+    // Mostrar confirmación antes de enviar
+    setShowConfirmacion(true)
+  }
+
+  async function confirmarEnvio() {
+    setShowConfirmacion(false)
     setLoading(true)
     const res = await fetch('/api/comunicados', {
       method: 'POST',
@@ -253,6 +261,44 @@ export default function ComunicadosClient({ comunicados, colegioId, cursos }: Pr
               <button onClick={() => setShowModal(false)} className="btn-secondary">Cancelar</button>
               <button onClick={handleEnviar} disabled={loading} className={`btn-primary disabled:opacity-60 ${form.urgente ? 'bg-red-500 hover:bg-red-600' : ''}`}>
                 {loading ? 'Enviando...' : `Enviar${form.urgente ? ' urgente' : ''} a familias`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmación */}
+      {showConfirmacion && (
+        <div className="fixed inset-0 bg-slate-900/70 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            <div className={`px-6 py-5 text-center ${form.urgente ? 'bg-red-50' : 'bg-blue-50'}`}>
+              <div className={`w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center ${form.urgente ? 'bg-red-100' : 'bg-blue-100'}`}>
+                <i className={`ti ${form.urgente ? 'ti-alert-triangle text-red-600' : 'ti-send text-blue-600'} text-2xl`} aria-hidden="true"/>
+              </div>
+              <h3 className={`text-lg font-bold ${form.urgente ? 'text-red-800' : 'text-blue-800'}`}>
+                {form.urgente ? '¿Enviar comunicado urgente?' : 'Confirmar envío'}
+              </h3>
+            </div>
+            <div className="px-6 py-4">
+              <div className="space-y-2 text-sm text-slate-600">
+                <p><strong>Título:</strong> {form.titulo}</p>
+                <p><strong>Tipo:</strong> {form.urgente ? '🚨 Urgente' : TIPO_CONFIG[form.tipo]?.label ?? form.tipo}</p>
+                <p><strong>Destinatarios:</strong> {form.cursos.length > 0 ? `Apoderados de ${form.cursos.join(', ')}` : 'Todos los apoderados del colegio'}</p>
+              </div>
+              <div className={`mt-3 p-3 rounded-lg text-xs ${form.urgente ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
+                <i className="ti ti-info-circle mr-1" aria-hidden="true"/>
+                {form.urgente
+                  ? 'Se enviará una notificación y un email URGENTE a todas las familias. Esta acción no se puede deshacer.'
+                  : 'Se creará una notificación in-app y se enviará un email a los apoderados seleccionados.'}
+              </div>
+            </div>
+            <div className="px-6 pb-5 flex gap-2 justify-end">
+              <button onClick={() => setShowConfirmacion(false)} className="btn-secondary text-sm">
+                Cancelar
+              </button>
+              <button onClick={confirmarEnvio} disabled={loading} className={`btn-primary text-sm disabled:opacity-60 ${form.urgente ? 'bg-red-500 hover:bg-red-600' : ''}`}>
+                <i className="ti ti-send text-sm mr-1" aria-hidden="true"/>
+                {loading ? 'Enviando...' : 'Confirmar envío'}
               </button>
             </div>
           </div>
