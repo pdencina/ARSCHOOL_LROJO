@@ -53,9 +53,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Toaster position="top-right"/>
       <CommandPalette/>
       <Topbar usuario={usuario}/>
-      <div className="flex">
+      <div className="flex h-[calc(100vh-56px)]">
         <SidebarWrapper rol={usuario.rol} modulosHabilitadosInicial={modulosHabilitados}/>
-        <main className="flex-1 min-h-[calc(100vh-56px)] overflow-auto animate-[fadeIn_0.2s_ease-out]">
+        <main className="flex-1 h-[calc(100vh-56px)] overflow-auto animate-[fadeIn_0.2s_ease-out]">
           {children}
         </main>
       </div>
