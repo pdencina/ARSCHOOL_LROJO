@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const NAV_ITEMS = [
-  { label: 'Colegios',  href: '/super-admin',           icon: 'ti-building-school' },
+  { label: 'Campus',    href: '/super-admin',           icon: 'ti-building-school' },
   { label: 'Usuarios',  href: '/super-admin/usuarios',  icon: 'ti-users' },
   { label: 'Permisos',  href: '/super-admin/permisos',  icon: 'ti-lock' },
 ]

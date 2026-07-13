@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 
-export const metadata = { title: 'Super Admin — AR School Global' }
+export const metadata = { title: 'Campus — AR School Global' }
 
 function getAdminClient() {
   return createAdminClient(
@@ -45,17 +45,17 @@ export default async function SuperAdminPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 font-display">Establecimientos</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Gestión centralizada de colegios AR School</p>
+          <h1 className="text-2xl font-bold text-slate-900 font-display">Campus</h1>
+          <p className="text-sm text-slate-400 mt-0.5">Gestión centralizada de sedes AR School</p>
         </div>
         <Link href="/super-admin/colegios/nuevo" className="btn-primary">
-          <i className="ti ti-plus text-sm" aria-hidden="true"/> Nuevo colegio
+          <i className="ti ti-plus text-sm" aria-hidden="true"/> Nuevo campus
         </Link>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Colegios',      val: colegios?.length ?? 0,                                          icon: 'ti-building-school', color: 'text-blue-600',   bg: 'bg-blue-50' },
+          { label: 'Campus',        val: colegios?.length ?? 0,                                          icon: 'ti-building-school', color: 'text-blue-600',   bg: 'bg-blue-50' },
           { label: 'Total alumnos', val: Object.values(alumnosPor).reduce((a, b) => a + b, 0),           icon: 'ti-users',           color: 'text-emerald-600',bg: 'bg-emerald-50' },
           { label: 'Total usuarios',val: Object.values(usuariosPor).reduce((a, b) => a + b, 0),          icon: 'ti-user-cog',        color: 'text-violet-600', bg: 'bg-violet-50' },
           { label: 'Planes Pro+',   val: (colegios ?? []).filter((c: any) => c.plan !== 'basico').length, icon: 'ti-star',            color: 'text-amber-600',  bg: 'bg-amber-50' },
@@ -76,7 +76,7 @@ export default async function SuperAdminPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
-              {['Colegio','RUT','Plan','Alumnos','Usuarios','Creado','Acciones'].map(h => (
+              {['Campus','RUT','Plan','Alumnos','Usuarios','Creado','Acciones'].map(h => (
                 <th key={h} className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3 text-left">{h}</th>
               ))}
             </tr>
@@ -85,9 +85,9 @@ export default async function SuperAdminPage() {
             {(!colegios || colegios.length === 0) ? (
               <tr><td colSpan={7} className="px-4 py-12 text-center">
                 <i className="ti ti-building-school text-4xl text-slate-300 block mb-2" aria-hidden="true"/>
-                <p className="text-slate-400 text-sm">No hay colegios registrados todavía.</p>
+                <p className="text-slate-400 text-sm">No hay campus registrados todavía.</p>
                 <Link href="/super-admin/colegios/nuevo" className="btn-primary mt-3 inline-flex">
-                  <i className="ti ti-plus text-sm" aria-hidden="true"/> Crear primer colegio
+                  <i className="ti ti-plus text-sm" aria-hidden="true"/> Crear primer campus
                 </Link>
               </td></tr>
             ) : (colegios as any[]).map((c: any) => (

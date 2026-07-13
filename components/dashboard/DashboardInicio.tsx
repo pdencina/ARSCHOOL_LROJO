@@ -26,7 +26,7 @@ const SALUDO = HORA < 12 ? 'Buenos días' : HORA < 19 ? 'Buenas tardes' : 'Buena
 
 const ROL_ACCESOS: Record<string, { label: string; href: string; icon: string }[]> = {
   super_admin: [
-    { label: 'Establecimientos', href: '/super-admin',          icon: 'ti-building-school' },
+    { label: 'Campus',           href: '/super-admin',          icon: 'ti-building-school' },
     { label: 'Usuarios',         href: '/super-admin/usuarios', icon: 'ti-users' },
     { label: 'Comunicados',      href: '/comunicados',          icon: 'ti-speakerphone' },
     { label: 'Reportes',         href: '/reportes',             icon: 'ti-file-analytics' },
@@ -60,7 +60,7 @@ export default function DashboardInicio({ usuario, rol, stats, notificaciones, u
           {SALUDO}, {usuario?.nombre}
         </h1>
         <p className="text-[#6b7280] text-sm mt-1">
-          {rol === 'super_admin' ? 'Gestión centralizada de establecimientos' :
+          {rol === 'super_admin' ? 'Gestión centralizada de campus AR School' :
            rol === 'tutor'       ? `Docente · ${usuario?.colegio?.nombre ?? ''}` :
            `${usuario?.colegio?.nombre ?? ''} · Panel de administración`}
         </p>
