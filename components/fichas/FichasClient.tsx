@@ -18,8 +18,8 @@ interface Props {
   userId: string
 }
 
-const GRADOS = ['1° Básico','2° Básico','3° Básico','4° Básico','5° Básico','6° Básico',
-                 '7° Básico','8° Básico','I° Medio','II° Medio','III° Medio','IV° Medio']
+const GRADOS = ['Playgroup','Preschool','Elementary 1','Elementary 2','Elementary 3','Elementary 4','Elementary 5','Elementary 6',
+                 'Middle 1','Middle 2','Middle 3','High School 1','High School 2','High School 3','High School 4']
 const TIPOS = [
   { value: 'ejercicio',  label: 'Ejercicios' },
   { value: 'evaluacion', label: 'Evaluaciones' },
