@@ -21,11 +21,14 @@ export default async function FirmarContratoPage({ params }: { params: { id: str
   const { data: matricula } = await admin.from('matriculas').select('*, alumno:alumnos(nombre, apellido, curso)').eq('id', params.id).single()
   if (!matricula) redirect('/matricula')
 
+  const m = matricula as any
+
   return (
     <FirmaContratoClient
       matriculaId={params.id}
-      alumno={(matricula as any).alumno}
-      firmado={!!(matricula as any).firma_apoderado}
+      alumno={m.alumno}
+      firmadoContrato={!!m.firma_apoderado}
+      firmadoPagare={!!m.firma_pagare}
     />
   )
 }
