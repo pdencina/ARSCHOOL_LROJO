@@ -6,11 +6,12 @@ import toast from 'react-hot-toast'
 interface Props { usuarios: any[]; colegios: any[]; colegioFiltro?: string }
 
 const ROL_CONFIG: Record<string, { label: string; desc: string; color: string; bg: string; icon: string }> = {
-  super_admin: { label: 'Super Admin',    desc: 'Acceso total fundación',          color: 'text-red-700',     bg: 'bg-red-50',     icon: 'ti-shield-check' },
-  admin:       { label: 'Administrativo', desc: 'RRHH y gestión del colegio',      color: 'text-blue-700',    bg: 'bg-blue-50',    icon: 'ti-briefcase' },
-  tutor:       { label: 'Profesor',       desc: 'Gestiona cursos y clases',        color: 'text-violet-700',  bg: 'bg-violet-50',  icon: 'ti-school' },
-  apoderado:   { label: 'Apoderado',      desc: 'Portal familiar del alumno',      color: 'text-emerald-700', bg: 'bg-emerald-50', icon: 'ti-heart-handshake' },
-  alumno:      { label: 'Alumno',         desc: 'Portal personal del estudiante',  color: 'text-amber-700',   bg: 'bg-amber-50',   icon: 'ti-backpack' },
+  super_admin:     { label: 'Super Admin',              desc: 'Acceso total fundación',              color: 'text-red-700',     bg: 'bg-red-50',     icon: 'ti-shield-check' },
+  admin:           { label: 'Administrativo',           desc: 'RRHH y gestión del campus',           color: 'text-blue-700',    bg: 'bg-blue-50',    icon: 'ti-briefcase' },
+  gestor_admision: { label: 'Admisión y Vinculación',   desc: 'Matrícula, familias y cobranzas',     color: 'text-sky-700',     bg: 'bg-sky-50',     icon: 'ti-user-plus' },
+  tutor:           { label: 'Profesor',                 desc: 'Gestiona cursos y clases',            color: 'text-violet-700',  bg: 'bg-violet-50',  icon: 'ti-school' },
+  apoderado:       { label: 'Apoderado',                desc: 'Portal familiar del alumno',          color: 'text-emerald-700', bg: 'bg-emerald-50', icon: 'ti-heart-handshake' },
+  alumno:          { label: 'Alumno',                   desc: 'Portal personal del estudiante',      color: 'text-amber-700',   bg: 'bg-amber-50',   icon: 'ti-backpack' },
 }
 
 export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Props) {
