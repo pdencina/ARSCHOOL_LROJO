@@ -20,6 +20,7 @@ const NAV_PRINCIPAL: NavItem[] = [
   { label: 'Mensajes',        href: '/mensajes',        icon: 'ti-message-2',        roles: ['super_admin','admin','tutor'] },
   { label: 'Libro de clases', href: '/libro-clases',    icon: 'ti-notebook',         roles: ['tutor'] },
   { label: 'Reporte diario', href: '/reporte-diario', icon: 'ti-clipboard-heart',  roles: ['super_admin','admin','tutor'] },
+  { label: 'Tareas',         href: '/tareas',         icon: 'ti-checklist',        roles: ['super_admin','admin','tutor'] },
 ]
 
 const NAV_GESTION: NavItem[] = [
@@ -79,6 +80,7 @@ const HREF_TO_MODULO: Record<string, string> = {
   '/mensajes': 'mensajes',
   '/libro-clases': 'libro_clases',
   '/reporte-diario': 'reporte_diario',
+  '/tareas': 'tareas',
   '/contable': 'cobranzas',
   '/documentos': 'documentos',
   '/calendario': 'calendario',
