@@ -8,6 +8,7 @@ interface Props { permisos: any[] }
 
 const ROLES = [
   { key: 'admin', label: 'Administrativo', icon: 'ti-briefcase', color: 'text-[#2c4a6e]' },
+  { key: 'gestor_admision', label: 'Admisión y Vinculación', icon: 'ti-user-plus', color: 'text-sky-700' },
   { key: 'tutor', label: 'Docente', icon: 'ti-school', color: 'text-violet-700' },
   { key: 'apoderado', label: 'Apoderado', icon: 'ti-heart-handshake', color: 'text-emerald-700' },
   { key: 'alumno', label: 'Alumno', icon: 'ti-backpack', color: 'text-amber-700' },

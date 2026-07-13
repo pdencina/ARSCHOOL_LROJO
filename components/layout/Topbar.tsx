@@ -10,6 +10,7 @@ interface Props { usuario: any }
 const ROL_LABEL: Record<string, string> = {
   super_admin: 'Administrador General',
   admin:       'Administración',
+  gestor_admision: 'Admisión y Vinculación',
   tutor:       'Docente',
   apoderado:   'Apoderado',
   alumno:      'Alumno',

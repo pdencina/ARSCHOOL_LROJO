@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
   // Un admin de colegio solo puede crear: tutor, apoderado, alumno
   const rolesPermitidos = usuario.rol === 'super_admin'
-    ? ['admin', 'tutor', 'apoderado', 'alumno']
+    ? ['admin', 'gestor_admision', 'tutor', 'apoderado', 'alumno']
     : ['tutor', 'apoderado', 'alumno']
 
   if (!rolesPermitidos.includes(rol)) {

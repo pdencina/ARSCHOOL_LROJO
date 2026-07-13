@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
   const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
   const usuario = ur as any
 
-  if (!['super_admin', 'admin', 'tutor'].includes(usuario?.rol)) {
+  if (!['super_admin', 'admin', 'gestor_admision', 'tutor'].includes(usuario?.rol)) {
     return NextResponse.json({ error: 'Solo staff puede crear conversaciones' }, { status: 403 })
   }
 

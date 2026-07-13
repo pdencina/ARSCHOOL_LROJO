@@ -115,7 +115,7 @@ export default function ChatClient({ userId, usuario, apoderados, cursos }: Prop
     return otro ? `${otro.nombre} ${otro.apellido}` : 'Conversación'
   }
 
-  const isStaff = ['super_admin', 'admin', 'tutor'].includes(usuario?.rol)
+  const isStaff = ['super_admin', 'admin', 'gestor_admision', 'tutor'].includes(usuario?.rol)
 
   return (
     <div className="flex h-[calc(100vh-56px)] overflow-hidden">
