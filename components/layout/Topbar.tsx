@@ -43,8 +43,16 @@ export default function Topbar({ usuario }: Props) {
           </div>
         </Link>
 
-        {/* User */}
+        {/* Search trigger + User */}
         <div className="flex items-center gap-2 shrink-0 relative">
+          <button
+            onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+            className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--ar-border)] hover:border-slate-300 hover:bg-slate-50 transition-all text-[12px] text-slate-400"
+          >
+            <i className="ti ti-search text-sm" aria-hidden="true"/>
+            <span>Buscar...</span>
+            <kbd className="ml-2 px-1.5 py-0.5 text-[9px] font-mono bg-slate-100 border border-slate-200 rounded">⌘K</kbd>
+          </button>
           <button onClick={() => setShowMenu(!showMenu)} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#f3f4f6] transition-all duration-200">
             <div className="hidden md:block text-right">
               <div className="text-[var(--ar-text)] text-[13px] font-medium leading-tight">{usuario?.nombre} {usuario?.apellido}</div>
