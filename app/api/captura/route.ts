@@ -59,9 +59,37 @@ export async function PUT(request: NextRequest) {
 
   if (!sesion) return NextResponse.json({ error: 'Sesión expirada' }, { status: 404 })
 
-  // Actualizar documentos
+  // Subir imagen a Supabase Storage
+  let publicUrl = url // Fallback: guardar base64 si falla el upload
+
+  if (url.startsWith('data:')) {
+    try {
+      // Extraer el base64 y el content type
+      const matches = url.match(/^data:(.+);base64,(.+)$/)
+      if (matches) {
+        const contentType = matches[1]
+        const base64Data = matches[2]
+        const buffer = Buffer.from(base64Data, 'base64')
+        const extension = contentType.includes('png') ? 'png' : contentType.includes('pdf') ? 'pdf' : 'jpg'
+        const fileName = `capturas/${codigo.toUpperCase()}/${tipo}_${Date.now()}.${extension}`
+
+        const { data: uploadData, error: uploadError } = await admin.storage
+          .from('documentos')
+          .upload(fileName, buffer, { contentType, upsert: true })
+
+        if (!uploadError && uploadData) {
+          const { data: urlData } = admin.storage.from('documentos').getPublicUrl(uploadData.path)
+          publicUrl = urlData.publicUrl
+        }
+      }
+    } catch {
+      // Si falla el upload, se queda con el base64 como fallback
+    }
+  }
+
+  // Actualizar documentos en la sesión
   const docs = (sesion as any).documentos || {}
-  docs[tipo] = url
+  docs[tipo] = publicUrl
 
   const { error } = await admin
     .from('sesiones_captura')

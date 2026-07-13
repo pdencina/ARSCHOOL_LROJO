@@ -300,15 +300,47 @@ export async function POST(request: NextRequest) {
     // 6. Guardar documentos adjuntos
     const documentos = body.documentos as Record<string, string> | undefined
     if (documentos && matricula) {
-      const docsToInsert = Object.entries(documentos)
-        .filter(([_, url]) => url && url.length > 0)
-        .map(([tipo, url]) => ({
+      const docsToInsert: any[] = []
+
+      for (const [tipo, docUrl] of Object.entries(documentos)) {
+        if (!docUrl || docUrl.length === 0) continue
+
+        let finalUrl = docUrl
+
+        // Si es base64, subir a Storage
+        if (docUrl.startsWith('data:')) {
+          try {
+            const matches = docUrl.match(/^data:(.+);base64,(.+)$/)
+            if (matches) {
+              const contentType = matches[1]
+              const base64Data = matches[2]
+              const buffer = Buffer.from(base64Data, 'base64')
+              const extension = contentType.includes('png') ? 'png' : contentType.includes('pdf') ? 'pdf' : 'jpg'
+              const fileName = `matriculas/${(alumno as any).id}/${tipo}_${Date.now()}.${extension}`
+
+              const { data: uploadData, error: uploadError } = await admin.storage
+                .from('documentos')
+                .upload(fileName, buffer, { contentType, upsert: true })
+
+              if (!uploadError && uploadData) {
+                const { data: urlData } = admin.storage.from('documentos').getPublicUrl(uploadData.path)
+                finalUrl = urlData.publicUrl
+              }
+            }
+          } catch {
+            // Fallback: guardar base64 si falla
+          }
+        }
+
+        docsToInsert.push({
           matricula_id: (matricula as any).id,
           alumno_id: (alumno as any).id,
           tipo,
-          url,
+          url: finalUrl,
           nombre_archivo: `${tipo}_${(alumno as any).nombre}_${(alumno as any).apellido}`,
-        }))
+        })
+      }
+
       if (docsToInsert.length > 0) {
         await admin.from('documentos_matricula').insert(docsToInsert)
       }
