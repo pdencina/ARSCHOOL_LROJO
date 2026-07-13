@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+import { useAutoSave } from '@/lib/useAutoSave'
 
 interface Tarea {
   id: string
@@ -45,6 +46,14 @@ export default function TareasClient({ tareas, cursos }: Props) {
   const [form, setForm] = useState({ ...EMPTY_FORM, curso: cursos[0] ?? '' })
   const [saving, setSaving] = useState(false)
   const [filtroCurso, setFiltroCurso] = useState('')
+
+  // Auto-guardado
+  const { hasDraft, lastSaved, restoreDraft, clearDraft } = useAutoSave(
+    'tarea-nueva',
+    form,
+    setForm,
+    { enabled: showModal }
+  )
   const [filtroMateria, setFiltroMateria] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('')
   const router = useRouter()
@@ -110,6 +119,7 @@ export default function TareasClient({ tareas, cursos }: Props) {
       })
       if (res.ok) {
         toast.success('Tarea actualizada')
+        clearDraft()
         setShowModal(false)
         router.refresh()
       } else {
@@ -124,6 +134,7 @@ export default function TareasClient({ tareas, cursos }: Props) {
       })
       if (res.ok) {
         toast.success('Tarea creada — visible para los alumnos del curso')
+        clearDraft()
         setShowModal(false)
         router.refresh()
       } else {
@@ -334,6 +345,16 @@ export default function TareasClient({ tareas, cursos }: Props) {
             </div>
 
             <div className="p-6 space-y-4">
+              {/* Banner de borrador */}
+              {hasDraft && !editingId && (
+                <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg p-2.5">
+                  <i className="ti ti-device-floppy text-blue-600 text-sm" aria-hidden="true"/>
+                  <span className="text-[11px] text-blue-800 flex-1">Borrador guardado automáticamente</span>
+                  <button onClick={restoreDraft} className="text-[10px] font-bold text-blue-700 hover:underline">Restaurar</button>
+                  <button onClick={clearDraft} className="text-[10px] text-slate-400 hover:text-red-500">×</button>
+                </div>
+              )}
+
               <div>
                 <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Título *</label>
                 <input

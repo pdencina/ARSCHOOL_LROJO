@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { useAutoSave } from '@/lib/useAutoSave'
 
 interface Props {
   planificaciones: any[]
@@ -36,6 +37,14 @@ export default function PlanificacionClient({ planificaciones, cursos, colegioId
   const [form, setForm] = useState({ ...EMPTY_FORM, curso: cursos[0] ?? '' })
   const supabase = createClient()
   const router = useRouter()
+
+  // Auto-guardado del formulario
+  const { hasDraft, lastSaved, restoreDraft, clearDraft } = useAutoSave(
+    `planificacion-clase-${tutorId}`,
+    form,
+    setForm,
+    { enabled: showModal }
+  )
 
   const plansFiltradas = useMemo(() =>
     planificaciones.filter(p =>
@@ -90,6 +99,7 @@ export default function PlanificacionClient({ planificaciones, cursos, colegioId
 
     if (error) { toast.error('Error al guardar: ' + error.message); setSaving(false); return }
     toast.success(editId ? 'Planificación actualizada' : 'Planificación creada')
+    clearDraft()
     setSaving(false); setShowModal(false)
     router.refresh()
   }
@@ -239,6 +249,22 @@ export default function PlanificacionClient({ planificaciones, cursos, colegioId
             </div>
 
             <div className="p-6 overflow-y-auto space-y-5">
+              {/* Banner de borrador recuperable */}
+              {hasDraft && !editId && (
+                <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <i className="ti ti-device-floppy text-blue-600" aria-hidden="true"/>
+                  <span className="text-[12px] text-blue-800 flex-1">Tienes un borrador guardado automáticamente</span>
+                  <button onClick={restoreDraft} className="text-[11px] font-bold text-blue-700 hover:underline">Restaurar</button>
+                  <button onClick={clearDraft} className="text-[11px] text-slate-400 hover:text-red-500">Descartar</button>
+                </div>
+              )}
+              {lastSaved && (
+                <div className="text-[10px] text-slate-400 text-right -mt-3">
+                  <i className="ti ti-cloud-check text-xs mr-0.5" aria-hidden="true"/>
+                  Borrador guardado {lastSaved.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              )}
+
               {/* Título */}
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Título de la clase *</label>
