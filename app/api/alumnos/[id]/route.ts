@@ -18,7 +18,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
-  if (!['super_admin', 'admin', 'tutor'].includes((ur as any)?.rol)) {
+  if (!['super_admin', 'admin', 'gestor_admision', 'tutor'].includes((ur as any)?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 

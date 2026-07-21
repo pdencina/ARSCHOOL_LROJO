@@ -368,7 +368,7 @@ export async function GET() {
 
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
-  if (!['super_admin', 'admin'].includes((ur as any)?.rol)) {
+  if (!['super_admin', 'admin', 'gestor_admision'].includes((ur as any)?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 

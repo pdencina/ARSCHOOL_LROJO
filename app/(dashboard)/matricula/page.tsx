@@ -21,7 +21,7 @@ export default async function MatriculaPage() {
 
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('colegio_id, rol').eq('id', user.id).single()
-  if (!['super_admin', 'admin'].includes((ur as any)?.rol)) redirect('/inicio')
+  if (!['super_admin', 'admin', 'gestor_admision'].includes((ur as any)?.rol)) redirect('/inicio')
 
   const colegioId = (ur as any)?.colegio_id
   const [{ data: planes }, { data: matriculas }, { data: aportes }] = await Promise.all([
