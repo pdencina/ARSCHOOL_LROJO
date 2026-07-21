@@ -73,10 +73,12 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
     rut_apoderado: '', direccion_apoderado: '', parentesco: 'apoderado',
     // Cobros
     plan_cobro_id: '', monto_matricula: 0, monto_mensual: 0, meses_cobro: 10, porcentaje_beca: 0,
+    medio_pago_matricula: '' as '' | 'transferencia' | 'tarjeta' | 'cheque' | 'pagare',
     // Config
     crear_cuenta_apoderado: true, password_apoderado: '',
     observaciones: '', firma_apoderado: '',
   })
+  const [pagareConfirmado, setPagareConfirmado] = useState(false)
 
   async function buscarApoderado(email: string) {
     if (!validarEmail(email)) { setApoderadoExiste(null); return }
@@ -109,12 +111,25 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
     if (form.rut && !validarRut(form.rut)) { toast.error('RUT del alumno es inválido'); return }
     if (form.rut_apoderado && !validarRut(form.rut_apoderado)) { toast.error('RUT del apoderado es inválido'); return }
     if (!validarEmail(form.email_apoderado)) { toast.error('Email del apoderado es inválido'); return }
+    if (!form.medio_pago_matricula) { toast.error('Debe seleccionar un medio de pago'); return }
+    if (form.medio_pago_matricula === 'pagare' && !pagareConfirmado) { toast.error('Debe confirmar que se agotaron las opciones de pago preferentes'); return }
     setSaving(true)
+
+    // Calcular descuento por pago contado
+    const descuentoContado = ['transferencia', 'tarjeta'].includes(form.medio_pago_matricula) ? 5 : 0
+    const montoMensualConBeca = Math.round(form.monto_mensual * (1 - form.porcentaje_beca / 100))
+    const montoMensualFinal = descuentoContado > 0 ? Math.round(montoMensualConBeca * (1 - descuentoContado / 100)) : montoMensualConBeca
 
     const res = await fetch('/api/matriculas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, documentos }),
+      body: JSON.stringify({
+        ...form,
+        documentos,
+        descuento_contado: descuentoContado,
+        monto_mensual_final: montoMensualFinal,
+        pagare_confirmado: form.medio_pago_matricula === 'pagare' ? pagareConfirmado : false,
+      }),
     })
 
     const data = await res.json()
@@ -422,10 +437,101 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
             )}
           </div>
 
-          {/* Paso 4: Documentos */}
+          {/* Paso 4: Medio de pago */}
           <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-7 h-7 rounded-full bg-[#1a2332] flex items-center justify-center text-white text-[11px] font-bold">4</div>
+              <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Medio de pago</h2>
+            </div>
+
+            <div className="space-y-2">
+              {/* Opción 1: Transferencia — RECOMENDADA */}
+              <label className={`flex items-start gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${form.medio_pago_matricula === 'transferencia' ? 'border-emerald-400 bg-emerald-50/50' : 'border-[var(--ar-border)] hover:border-slate-300'}`}>
+                <input type="radio" name="medio_pago" value="transferencia" checked={form.medio_pago_matricula === 'transferencia'} onChange={() => { setForm(p => ({...p, medio_pago_matricula: 'transferencia'})); setPagareConfirmado(false) }} className="mt-0.5 accent-emerald-600"/>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-semibold text-[#1a2332]">Transferencia bancaria</span>
+                    <span className="text-[9px] font-bold uppercase bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Recomendado</span>
+                    {form.monto_mensual > 0 && <span className="text-[10px] font-bold text-emerald-600 ml-auto">5% dcto.</span>}
+                  </div>
+                  <p className="text-[11px] text-[#6b7280] mt-0.5">Pago contado vía transferencia. Descuento del 5% en aportes mensuales.</p>
+                </div>
+              </label>
+
+              {/* Opción 2: Tarjeta de crédito */}
+              <label className={`flex items-start gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${form.medio_pago_matricula === 'tarjeta' ? 'border-emerald-400 bg-emerald-50/50' : 'border-[var(--ar-border)] hover:border-slate-300'}`}>
+                <input type="radio" name="medio_pago" value="tarjeta" checked={form.medio_pago_matricula === 'tarjeta'} onChange={() => { setForm(p => ({...p, medio_pago_matricula: 'tarjeta'})); setPagareConfirmado(false) }} className="mt-0.5 accent-emerald-600"/>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-semibold text-[#1a2332]">Tarjeta de crédito / débito</span>
+                    {form.monto_mensual > 0 && <span className="text-[10px] font-bold text-emerald-600 ml-auto">5% dcto.</span>}
+                  </div>
+                  <p className="text-[11px] text-[#6b7280] mt-0.5">Pago contado con tarjeta. Mismo descuento que transferencia.</p>
+                </div>
+              </label>
+
+              {/* Opción 3: Cheques */}
+              <label className={`flex items-start gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${form.medio_pago_matricula === 'cheque' ? 'border-blue-300 bg-blue-50/30' : 'border-[var(--ar-border)] hover:border-slate-300'}`}>
+                <input type="radio" name="medio_pago" value="cheque" checked={form.medio_pago_matricula === 'cheque'} onChange={() => { setForm(p => ({...p, medio_pago_matricula: 'cheque'})); setPagareConfirmado(false) }} className="mt-0.5 accent-blue-600"/>
+                <div className="flex-1">
+                  <span className="text-[13px] font-semibold text-[#1a2332]">Cheques</span>
+                  <p className="text-[11px] text-[#6b7280] mt-0.5">Pago fraccionado mediante cheques a fecha. Sin descuento.</p>
+                </div>
+              </label>
+
+              {/* Opción 4: Pagaré — ÚLTIMA OPCIÓN */}
+              <label className={`flex items-start gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${form.medio_pago_matricula === 'pagare' ? 'border-amber-300 bg-amber-50/50' : 'border-[var(--ar-border)] hover:border-slate-300'}`}>
+                <input type="radio" name="medio_pago" value="pagare" checked={form.medio_pago_matricula === 'pagare'} onChange={() => setForm(p => ({...p, medio_pago_matricula: 'pagare'}))} className="mt-0.5 accent-amber-600"/>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-semibold text-[#1a2332]">Pagaré</span>
+                    <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Última opción</span>
+                  </div>
+                  <p className="text-[11px] text-[#6b7280] mt-0.5">Solo si no es posible transferencia, tarjeta o cheques. Sin descuento.</p>
+                </div>
+              </label>
+            </div>
+
+            {/* Confirmación obligatoria para pagaré */}
+            {form.medio_pago_matricula === 'pagare' && (
+              <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <div className="flex items-start gap-2.5 mb-3">
+                  <i className="ti ti-alert-triangle text-amber-600 text-base mt-0.5" aria-hidden="true"/>
+                  <div>
+                    <p className="text-[12px] font-semibold text-amber-800">¿Se exploraron las opciones preferentes?</p>
+                    <p className="text-[11px] text-amber-700 mt-1">Antes de aceptar pagaré, confirme que el apoderado no puede pagar mediante transferencia, tarjeta de crédito o cheques.</p>
+                  </div>
+                </div>
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input type="checkbox" checked={pagareConfirmado} onChange={e => setPagareConfirmado(e.target.checked)} className="w-4 h-4 accent-amber-600 rounded"/>
+                  <span className="text-[11px] text-amber-900 font-medium">Confirmo que se agotaron las opciones de pago preferentes (transferencia, tarjeta, cheques) y el pagaré es la única alternativa viable.</span>
+                </label>
+              </div>
+            )}
+
+            {/* Resumen de descuento */}
+            {form.monto_mensual > 0 && ['transferencia', 'tarjeta'].includes(form.medio_pago_matricula) && (
+              <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <i className="ti ti-discount-2 text-emerald-600 text-base" aria-hidden="true"/>
+                  <span className="text-[12px] font-semibold text-emerald-800">Descuento por pago contado: 5%</span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-6 text-[11px] text-[#4b5563]">
+                  <div>Aporte mensual original:</div>
+                  <div className="text-right line-through text-[#9ca3af]">${Math.round(form.monto_mensual * (1 - form.porcentaje_beca / 100)).toLocaleString('es-CL')}</div>
+                  <div className="font-semibold text-emerald-800">Aporte mensual con descuento:</div>
+                  <div className="text-right font-bold text-emerald-800">${Math.round(form.monto_mensual * (1 - form.porcentaje_beca / 100) * 0.95).toLocaleString('es-CL')}</div>
+                  <div className="border-t border-emerald-200 pt-2 mt-2 font-semibold">Ahorro anual ({form.meses_cobro} meses):</div>
+                  <div className="border-t border-emerald-200 pt-2 mt-2 text-right font-bold text-emerald-700">${Math.round(form.monto_mensual * (1 - form.porcentaje_beca / 100) * 0.05 * form.meses_cobro).toLocaleString('es-CL')}</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Paso 5: Documentos */}
+          <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-full bg-[#1a2332] flex items-center justify-center text-white text-[11px] font-bold">5</div>
               <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Documentos adjuntos</h2>
             </div>
 

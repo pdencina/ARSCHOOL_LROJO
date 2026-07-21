@@ -231,12 +231,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Generar cobros del año (con beca aplicada)
+    // 4. Generar cobros del año (con beca y descuento contado aplicados)
     const cobrosGenerados = []
     const porcentaje_beca = body.porcentaje_beca || 0
+    const descuentoContado = body.descuento_contado || 0
     const factorBeca = 1 - (porcentaje_beca / 100)
+    const factorDescuento = 1 - (descuentoContado / 100)
     const montoMatFinal = Math.round((monto_matricula || 0) * factorBeca)
-    const montoMensFinal = Math.round((monto_mensual || 0) * factorBeca)
+    const montoMensFinal = Math.round((monto_mensual || 0) * factorBeca * factorDescuento)
 
     if (monto_mensual && meses_cobro) {
       const anio = new Date().getFullYear()
@@ -277,7 +279,7 @@ export async function POST(request: NextRequest) {
           fecha_vencimiento: vencimiento,
           estado: 'pendiente',
           tipo_concepto: 'aporte_mensual',
-          observaciones: `Aporte mensual ${mes}/${anioC}${porcentaje_beca > 0 ? ` (beca ${porcentaje_beca}%)` : ''}`,
+          observaciones: `Aporte mensual ${mes}/${anioC}${porcentaje_beca > 0 ? ` (beca ${porcentaje_beca}%)` : ''}${descuentoContado > 0 ? ` (dcto. contado ${descuentoContado}%)` : ''}`,
         }).select().single()
         if (cobro) cobrosGenerados.push(cobro)
       }
@@ -295,6 +297,10 @@ export async function POST(request: NextRequest) {
       registrado_por: user.id,
       firma_apoderado: firma_apoderado || null,
       firmado_at: firma_apoderado ? new Date().toISOString() : null,
+      medio_pago_matricula: body.medio_pago_matricula || null,
+      descuento_contado: body.descuento_contado || 0,
+      monto_mensual_final: body.monto_mensual_final || null,
+      pagare_confirmado: body.pagare_confirmado || false,
     }).select().single()
 
     // 6. Guardar documentos adjuntos
