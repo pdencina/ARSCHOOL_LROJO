@@ -88,6 +88,48 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // Actualizar timestamp de la conversación
   await admin.from('conversaciones').update({ updated_at: new Date().toISOString() }).eq('id', params.id)
 
+  // --- SLA Tracking ---
+  const { data: autorData } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
+  const rolAutor = (autorData as any)?.rol
+  const esStaff = ['super_admin', 'admin', 'gestor_admision', 'tutor'].includes(rolAutor)
+  const esFamilia = ['apoderado', 'alumno'].includes(rolAutor)
+
+  if (esFamilia) {
+    // Familia envió mensaje: marcar como pendiente respuesta
+    await admin.from('conversaciones').update({
+      ultimo_mensaje_familia_at: new Date().toISOString(),
+      primera_respuesta_staff_at: null,
+      pendiente_respuesta: true,
+    }).eq('id', params.id)
+  } else if (esStaff) {
+    // Staff respondió: registrar tiempo de respuesta si había mensaje pendiente
+    const { data: convSla } = await admin.from('conversaciones')
+      .select('ultimo_mensaje_familia_at, pendiente_respuesta, colegio_id')
+      .eq('id', params.id).single()
+
+    if (convSla && (convSla as any).pendiente_respuesta && (convSla as any).ultimo_mensaje_familia_at) {
+      const ahora = new Date()
+      const mensajeFamiliaAt = new Date((convSla as any).ultimo_mensaje_familia_at)
+      const tiempoMin = Math.round((ahora.getTime() - mensajeFamiliaAt.getTime()) / 60000)
+
+      // Registrar en historial SLA
+      await admin.from('sla_respuestas').insert({
+        conversacion_id: params.id,
+        colegio_id: (convSla as any).colegio_id,
+        mensaje_familia_at: (convSla as any).ultimo_mensaje_familia_at,
+        respuesta_staff_at: ahora.toISOString(),
+        respondido_por: user.id,
+        tiempo_respuesta_min: tiempoMin,
+      })
+
+      // Marcar conversación como respondida
+      await admin.from('conversaciones').update({
+        primera_respuesta_staff_at: ahora.toISOString(),
+        pendiente_respuesta: false,
+      }).eq('id', params.id)
+    }
+  }
+
   return NextResponse.json(mensaje, { status: 201 })
 }
 

@@ -154,6 +154,26 @@ export default async function InicioPage() {
     }
   }
 
+  // Mensajes sin respuesta >24h (admin/super_admin)
+  if (['admin', 'super_admin'].includes(rol)) {
+    const { count: sinRespuesta24h } = await admin
+      .from('conversaciones')
+      .select('*', { count: 'exact', head: true })
+      .eq('colegio_id', colegioId)
+      .eq('pendiente_respuesta', true)
+      .eq('activa', true)
+      .lt('ultimo_mensaje_familia_at', new Date(Date.now() - 24 * 3600000).toISOString())
+
+    if (sinRespuesta24h && sinRespuesta24h > 0) {
+      pendientes.push({
+        texto: `${sinRespuesta24h} mensaje${sinRespuesta24h > 1 ? 's' : ''} de familias sin respuesta hace más de 24h`,
+        href: '/mensajes',
+        icon: 'ti-message-exclamation',
+        tipo: 'warning',
+      })
+    }
+  }
+
   // Asistencia no tomada hoy (tutor, si no hay registros)
   if (rol === 'tutor' && (!asistenciasHoy || asistenciasHoy.length === 0)) {
     pendientes.push({
