@@ -11,6 +11,13 @@ function getAdmin() {
   )
 }
 
+// Mapeo de colegio_id a sede (mismo que en /api/contratos)
+const SEDES_POR_COLEGIO: Record<string, string> = {
+  '11111111-1111-1111-1111-111111111111': 'santiago',
+  '22222222-2222-2222-2222-222222222222': 'puente_alto',
+  '33333333-3333-3333-3333-333333333333': 'punta_arenas',
+}
+
 // POST: Guardar firma digital con evidencia legal (FES Ley 19.799)
 export async function POST(request: NextRequest) {
   const supabase = createClient()
@@ -30,14 +37,17 @@ export async function POST(request: NextRequest) {
 
   const admin = getAdmin()
 
-  // Obtener datos del firmante
+  // Obtener datos del firmante (quien firma: apoderado)
   const { data: usuario } = await admin
     .from('usuarios')
-    .select('nombre, apellido, email, rol')
+    .select('nombre, apellido, email, rol, colegio_id')
     .eq('id', user.id)
     .single()
 
   const firmante = usuario as any
+
+  // Determinar sede desde el colegio del usuario
+  const sedeId = SEDES_POR_COLEGIO[firmante?.colegio_id] ?? 'santiago'
 
   // Generar evidencia de auditoría
   const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'desconocida'
@@ -60,6 +70,13 @@ export async function POST(request: NextRequest) {
       email: firmante?.email ?? user.email,
       rol: firmante?.rol,
     },
+    representante_institucional: {
+      id: user.id,
+      nombre: `${firmante?.nombre ?? ''} ${firmante?.apellido ?? ''}`.trim(),
+      email: firmante?.email ?? user.email,
+      rol: firmante?.rol,
+      sede: sedeId,
+    },
     timestamp,
     ip: ip.split(',')[0].trim(), // Tomar primera IP si hay varias
     user_agent: userAgent,
@@ -70,6 +87,7 @@ export async function POST(request: NextRequest) {
     consentimiento_aceptado: true,
     metodo: 'firma_electronica_simple',
     ley_aplicable: 'Ley 19.799 Chile',
+    sede: sedeId,
   }
 
   if (tipo === 'pagare') {
@@ -77,6 +95,8 @@ export async function POST(request: NextRequest) {
       firma_pagare: firma_data,
       firmado_pagare_at: timestamp,
       auditoria_pagare: registroAuditoria,
+      gestionado_por: user.id,
+      sede_firma: sedeId,
     }).eq('id', matricula_id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -85,6 +105,8 @@ export async function POST(request: NextRequest) {
       firma_apoderado: firma_data,
       firmado_at: timestamp,
       auditoria_contrato: registroAuditoria,
+      gestionado_por: user.id,
+      sede_firma: sedeId,
     }).eq('id', matricula_id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -98,6 +120,8 @@ export async function POST(request: NextRequest) {
       documento_hash: documentoHash,
       firma_hash: firmaHash,
       ip: ip.split(',')[0].trim(),
+      sede: sedeId,
+      gestionado_por: `${firmante?.nombre ?? ''} ${firmante?.apellido ?? ''}`.trim(),
     },
   })
 }

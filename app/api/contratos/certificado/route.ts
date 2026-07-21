@@ -90,6 +90,14 @@ body { font-family:-apple-system,sans-serif; color:#1a2332; padding:50px; max-wi
   <div class="row"><div class="label">ID usuario:</div><div class="value" style="font-family:monospace;font-size:10px;">${auditoria.firmante?.id ?? '—'}</div></div>
 </div>
 
+${auditoria.representante_institucional ? `<div class="section">
+  <div class="section-title">Representante institucional (sede)</div>
+  <div class="row"><div class="label">Nombre:</div><div class="value">${auditoria.representante_institucional.nombre ?? '—'}</div></div>
+  <div class="row"><div class="label">Email:</div><div class="value">${auditoria.representante_institucional.email ?? '—'}</div></div>
+  <div class="row"><div class="label">Rol:</div><div class="value">${auditoria.representante_institucional.rol ?? '—'}</div></div>
+  <div class="row"><div class="label">Sede:</div><div class="value">${(auditoria.representante_institucional.sede ?? '—').replace('_', ' ').replace(/^./, (c: string) => c.toUpperCase())}</div></div>
+</div>` : ''}
+
 <div class="section">
   <div class="section-title">Evidencia de firma</div>
   <div class="row"><div class="label">Fecha y hora:</div><div class="value">${fecha}</div></div>
@@ -99,6 +107,7 @@ body { font-family:-apple-system,sans-serif; color:#1a2332; padding:50px; max-wi
   <div class="row"><div class="label">Hash firma (SHA-256):</div><div class="value"><span class="hash">${auditoria.firma_hash ?? 'No disponible'}</span></div></div>
   <div class="row"><div class="label">Método:</div><div class="value">Firma Electrónica Simple (FES)</div></div>
   <div class="row"><div class="label">Ley aplicable:</div><div class="value">Ley 19.799 — Chile</div></div>
+  ${auditoria.sede ? `<div class="row"><div class="label">Sede de firma:</div><div class="value">${auditoria.sede.replace('_', ' ').replace(/^./, (c: string) => c.toUpperCase())}</div></div>` : ''}
 </div>
 
 <div class="section">
