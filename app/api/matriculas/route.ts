@@ -386,3 +386,55 @@ export async function GET() {
 
   return NextResponse.json(data ?? [])
 }
+
+// PUT: Actualizar medio de pago de una matrícula (post-firma)
+export async function PUT(request: NextRequest) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const admin = getAdmin()
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
+  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision'].includes((ur as any)?.rol)) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
+  const body = await request.json()
+  const { matricula_id, medio_pago_matricula, descuento_contado, pagare_confirmado } = body
+
+  if (!matricula_id) {
+    return NextResponse.json({ error: 'matricula_id requerido' }, { status: 400 })
+  }
+
+  if (!medio_pago_matricula) {
+    return NextResponse.json({ error: 'Medio de pago requerido' }, { status: 400 })
+  }
+
+  // Verificar que la matrícula existe y pertenece al colegio
+  const { data: matricula } = await admin
+    .from('matriculas')
+    .select('id, colegio_id, monto_mensual')
+    .eq('id', matricula_id)
+    .single()
+
+  if (!matricula) return NextResponse.json({ error: 'Matrícula no encontrada' }, { status: 404 })
+  if ((matricula as any).colegio_id !== (ur as any).colegio_id && (ur as any).rol !== 'super_admin') {
+    return NextResponse.json({ error: 'Sin permisos sobre esta matrícula' }, { status: 403 })
+  }
+
+  // Calcular monto final con descuento
+  const montoMensual = (matricula as any).monto_mensual || 0
+  const factorDescuento = 1 - ((descuento_contado || 0) / 100)
+  const montoMensualFinal = Math.round(montoMensual * factorDescuento)
+
+  const { error } = await admin.from('matriculas').update({
+    medio_pago_matricula,
+    descuento_contado: descuento_contado || 0,
+    monto_mensual_final: montoMensualFinal,
+    pagare_confirmado: pagare_confirmado || false,
+  }).eq('id', matricula_id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ ok: true, medio_pago_matricula, monto_mensual_final: montoMensualFinal })
+}

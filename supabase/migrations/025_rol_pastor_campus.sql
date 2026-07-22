@@ -11,6 +11,11 @@ ALTER TABLE public.usuarios DROP CONSTRAINT IF EXISTS usuarios_rol_check;
 ALTER TABLE public.usuarios ADD CONSTRAINT usuarios_rol_check
   CHECK (rol IN ('super_admin', 'admin', 'pastor_campus', 'gestor_admision', 'tutor', 'apoderado', 'alumno'));
 
+-- Actualizar constraint de roles en permisos_rol para incluir pastor_campus
+ALTER TABLE public.permisos_rol DROP CONSTRAINT IF EXISTS permisos_rol_rol_check;
+ALTER TABLE public.permisos_rol ADD CONSTRAINT permisos_rol_rol_check
+  CHECK (rol IN ('admin', 'pastor_campus', 'gestor_admision', 'tutor', 'apoderado', 'alumno'));
+
 -- =====================
 -- PERMISOS DEL ROL pastor_campus
 -- Acceso a TODOS los módulos (igual que admin, pero scoped a su colegio_id)

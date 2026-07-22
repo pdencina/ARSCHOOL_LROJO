@@ -65,25 +65,75 @@ export function validarRut(rut: string): boolean {
 }
 
 /**
- * Formatea teléfono chileno
- * "912345678" → "+56 9 1234 5678"
- * "56912345678" → "+56 9 1234 5678"
+ * Formatea teléfono con prefijo internacional editable.
+ * Si no tiene prefijo, asume +56 (Chile).
+ * Acepta: "+56 9 1234 5678", "+58 412 123 4567", "+1 305 123 4567", "+54 9 11 1234 5678"
  */
 export function formatearTelefono(valor: string): string {
-  // Solo números
+  // Permitir el signo + al inicio
+  const tienePrefix = valor.startsWith('+')
   let nums = valor.replace(/[^0-9]/g, '')
 
-  // Si empieza con 56, remover
-  if (nums.startsWith('56')) nums = nums.slice(2)
-  // Si empieza con +, ya lo removimos
+  if (!nums) return tienePrefix ? '+' : ''
 
-  if (!nums) return ''
+  // Si el usuario escribió + manualmente, respetar el prefijo completo
+  if (tienePrefix) {
+    nums = nums.slice(0, 14) // Max 14 dígitos total (E.164)
+
+    // Detectar código de país para formatear correctamente
+    // +1 (USA/Canadá): 1 dígito de código país
+    if (nums.startsWith('1')) {
+      const cc = nums.slice(0, 1)
+      const rest = nums.slice(1)
+      if (rest.length <= 3) return `+${cc} ${rest}`
+      if (rest.length <= 6) return `+${cc} ${rest.slice(0, 3)} ${rest.slice(3)}`
+      return `+${cc} ${rest.slice(0, 3)} ${rest.slice(3, 6)} ${rest.slice(6, 10)}`
+    }
+
+    // +56 (Chile): formato 9 XXXX XXXX
+    if (nums.startsWith('56')) {
+      const rest = nums.slice(2)
+      if (!rest) return '+56'
+      if (rest.length <= 1) return `+56 ${rest}`
+      if (rest.length <= 5) return `+56 ${rest[0]} ${rest.slice(1)}`
+      return `+56 ${rest[0]} ${rest.slice(1, 5)} ${rest.slice(5, 9)}`
+    }
+
+    // +58 (Venezuela): formato XXX XXX XXXX
+    if (nums.startsWith('58')) {
+      const rest = nums.slice(2)
+      if (!rest) return '+58'
+      if (rest.length <= 3) return `+58 ${rest}`
+      if (rest.length <= 6) return `+58 ${rest.slice(0, 3)} ${rest.slice(3)}`
+      return `+58 ${rest.slice(0, 3)} ${rest.slice(3, 6)} ${rest.slice(6, 10)}`
+    }
+
+    // +54 (Argentina): formato X XX XXXX XXXX
+    if (nums.startsWith('54')) {
+      const rest = nums.slice(2)
+      if (!rest) return '+54'
+      if (rest.length <= 2) return `+54 ${rest}`
+      if (rest.length <= 4) return `+54 ${rest.slice(0, 1)} ${rest.slice(1)}`
+      if (rest.length <= 8) return `+54 ${rest.slice(0, 1)} ${rest.slice(1, 3)} ${rest.slice(3)}`
+      return `+54 ${rest.slice(0, 1)} ${rest.slice(1, 3)} ${rest.slice(3, 7)} ${rest.slice(7, 11)}`
+    }
+
+    // Genérico: +XX XXX XXX XXXX (código de 2 dígitos por defecto)
+    if (nums.length <= 2) return `+${nums}`
+    const cc = nums.slice(0, 2)
+    const rest = nums.slice(2)
+    if (rest.length <= 3) return `+${cc} ${rest}`
+    if (rest.length <= 6) return `+${cc} ${rest.slice(0, 3)} ${rest.slice(3)}`
+    return `+${cc} ${rest.slice(0, 3)} ${rest.slice(3, 6)} ${rest.slice(6, 10)}`
+  }
+
+  // Sin prefijo: asumir Chile (+56)
+  if (nums.startsWith('56')) nums = nums.slice(2)
+  if (!nums) return '+56 '
   if (nums.length <= 1) return `+56 ${nums}`
   if (nums.length <= 5) return `+56 ${nums[0]} ${nums.slice(1)}`
-  if (nums.length <= 9) return `+56 ${nums[0]} ${nums.slice(1, 5)} ${nums.slice(5)}`
-
-  // Máximo 9 dígitos después del código país
   nums = nums.slice(0, 9)
+  if (nums.length <= 9) return `+56 ${nums[0]} ${nums.slice(1, 5)} ${nums.slice(5)}`
   return `+56 ${nums[0]} ${nums.slice(1, 5)} ${nums.slice(5)}`
 }
 
