@@ -8,9 +8,9 @@ import CapturaDocumento from '@/components/ui/CapturaDocumento'
 import CapturaMovilSection from '@/components/matricula/CapturaMovilSection'
 import SelectorRegionComuna from '@/components/ui/SelectorRegionComuna'
 
-interface Props { planes: any[]; matriculas: any[]; cursos: string[]; aportes: any[] }
+interface Props { planes: any[]; matriculas: any[]; cursos: string[]; aportes: any[]; becasAprobadas: any[] }
 
-export default function MatriculaClient({ planes, matriculas, cursos, aportes }: Props) {
+export default function MatriculaClient({ planes, matriculas, cursos, aportes, becasAprobadas }: Props) {
   const router = useRouter()
   const [vista, setVista] = useState<'lista' | 'nueva'>('lista')
   const [saving, setSaving] = useState(false)
@@ -65,12 +65,22 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
     nombre: '', apellido: '', rut: '', curso: cursos[0] ?? '', fecha_nacimiento: '',
     sexo: '', direccion: '', comuna: '', region: '', nacionalidad: 'Chilena', necesidades_especiales: '',
     prevision_salud: '', contacto_emergencia: '', telefono_emergencia: '',
-    tipo_ingreso: 'nuevo',
+    tipo_ingreso: 'nuevo', pais_natal: 'Chile',
+    // Salud
+    alergia_alimentaria: '', alergia_medicamento: '', enfermedad_cronica: '', centro_salud_emergencia: '',
+    // Antecedentes educativos
+    jardin_previo: '', ultimo_anio_aprobado: '', ha_reprobado: false, curso_reprobado: '',
+    diagnostico: '', contacto_especialista: '', modalidad: 'presencial',
     // Jornada y sede
     jornada: 'completa', sede: '',
-    // Apoderado
+    // Apoderado (madre/principal)
     nombre_apoderado: '', apellido_apoderado: '', email_apoderado: '', telefono_apoderado: '',
-    rut_apoderado: '', direccion_apoderado: '', parentesco: 'apoderado',
+    rut_apoderado: '', direccion_apoderado: '', parentesco: 'apoderado', telefono_trabajo_apoderado: '',
+    // Padre
+    nombre_padre: '', apellido_padre: '', rut_padre: '', telefono_padre: '',
+    email_padre: '', direccion_padre: '', telefono_trabajo_padre: '',
+    // Persona autorizada retiro
+    retiro_nombre: '', retiro_parentesco: '', retiro_rut: '', retiro_telefono: '',
     // Cobros
     plan_cobro_id: '', monto_matricula: 0, monto_mensual: 0, meses_cobro: 10, porcentaje_beca: 0,
     medio_pago_matricula: '' as '' | 'transferencia' | 'tarjeta' | 'cheque' | 'pagare',
@@ -269,6 +279,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
                 })()}
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nacionalidad</label><input value={form.nacionalidad} onChange={e => setForm(p => ({...p, nacionalidad: capitalizarNombre(e.target.value)}))} className="input-base"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">País natal</label><input value={form.pais_natal} onChange={e => setForm(p => ({...p, pais_natal: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Chile"/></div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Curso *</label>
                 <select value={form.curso} onChange={e => { setForm(p => ({...p, curso: e.target.value})); calcularMontos(e.target.value, form.jornada, form.sede) }} className="select-base w-full">
                   {cursos.map(c => <option key={c} value={c}>{c}</option>)}
@@ -349,6 +360,52 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
             </div>
           </div>
 
+          {/* Información de salud */}
+          <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <div className="flex items-center gap-2 mb-4">
+              <i className="ti ti-first-aid-kit text-[#1a2332] text-sm" aria-hidden="true"/>
+              <h3 className="text-[13px] font-semibold text-[#1a2332]">Información de salud</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">¿Alergia alimentaria o de otro tipo?</label><input value={form.alergia_alimentaria} onChange={e => setForm(p => ({...p, alergia_alimentaria: e.target.value}))} className="input-base" placeholder="No / Indicar cuál"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">¿Alérgico a algún medicamento?</label><input value={form.alergia_medicamento} onChange={e => setForm(p => ({...p, alergia_medicamento: e.target.value}))} className="input-base" placeholder="No / Indicar cuál"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">¿Antecedente crónico o enfermedad?</label><input value={form.enfermedad_cronica} onChange={e => setForm(p => ({...p, enfermedad_cronica: e.target.value}))} className="input-base" placeholder="No / Indicar cuál"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Centro de salud de emergencia</label><input value={form.centro_salud_emergencia} onChange={e => setForm(p => ({...p, centro_salud_emergencia: e.target.value}))} className="input-base" placeholder="Hospital, clínica o CESFAM"/></div>
+            </div>
+          </div>
+
+          {/* Antecedentes educativos */}
+          <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <div className="flex items-center gap-2 mb-4">
+              <i className="ti ti-school text-[#1a2332] text-sm" aria-hidden="true"/>
+              <h3 className="text-[13px] font-semibold text-[#1a2332]">Antecedentes educativos</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">¿Ha estado en otro jardín/colegio?</label><input value={form.jardin_previo} onChange={e => setForm(p => ({...p, jardin_previo: e.target.value}))} className="input-base" placeholder="No / Nombre del establecimiento"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Último año escolar aprobado</label><input value={form.ultimo_anio_aprobado} onChange={e => setForm(p => ({...p, ultimo_anio_aprobado: e.target.value}))} className="input-base" placeholder="Ej: 3° Básico"/></div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">¿Ha reprobado algún curso?</label>
+                <div className="flex gap-3 items-center">
+                  <select value={form.ha_reprobado ? 'si' : 'no'} onChange={e => setForm(p => ({...p, ha_reprobado: e.target.value === 'si'}))} className="select-base w-20">
+                    <option value="no">No</option>
+                    <option value="si">Sí</option>
+                  </select>
+                  {form.ha_reprobado && <input value={form.curso_reprobado} onChange={e => setForm(p => ({...p, curso_reprobado: e.target.value}))} className="input-base flex-1" placeholder="¿Cuál curso?"/>}
+                </div>
+              </div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Modalidad de estudio</label>
+                <select value={form.modalidad} onChange={e => setForm(p => ({...p, modalidad: e.target.value}))} className="select-base w-full">
+                  <option value="presencial">Presencial</option>
+                  <option value="online">Online (solo continuidad)</option>
+                </select>
+              </div>
+              <div className="col-span-2"><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">¿Dificultad de aprendizaje o diagnóstico?</label><input value={form.diagnostico} onChange={e => setForm(p => ({...p, diagnostico: e.target.value}))} className="input-base" placeholder="No / Describir diagnóstico"/></div>
+              {form.diagnostico && form.diagnostico.toLowerCase() !== 'no' && form.diagnostico.length > 2 && (
+                <div className="col-span-2"><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Teléfono del especialista tratante</label><input value={form.contacto_especialista} onChange={e => setForm(p => ({...p, contacto_especialista: formatearTelefono(e.target.value)}))} className="input-base" placeholder="+56 9 1234 5678" maxLength={20}/></div>
+              )}
+            </div>
+          </div>
+
           {/* Paso 2: Datos del apoderado */}
           <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
             <div className="flex items-center gap-2 mb-4">
@@ -389,6 +446,40 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
               <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Dirección del apoderado</label>
               <input value={form.direccion_apoderado} onChange={e => setForm(p => ({...p, direccion_apoderado: e.target.value}))} className="input-base w-full" placeholder="Av. Ejemplo 1234, Comuna, Ciudad"/>
             </div>
+            <div className="mt-3">
+              <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Teléfono del trabajo</label>
+              <input value={form.telefono_trabajo_apoderado} onChange={e => setForm(p => ({...p, telefono_trabajo_apoderado: formatearTelefono(e.target.value)}))} className="input-base w-full" placeholder="+56 2 2345 6789" maxLength={20}/>
+            </div>
+
+            {/* Datos del padre */}
+            <details className="mt-4 border border-slate-200 rounded-lg">
+              <summary className="px-4 py-3 text-[12px] font-semibold text-[#4b5563] cursor-pointer hover:bg-slate-50 select-none">
+                <span className="ml-1">Datos del padre (si aplica)</span>
+              </summary>
+              <div className="grid grid-cols-2 gap-3 px-4 pb-4 pt-2">
+                <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombre</label><input value={form.nombre_padre} onChange={e => setForm(p => ({...p, nombre_padre: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Nombre"/></div>
+                <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Apellido</label><input value={form.apellido_padre} onChange={e => setForm(p => ({...p, apellido_padre: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Apellido"/></div>
+                <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">RUT / Pasaporte</label><input value={form.rut_padre} onChange={e => setForm(p => ({...p, rut_padre: formatearRut(e.target.value)}))} className="input-base" placeholder="12.345.678-9" maxLength={12}/></div>
+                <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Teléfono</label><input value={form.telefono_padre} onChange={e => setForm(p => ({...p, telefono_padre: formatearTelefono(e.target.value)}))} className="input-base" placeholder="+56 9 1234 5678" maxLength={20}/></div>
+                <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Email</label><input type="email" value={form.email_padre} onChange={e => setForm(p => ({...p, email_padre: e.target.value.toLowerCase()}))} className="input-base" placeholder="correo@email.com"/></div>
+                <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Teléfono trabajo</label><input value={form.telefono_trabajo_padre} onChange={e => setForm(p => ({...p, telefono_trabajo_padre: formatearTelefono(e.target.value)}))} className="input-base" placeholder="+56 2 2345 6789" maxLength={20}/></div>
+                <div className="col-span-2"><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Dirección</label><input value={form.direccion_padre} onChange={e => setForm(p => ({...p, direccion_padre: e.target.value}))} className="input-base" placeholder="Av. Ejemplo 1234, Comuna"/></div>
+              </div>
+            </details>
+
+            {/* Persona autorizada para retiro */}
+            <details className="mt-3 border border-slate-200 rounded-lg">
+              <summary className="px-4 py-3 text-[12px] font-semibold text-[#4b5563] cursor-pointer hover:bg-slate-50 select-none">
+                <span className="ml-1">Persona autorizada para retiro (adicional a los padres)</span>
+              </summary>
+              <div className="grid grid-cols-2 gap-3 px-4 pb-4 pt-2">
+                <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombre completo</label><input value={form.retiro_nombre} onChange={e => setForm(p => ({...p, retiro_nombre: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Nombre completo"/></div>
+                <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Parentesco</label><input value={form.retiro_parentesco} onChange={e => setForm(p => ({...p, retiro_parentesco: e.target.value}))} className="input-base" placeholder="Ej: Abuela, Tía, Nana"/></div>
+                <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">RUT / Pasaporte</label><input value={form.retiro_rut} onChange={e => setForm(p => ({...p, retiro_rut: formatearRut(e.target.value)}))} className="input-base" placeholder="12.345.678-9" maxLength={12}/></div>
+                <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Teléfono</label><input value={form.retiro_telefono} onChange={e => setForm(p => ({...p, retiro_telefono: formatearTelefono(e.target.value)}))} className="input-base" placeholder="+56 9 1234 5678" maxLength={20}/></div>
+              </div>
+            </details>
+
             <label className="flex items-center gap-2 mt-4 cursor-pointer">
               <input type="checkbox" checked={form.crear_cuenta_apoderado} onChange={e => setForm(p => ({...p, crear_cuenta_apoderado: e.target.checked}))} className="rounded"/>
               <span className="text-[13px] text-[#4b5563]">Crear cuenta de acceso al portal para el apoderado</span>
@@ -416,7 +507,16 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes }:
                 </div>
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Meses</label><input type="number" min="1" max="12" value={form.meses_cobro} onChange={e => setForm(p => ({...p, meses_cobro: parseInt(e.target.value) || 10}))} className="input-base"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Beca / Descuento (%)</label><input type="number" min="0" max="100" value={form.porcentaje_beca || ''} onChange={e => setForm(p => ({...p, porcentaje_beca: parseInt(e.target.value) || 0}))} className="input-base" placeholder="0"/></div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Beca / Descuento (%)</label>
+                <input type="number" min="0" max="100" value={form.porcentaje_beca || ''} onChange={e => setForm(p => ({...p, porcentaje_beca: parseInt(e.target.value) || 0}))} className="input-base" placeholder="0"/>
+                {becasAprobadas.length > 0 && (
+                  <p className="text-[10px] text-emerald-600 mt-1">
+                    <i className="ti ti-info-circle text-[10px] mr-0.5" aria-hidden="true"/>
+                    {becasAprobadas.length} beca{becasAprobadas.length > 1 ? 's' : ''} aprobada{becasAprobadas.length > 1 ? 's' : ''} este año. Si el alumno tiene beca, ingrese el porcentaje asignado.
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Cálculo automático con beca */}

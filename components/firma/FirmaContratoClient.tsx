@@ -85,12 +85,18 @@ export default function FirmaContratoClient({ matriculaId, alumno, firmadoContra
   const [savingPago, setSavingPago] = useState(false)
   const [pagoRegistrado, setPagoRegistrado] = useState(false)
 
+  // Descuento 5% solo aplica si se paga antes del 12 de marzo del año escolar
+  const anioEscolar = new Date().getFullYear() + (new Date().getMonth() >= 6 ? 1 : 0) // Si estamos en jul+ es para el año siguiente
+  const fechaLimiteDescuento = new Date(anioEscolar, 2, 12) // 12 de marzo
+  const descuentoVigente = new Date() < fechaLimiteDescuento
+  const porcentajeDescuento = descuentoVigente ? 5 : 0
+
   async function handleRegistrarMedioPago() {
     if (!medioPago) { toast.error('Seleccione un medio de pago'); return }
     if (medioPago === 'pagare' && !pagareConfirmado) { toast.error('Debe confirmar que se agotaron las opciones preferentes'); return }
     setSavingPago(true)
 
-    const descuento = ['transferencia', 'tarjeta'].includes(medioPago) ? 5 : 0
+    const descuento = ['transferencia', 'tarjeta'].includes(medioPago) ? porcentajeDescuento : 0
     const res = await fetch('/api/matriculas', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -165,9 +171,13 @@ export default function FirmaContratoClient({ matriculaId, alumno, firmadoContra
                     <div className="flex items-center gap-2">
                       <span className="text-[13px] font-semibold text-[#1a2332]">Transferencia bancaria</span>
                       <span className="text-[9px] font-bold uppercase bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Recomendado</span>
-                      <span className="text-[10px] font-bold text-emerald-600 ml-auto">5% dcto.</span>
+                      {descuentoVigente && <span className="text-[10px] font-bold text-emerald-600 ml-auto">5% dcto.</span>}
                     </div>
-                    <p className="text-[11px] text-[#6b7280] mt-0.5">Pago contado vía transferencia. Descuento del 5% en aportes mensuales.</p>
+                    <p className="text-[11px] text-[#6b7280] mt-0.5">
+                      {descuentoVigente
+                        ? `Pago contado vía transferencia. 5% de descuento si se paga antes del 12 de marzo ${anioEscolar}.`
+                        : 'Pago contado vía transferencia.'}
+                    </p>
                   </div>
                 </label>
 
@@ -176,9 +186,13 @@ export default function FirmaContratoClient({ matriculaId, alumno, firmadoContra
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-[13px] font-semibold text-[#1a2332]">Tarjeta de crédito / débito</span>
-                      <span className="text-[10px] font-bold text-emerald-600 ml-auto">5% dcto.</span>
+                      {descuentoVigente && <span className="text-[10px] font-bold text-emerald-600 ml-auto">5% dcto.</span>}
                     </div>
-                    <p className="text-[11px] text-[#6b7280] mt-0.5">Pago contado con tarjeta. Mismo descuento que transferencia.</p>
+                    <p className="text-[11px] text-[#6b7280] mt-0.5">
+                      {descuentoVigente
+                        ? `Pago contado con tarjeta. Mismo descuento (antes del 12 de marzo ${anioEscolar}).`
+                        : 'Pago contado con tarjeta.'}
+                    </p>
                   </div>
                 </label>
 

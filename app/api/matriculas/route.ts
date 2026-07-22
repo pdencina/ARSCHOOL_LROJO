@@ -94,6 +94,18 @@ export async function POST(request: NextRequest) {
       jornada: jornada || 'completa',
       sede: sede || null,
       tipo_ingreso: tipo_ingreso || 'nuevo',
+      pais_natal: body.pais_natal || 'Chile',
+      alergia_alimentaria: body.alergia_alimentaria || null,
+      alergia_medicamento: body.alergia_medicamento || null,
+      enfermedad_cronica: body.enfermedad_cronica || null,
+      centro_salud_emergencia: body.centro_salud_emergencia || null,
+      jardin_previo: body.jardin_previo || null,
+      ultimo_anio_aprobado: body.ultimo_anio_aprobado || null,
+      ha_reprobado: body.ha_reprobado || false,
+      curso_reprobado: body.curso_reprobado || null,
+      diagnostico: body.diagnostico || null,
+      contacto_especialista: body.contacto_especialista || null,
+      modalidad: body.modalidad || 'presencial',
       activo: true,
     }).select().single()
 
@@ -111,9 +123,28 @@ export async function POST(request: NextRequest) {
         telefono: telefono_apoderado || null,
         rut: rut_apoderado || null,
         direccion: direccion_apoderado || null,
+        telefono_trabajo_apoderado: body.telefono_trabajo_apoderado || null,
+        nombre_padre: body.nombre_padre || null,
+        apellido_padre: body.apellido_padre || null,
+        rut_padre: body.rut_padre || null,
+        telefono_padre: body.telefono_padre || null,
+        email_padre: body.email_padre || null,
+        direccion_padre: body.direccion_padre || null,
+        telefono_trabajo_padre: body.telefono_trabajo_padre || null,
       }).select().single()
 
       if (!errFam) familiaId = (familia as any).id
+    }
+
+    // 2b. Crear persona autorizada para retiro (si se proporcionó)
+    if ((alumno as any)?.id && body.retiro_nombre) {
+      await admin.from('personas_retiro').insert({
+        alumno_id: (alumno as any).id,
+        nombre: body.retiro_nombre.trim(),
+        parentesco: body.retiro_parentesco || null,
+        rut: body.retiro_rut || null,
+        telefono: body.retiro_telefono || null,
+      })
     }
 
     // 3. Crear cuenta apoderado y enviar invitación por Resend (sin SMTP de Supabase)
