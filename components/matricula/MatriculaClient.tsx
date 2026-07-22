@@ -396,8 +396,19 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Modalidad de estudio</label>
                 <select value={form.modalidad} onChange={e => setForm(p => ({...p, modalidad: e.target.value}))} className="select-base w-full">
                   <option value="presencial">Presencial</option>
-                  <option value="online">Online (solo continuidad)</option>
+                  {form.tipo_ingreso === 'continuidad' ? (
+                    <option value="online">Online</option>
+                  ) : (
+                    <option value="online" disabled>Online (no disponible para nuevo ingreso 2027)</option>
+                  )}
                 </select>
+                {form.modalidad === 'online' && form.tipo_ingreso === 'nuevo' && (() => {
+                  setTimeout(() => setForm(p => ({...p, modalidad: 'presencial'})), 0)
+                  return null
+                })()}
+                {form.tipo_ingreso === 'nuevo' && (
+                  <p className="text-[10px] text-[#9ca3af] mt-1">La modalidad online no está disponible para nuevos postulantes 2027.</p>
+                )}
               </div>
               <div className="col-span-2"><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">¿Dificultad de aprendizaje o diagnóstico?</label><input value={form.diagnostico} onChange={e => setForm(p => ({...p, diagnostico: e.target.value}))} className="input-base" placeholder="No / Describir diagnóstico"/></div>
               {form.diagnostico && form.diagnostico.toLowerCase() !== 'no' && form.diagnostico.length > 2 && (
