@@ -23,7 +23,7 @@ export default async function UsuariosPage() {
   const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
   const usuario = ur as any
 
-  if (!['super_admin', 'admin'].includes(usuario?.rol)) redirect('/inicio')
+  if (!['super_admin', 'admin', 'pastor_campus'].includes(usuario?.rol)) redirect('/inicio')
 
   const { data: usuarios } = await admin
     .from('usuarios')

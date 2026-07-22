@@ -91,7 +91,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // --- SLA Tracking ---
   const { data: autorData } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
   const rolAutor = (autorData as any)?.rol
-  const esStaff = ['super_admin', 'admin', 'gestor_admision', 'tutor'].includes(rolAutor)
+  const esStaff = ['super_admin', 'admin', 'pastor_campus', 'gestor_admision', 'tutor'].includes(rolAutor)
   const esFamilia = ['apoderado', 'alumno'].includes(rolAutor)
 
   if (esFamilia) {
@@ -141,7 +141,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
-  if (!['super_admin', 'admin'].includes((ur as any)?.rol)) {
+  if (!['super_admin', 'admin', 'pastor_campus'].includes((ur as any)?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 

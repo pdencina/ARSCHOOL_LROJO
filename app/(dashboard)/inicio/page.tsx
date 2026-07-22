@@ -66,7 +66,7 @@ export default async function InicioPage() {
   const pendientes: { texto: string; href: string; icon: string; tipo: 'warning' | 'info' | 'action' }[] = []
 
   // Horarios en borrador (admin)
-  if (['admin', 'super_admin'].includes(rol)) {
+  if (['admin', 'super_admin', 'pastor_campus'].includes(rol)) {
     const { count: horariosBorrador } = await admin
       .from('propuestas_horario')
       .select('*', { count: 'exact', head: true })
@@ -108,7 +108,7 @@ export default async function InicioPage() {
   }
 
   // Tareas por calificar (admin ve todas)
-  if (['admin', 'super_admin'].includes(rol)) {
+  if (['admin', 'super_admin', 'pastor_campus'].includes(rol)) {
     const { count: entregasSinCalificar } = await admin
       .from('entregas_tarea')
       .select('*', { count: 'exact', head: true })
@@ -142,7 +142,7 @@ export default async function InicioPage() {
   }
 
   // Aportes vencidos del mes (admin)
-  if (['admin', 'super_admin'].includes(rol)) {
+  if (['admin', 'super_admin', 'pastor_campus'].includes(rol)) {
     const aportesVencidos = (cobros ?? []).filter((c: any) => ['pendiente', 'mora'].includes(c.estado)).length
     if (aportesVencidos > 0) {
       pendientes.push({
@@ -155,7 +155,7 @@ export default async function InicioPage() {
   }
 
   // Mensajes sin respuesta >24h (admin/super_admin)
-  if (['admin', 'super_admin'].includes(rol)) {
+  if (['admin', 'super_admin', 'pastor_campus'].includes(rol)) {
     const { count: sinRespuesta24h } = await admin
       .from('conversaciones')
       .select('*', { count: 'exact', head: true })

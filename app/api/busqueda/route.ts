@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       .ilike('titulo', busqueda)
       .order('created_at', { ascending: false })
       .limit(5),
-    ['super_admin', 'admin'].includes(u.rol)
+    ['super_admin', 'admin', 'pastor_campus'].includes(u.rol)
       ? admin.from('usuarios')
           .select('id, nombre, apellido, email, rol')
           .eq('colegio_id', colegioId)

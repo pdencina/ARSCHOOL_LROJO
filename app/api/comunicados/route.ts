@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     .single()
 
   const u = ur as any
-  if (!['super_admin', 'admin', 'gestor_admision', 'tutor'].includes(u?.rol)) {
+  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision', 'tutor'].includes(u?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 

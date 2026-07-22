@@ -19,7 +19,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
-  if (!['super_admin', 'admin'].includes((ur as any)?.rol)) {
+  if (!['super_admin', 'admin', 'pastor_campus'].includes((ur as any)?.rol)) {
     return NextResponse.json({ error: 'Solo administradores pueden modificar horarios' }, { status: 403 })
   }
 

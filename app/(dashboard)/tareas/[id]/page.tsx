@@ -20,7 +20,7 @@ export default async function TareaDetallePage({ params }: { params: { id: strin
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
   const u = ur as any
-  if (!['super_admin', 'admin', 'tutor'].includes(u?.rol)) redirect('/inicio')
+  if (!['super_admin', 'admin', 'pastor_campus', 'tutor'].includes(u?.rol)) redirect('/inicio')
 
   // Obtener tarea
   const { data: tarea } = await admin

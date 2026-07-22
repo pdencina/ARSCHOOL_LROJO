@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
   const u = ur as any
-  if (!['super_admin', 'admin', 'tutor'].includes(u?.rol)) {
+  if (!['super_admin', 'admin', 'pastor_campus', 'tutor'].includes(u?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
   const u = ur as any
-  if (!['super_admin', 'admin', 'tutor'].includes(u?.rol)) {
+  if (!['super_admin', 'admin', 'pastor_campus', 'tutor'].includes(u?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
@@ -97,7 +97,7 @@ export async function PUT(request: NextRequest) {
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
   const u = ur as any
-  if (!['super_admin', 'admin', 'tutor'].includes(u?.rol)) {
+  if (!['super_admin', 'admin', 'pastor_campus', 'tutor'].includes(u?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
@@ -136,7 +136,7 @@ export async function DELETE(request: NextRequest) {
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
   const u = ur as any
-  if (!['super_admin', 'admin', 'tutor'].includes(u?.rol)) {
+  if (!['super_admin', 'admin', 'pastor_campus', 'tutor'].includes(u?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 

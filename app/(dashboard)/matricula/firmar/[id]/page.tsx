@@ -21,7 +21,7 @@ export default async function FirmarContratoPage({ params }: { params: { id: str
 
   // Verificar que el usuario tiene rol para gestionar firmas
   const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
-  if (!['super_admin', 'admin', 'gestor_admision'].includes((ur as any)?.rol)) redirect('/inicio')
+  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision'].includes((ur as any)?.rol)) redirect('/inicio')
 
   const { data: matricula } = await admin.from('matriculas').select('*, alumno:alumnos(nombre, apellido, curso)').eq('id', params.id).single()
   if (!matricula) redirect('/matricula')

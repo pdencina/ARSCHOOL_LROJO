@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
   let query = admin.from('pagos').select('*, cobro:cobros(mes, anio, alumno:alumnos(nombre, apellido))').order('created_at', { ascending: false })
 
-  if (['super_admin', 'admin', 'gestor_admision'].includes(usuario?.rol)) {
+  if (['super_admin', 'admin', 'pastor_campus', 'gestor_admision'].includes(usuario?.rol)) {
     if (usuario.colegio_id) query = query.eq('colegio_id', usuario.colegio_id)
   } else {
     query = query.eq('registrado_por', user.id)
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest) {
 
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
-  if (!['super_admin', 'admin', 'gestor_admision'].includes((ur as any)?.rol)) {
+  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision'].includes((ur as any)?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
