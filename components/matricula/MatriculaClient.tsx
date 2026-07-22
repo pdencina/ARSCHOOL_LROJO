@@ -21,6 +21,11 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
   const [buscandoApoderado, setBuscandoApoderado] = useState(false)
   const [documentos, setDocumentos] = useState<Record<string, string>>({})
   const [rutDuplicado, setRutDuplicado] = useState<any>(null)
+  const [camposError, setCamposError] = useState<string[]>([])
+
+  function esError(campo: string) {
+    return camposError.includes(campo) ? 'border-red-400 ring-1 ring-red-200' : ''
+  }
 
   function handleDocumento(dataUrl: string, tipo: string) {
     setDocumentos(prev => ({ ...prev, [tipo]: dataUrl }))
@@ -115,11 +120,29 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
   }
 
   async function handleMatricular() {
-    if (!form.nombre || !form.apellido || !form.curso) { toast.error('Datos del alumno incompletos'); return }
-    if (!form.nombre_apoderado || !form.email_apoderado) { toast.error('Datos del apoderado incompletos'); return }
-    if (form.rut && !validarRut(form.rut)) { toast.error('RUT del alumno es inválido'); return }
-    if (form.rut_apoderado && !validarRut(form.rut_apoderado)) { toast.error('RUT del apoderado es inválido'); return }
-    if (!validarEmail(form.email_apoderado)) { toast.error('Email del apoderado es inválido'); return }
+    // Validar campos requeridos y marcar en rojo los que faltan
+    const errores: string[] = []
+    if (!form.nombre) errores.push('nombre')
+    if (!form.apellido) errores.push('apellido')
+    if (!form.curso) errores.push('curso')
+    if (!form.nombre_apoderado) errores.push('nombre_apoderado')
+    if (!form.email_apoderado) errores.push('email_apoderado')
+    if (form.rut && !validarRut(form.rut)) errores.push('rut')
+    if (form.rut_apoderado && !validarRut(form.rut_apoderado)) errores.push('rut_apoderado')
+    if (form.email_apoderado && !validarEmail(form.email_apoderado)) errores.push('email_apoderado')
+
+    if (errores.length > 0) {
+      setCamposError(errores)
+      const mensajes: string[] = []
+      if (!form.nombre || !form.apellido) mensajes.push('Nombres del alumno')
+      if (!form.nombre_apoderado) mensajes.push('Nombre del apoderado')
+      if (!form.email_apoderado) mensajes.push('Email del apoderado')
+      if (errores.includes('rut')) mensajes.push('RUT del alumno inválido')
+      if (errores.includes('rut_apoderado')) mensajes.push('RUT del apoderado inválido')
+      toast.error(`Campos requeridos: ${mensajes.join(', ')}`)
+      return
+    }
+    setCamposError([])
     setSaving(true)
 
     const res = await fetch('/api/matriculas', {
@@ -241,8 +264,8 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
               <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Datos del alumno</h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombres *</label><input value={form.nombre} onChange={e => setForm(p => ({...p, nombre: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Nombres completos"/></div>
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Apellidos *</label><input value={form.apellido} onChange={e => setForm(p => ({...p, apellido: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Apellidos completos"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombres *</label><input value={form.nombre} onChange={e => { setForm(p => ({...p, nombre: capitalizarNombre(e.target.value)})); setCamposError(prev => prev.filter(c => c !== 'nombre')) }} className={`input-base ${esError('nombre')}`} placeholder="Nombres completos"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Apellidos *</label><input value={form.apellido} onChange={e => { setForm(p => ({...p, apellido: capitalizarNombre(e.target.value)})); setCamposError(prev => prev.filter(c => c !== 'apellido')) }} className={`input-base ${esError('apellido')}`} placeholder="Apellidos completos"/></div>
               <div>
                 <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">RUT / Pasaporte</label>
                 <input value={form.rut} onChange={e => { setForm(p => ({...p, rut: formatearRut(e.target.value)})); setRutDuplicado(null) }} onBlur={() => verificarRutDuplicado(form.rut)} className={`input-base ${form.rut && !validarRut(form.rut) ? 'border-red-300 focus:ring-red-200' : rutDuplicado ? 'border-amber-300 focus:ring-amber-200' : ''}`} placeholder="12.345.678-9" maxLength={12}/>
@@ -424,11 +447,11 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
               <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Datos del apoderado</h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre_apoderado} onChange={e => setForm(p => ({...p, nombre_apoderado: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Nombre"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre_apoderado} onChange={e => { setForm(p => ({...p, nombre_apoderado: capitalizarNombre(e.target.value)})); setCamposError(prev => prev.filter(c => c !== 'nombre_apoderado')) }} className={`input-base ${esError('nombre_apoderado')}`} placeholder="Nombre"/></div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Apellido</label><input value={form.apellido_apoderado} onChange={e => setForm(p => ({...p, apellido_apoderado: capitalizarNombre(e.target.value)}))} className="input-base" placeholder="Apellido"/></div>
               <div>
                 <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Email *</label>
-                <input type="email" value={form.email_apoderado} onChange={e => setForm(p => ({...p, email_apoderado: e.target.value.toLowerCase()}))} onBlur={e => buscarApoderado(e.target.value)} className={`input-base ${form.email_apoderado && !validarEmail(form.email_apoderado) ? 'border-red-300 focus:ring-red-200' : ''}`} placeholder="correo@email.com"/>
+                <input type="email" value={form.email_apoderado} onChange={e => { setForm(p => ({...p, email_apoderado: e.target.value.toLowerCase()})); setCamposError(prev => prev.filter(c => c !== 'email_apoderado')) }} onBlur={e => buscarApoderado(e.target.value)} className={`input-base ${form.email_apoderado && !validarEmail(form.email_apoderado) ? 'border-red-300 focus:ring-red-200' : esError('email_apoderado')}`} placeholder="correo@email.com"/>
                 {form.email_apoderado && !validarEmail(form.email_apoderado) && <span className="text-[10px] text-[#c53030] mt-0.5 block">Email inválido</span>}
                 {buscandoApoderado && <span className="text-[10px] text-[#6b7280] mt-0.5 block">Verificando...</span>}
                 {apoderadoExiste && (
