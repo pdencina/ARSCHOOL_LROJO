@@ -176,19 +176,29 @@ export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, col
         grupo: bloqueActual?.grupo || null,
       }))
 
-    const { error } = await supabase
-      .from('asistencias')
-      .upsert(upserts, { onConflict: 'alumno_id,fecha,bloque_horario' })
+    // Eliminar registros existentes de este bloque/fecha y reinsertar
+    const alumnoIds = upserts.map(u => u.alumno_id)
+    
+    if (bloqueSel) {
+      await supabase.from('asistencias')
+        .delete()
+        .eq('colegio_id', colegioId)
+        .eq('fecha', fecha)
+        .eq('bloque_horario', bloqueSel)
+        .in('alumno_id', alumnoIds)
+    } else {
+      await supabase.from('asistencias')
+        .delete()
+        .eq('colegio_id', colegioId)
+        .eq('fecha', fecha)
+        .is('bloque_horario', null)
+        .in('alumno_id', alumnoIds)
+    }
+
+    const { error } = await supabase.from('asistencias').insert(upserts)
 
     if (error) {
-      // Fallback: intentar sin onConflict (insertar/actualizar uno por uno)
-      let errCount = 0
-      for (const u of upserts) {
-        const { error: e } = await supabase.from('asistencias').upsert(u)
-        if (e) errCount++
-      }
-      if (errCount > 0) toast.error(`Error en ${errCount} registros`)
-      else toast.success('Asistencia guardada')
+      toast.error('Error al guardar: ' + error.message)
     } else {
       toast.success('Asistencia guardada')
     }
