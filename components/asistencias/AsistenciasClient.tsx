@@ -10,6 +10,8 @@ interface Props {
   cursos: string[]
   colegioId: string
   fecha: string
+  bloquesDelDia: any[]
+  rol: string
 }
 
 type EstadoAsistencia = 'presente' | 'ausente' | 'tardanza' | 'justificado'
@@ -21,35 +23,69 @@ const ESTADO_CONFIG: Record<string, { label: string; color: string; bg: string }
   justificado: { label: 'Justificado', color: 'text-sky-700',     bg: 'bg-sky-50' },
 }
 
-export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, colegioId, fecha: fechaInicial }: Props) {
+export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, colegioId, fecha: fechaInicial, bloquesDelDia, rol }: Props) {
   const [vista, setVista] = useState<'registro' | 'historial'>('registro')
   const [cursoSel, setCursoSel] = useState(cursos[0] ?? '')
   const [fecha, setFecha] = useState(fechaInicial)
-  const [estados, setEstados] = useState<Record<string, EstadoAsistencia>>(() => {
-    const init: Record<string, EstadoAsistencia> = {}
-    asistenciasHoy.forEach(a => { init[a.alumno_id] = a.estado })
-    return init
-  })
+  const [bloqueSel, setBloqueSel] = useState<string>('')
+  const [estados, setEstados] = useState<Record<string, EstadoAsistencia>>({})
   const [observaciones, setObservaciones] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [historial, setHistorial] = useState<any[]>([])
   const [loadingHist, setLoadingHist] = useState(false)
   const supabase = createClient()
 
-  const alumnosCurso = useMemo(() =>
-    alumnos.filter(a => a.curso === cursoSel),
-    [alumnos, cursoSel]
-  )
+  // Bloques únicos del día (deduplicar por hora)
+  const bloquesUnicos = useMemo(() => {
+    const vistos = new Set<string>()
+    return bloquesDelDia.filter(b => {
+      if (vistos.has(b.hora)) return false
+      vistos.add(b.hora)
+      return true
+    })
+  }, [bloquesDelDia])
 
-  // Cargar asistencias cuando cambia la fecha
+  // Info del bloque seleccionado
+  const bloqueActual = useMemo(() => {
+    if (!bloqueSel) return null
+    return bloquesDelDia.find(b => b.hora === bloqueSel)
+  }, [bloqueSel, bloquesDelDia])
+
+  // Alumnos filtrados por curso (o por grupo del bloque si hay)
+  const alumnosCurso = useMemo(() => {
+    if (bloqueActual?.grupo) {
+      // Filtrar por grupo si está en la info del bloque (para cuando haya mapping)
+      return alumnos.filter(a => a.curso === cursoSel)
+    }
+    return alumnos.filter(a => a.curso === cursoSel)
+  }, [alumnos, cursoSel, bloqueActual])
+
+  // Inicializar estados desde asistencias del server
   useEffect(() => {
-    if (fecha === fechaInicial) {
-      // Usar los datos iniciales del server
-      const init: Record<string, EstadoAsistencia> = {}
-      asistenciasHoy.forEach(a => { init[a.alumno_id] = a.estado })
-      setEstados(init)
-    } else {
-      // Fetch del día seleccionado
+    const init: Record<string, EstadoAsistencia> = {}
+    const obs: Record<string, string> = {}
+    asistenciasHoy.forEach((a: any) => {
+      // Si hay bloque seleccionado, solo cargar esas asistencias
+      if (bloqueSel) {
+        if (a.bloque_horario === bloqueSel) {
+          init[a.alumno_id] = a.estado
+          if (a.observacion) obs[a.alumno_id] = a.observacion
+        }
+      } else {
+        // Sin bloque = asistencia general (legacy)
+        if (!a.bloque_horario) {
+          init[a.alumno_id] = a.estado
+          if (a.observacion) obs[a.alumno_id] = a.observacion
+        }
+      }
+    })
+    setEstados(init)
+    setObservaciones(obs)
+  }, [bloqueSel, asistenciasHoy])
+
+  // Cuando cambia fecha, recargar
+  useEffect(() => {
+    if (fecha !== fechaInicial) {
       fetchAsistenciasFecha(fecha)
     }
   }, [fecha])
@@ -57,21 +93,30 @@ export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, col
   async function fetchAsistenciasFecha(f: string) {
     const { data } = await supabase
       .from('asistencias')
-      .select('alumno_id, estado, observacion')
+      .select('alumno_id, estado, observacion, bloque_horario')
       .eq('colegio_id', colegioId)
       .eq('fecha', f)
 
     const init: Record<string, EstadoAsistencia> = {}
     const obs: Record<string, string> = {}
     ;(data ?? []).forEach((a: any) => {
-      init[a.alumno_id] = a.estado
-      if (a.observacion) obs[a.alumno_id] = a.observacion
+      if (bloqueSel) {
+        if (a.bloque_horario === bloqueSel) {
+          init[a.alumno_id] = a.estado
+          if (a.observacion) obs[a.alumno_id] = a.observacion
+        }
+      } else {
+        if (!a.bloque_horario) {
+          init[a.alumno_id] = a.estado
+          if (a.observacion) obs[a.alumno_id] = a.observacion
+        }
+      }
     })
     setEstados(init)
     setObservaciones(obs)
   }
 
-  // Cargar historial mensual
+  // Historial
   useEffect(() => {
     if (vista === 'historial') fetchHistorial()
   }, [vista, cursoSel])
@@ -87,7 +132,7 @@ export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, col
 
     const { data } = await supabase
       .from('asistencias')
-      .select('alumno_id, fecha, estado')
+      .select('alumno_id, fecha, estado, bloque_horario')
       .in('alumno_id', alumnoIds)
       .gte('fecha', primerDia)
       .lte('fecha', ultimoDia)
@@ -97,6 +142,7 @@ export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, col
     setLoadingHist(false)
   }
 
+  // KPIs
   const presentes = alumnosCurso.filter(a => estados[a.id] === 'presente').length
   const ausentes = alumnosCurso.filter(a => estados[a.id] === 'ausente').length
   const tardanzas = alumnosCurso.filter(a => estados[a.id] === 'tardanza').length
@@ -125,15 +171,31 @@ export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, col
         estado: estados[a.id],
         observacion: observaciones[a.id] || null,
         registrado_por: user?.id,
+        bloque_horario: bloqueSel || null,
+        experiencia_nombre: bloqueActual?.experiencia || null,
+        grupo: bloqueActual?.grupo || null,
       }))
 
-    const { error } = await supabase.from('asistencias').upsert(upserts, { onConflict: 'alumno_id,fecha' })
-    if (error) { toast.error('Error al guardar'); setSaving(false); return }
-    toast.success('Asistencia guardada')
+    const { error } = await supabase
+      .from('asistencias')
+      .upsert(upserts, { onConflict: 'alumno_id,fecha,bloque_horario' })
+
+    if (error) {
+      // Fallback: intentar sin onConflict (insertar/actualizar uno por uno)
+      let errCount = 0
+      for (const u of upserts) {
+        const { error: e } = await supabase.from('asistencias').upsert(u)
+        if (e) errCount++
+      }
+      if (errCount > 0) toast.error(`Error en ${errCount} registros`)
+      else toast.success('Asistencia guardada')
+    } else {
+      toast.success('Asistencia guardada')
+    }
     setSaving(false)
   }
 
-  // Historial: obtener días únicos del mes
+  // Historial: días únicos
   const diasMes = useMemo(() => {
     const dias = [...new Set(historial.map(h => h.fecha))].sort()
     return dias
@@ -150,10 +212,10 @@ export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, col
           <h1 className="page-title">Asistencias</h1>
           <p className="page-subtitle">
             {new Date(fecha + 'T12:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {bloqueSel && <span className="ml-2 text-[var(--ar-accent)] font-medium">· {bloqueSel}</span>}
           </p>
         </div>
         <div className="flex gap-2 items-center">
-          {/* Tabs */}
           <div className="flex bg-[#f3f4f6] rounded-lg p-0.5 mr-2">
             <button onClick={() => setVista('registro')} className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-all ${vista === 'registro' ? 'bg-white shadow-sm text-[#1a2332]' : 'text-[#6b7280]'}`}>
               Registro
@@ -177,12 +239,47 @@ export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, col
         </div>
       </div>
 
+      {/* Selector de bloque */}
+      {vista === 'registro' && bloquesUnicos.length > 0 && (
+        <div className="mb-5">
+          <div className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider mb-2">Bloque / Experiencia</div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setBloqueSel('')}
+              className={`text-[11px] px-3 py-2 rounded-lg font-medium border transition-all ${!bloqueSel ? 'bg-[#1a2332] text-white border-[#1a2332]' : 'bg-white text-[#6b7280] border-[var(--ar-border)] hover:border-slate-300'}`}
+            >
+              General (día completo)
+            </button>
+            {bloquesUnicos.map(b => {
+              const selected = bloqueSel === b.hora
+              return (
+                <button
+                  key={b.hora}
+                  onClick={() => setBloqueSel(b.hora)}
+                  className={`text-[11px] px-3 py-2 rounded-lg font-medium border transition-all ${selected ? 'bg-[var(--ar-accent)] text-white border-[var(--ar-accent)]' : 'bg-white text-[#4b5563] border-[var(--ar-border)] hover:border-slate-300'}`}
+                >
+                  <span className="font-bold">{b.hora}</span>
+                  {b.experiencia && <span className="ml-1.5 opacity-80">· {b.experiencia}</span>}
+                </button>
+              )
+            })}
+          </div>
+          {bloqueActual && (
+            <div className="mt-2 text-[11px] text-[#6b7280]">
+              <i className="ti ti-info-circle text-[11px] mr-1" aria-hidden="true"/>
+              {bloqueActual.experiencia} — {bloqueActual.grupo} — {bloqueActual.tutor}
+              {bloqueActual.espacio && ` · ${bloqueActual.espacio}`}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* KPIs */}
       {vista === 'registro' && (
         <div className="grid grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Asistencia total', val: `${pct}%`, sub: `${presentes} de ${total} alumnos`, color: pct >= 85 ? 'text-[#1a7a4c]' : pct >= 70 ? 'text-[#b7791f]' : 'text-[#c53030]' },
-            { label: 'Presentes', val: presentes, sub: 'hoy', color: 'text-[#1a7a4c]' },
+            { label: 'Asistencia', val: `${pct}%`, sub: `${presentes} de ${total}`, color: pct >= 85 ? 'text-[#1a7a4c]' : pct >= 70 ? 'text-[#b7791f]' : 'text-[#c53030]' },
+            { label: 'Presentes', val: presentes, sub: bloqueSel || 'hoy', color: 'text-[#1a7a4c]' },
             { label: 'Ausentes', val: ausentes, sub: 'sin justificar', color: 'text-[#c53030]' },
             { label: 'Tardanzas', val: tardanzas, sub: 'registradas', color: 'text-[#b7791f]' },
           ].map((k, i) => (
@@ -195,12 +292,13 @@ export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, col
         </div>
       )}
 
-      {/* Vista: Registro diario */}
+      {/* Vista: Registro */}
       {vista === 'registro' && (
         <div className="bg-white border border-[var(--ar-border)] rounded-xl overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
           <div className="px-4 py-3 border-b border-[var(--ar-border)] bg-[#f9fafb]">
             <span className="font-semibold text-[#1a2332] text-[14px]" style={{ fontFamily: 'DM Sans, sans-serif' }}>{cursoSel}</span>
             <span className="text-[12px] text-[#9ca3af] ml-2">— {alumnosCurso.length} alumnos</span>
+            {bloqueSel && <span className="text-[12px] text-[var(--ar-accent)] ml-2 font-medium">· {bloqueActual?.experiencia ?? bloqueSel}</span>}
           </div>
           <table className="w-full text-[13px]">
             <thead>
@@ -256,7 +354,7 @@ export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, col
         </div>
       )}
 
-      {/* Vista: Historial mensual */}
+      {/* Vista: Historial */}
       {vista === 'historial' && (
         <div className="bg-white border border-[var(--ar-border)] rounded-xl overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
           <div className="px-4 py-3 border-b border-[var(--ar-border)] bg-[#f9fafb] flex items-center justify-between">
@@ -287,37 +385,28 @@ export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, col
                         {new Date(dia + 'T12:00').getDate()}
                       </th>
                     ))}
-                    <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-[#9ca3af] uppercase">Asist.</th>
+                    <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-[#9ca3af] uppercase">%</th>
                   </tr>
                 </thead>
                 <tbody>
                   {alumnosCurso.map(alumno => {
-                    const registros = diasMes.map(dia => getEstadoHistorial(alumno.id, dia))
-                    const totalDias = registros.filter(Boolean).length
-                    const diasPresente = registros.filter(e => e === 'presente').length
-                    const pctAlumno = totalDias > 0 ? Math.round((diasPresente / totalDias) * 100) : 0
+                    const registros = historial.filter(h => h.alumno_id === alumno.id)
+                    const presAlumno = registros.filter(r => r.estado === 'presente').length
+                    const totalAlumno = registros.length
+                    const pctAlumno = totalAlumno > 0 ? Math.round(presAlumno / totalAlumno * 100) : 0
                     return (
-                      <tr key={alumno.id} className="border-b border-[#f5f6f7] hover:bg-[#fafbfc]">
-                        <td className="px-3 py-2 sticky left-0 bg-white font-medium text-[#1a2332] text-[12px]">
-                          {alumno.nombre} {alumno.apellido}
-                        </td>
+                      <tr key={alumno.id} className="border-b border-[#f5f6f7]">
+                        <td className="px-3 py-2 sticky left-0 bg-white font-medium text-[#1a2332] truncate max-w-[140px]">{alumno.nombre} {alumno.apellido}</td>
                         {diasMes.map(dia => {
-                          const estado = getEstadoHistorial(alumno.id, dia)
-                          const bgColor = estado === 'presente' ? 'bg-emerald-100' :
-                            estado === 'ausente' ? 'bg-red-100' :
-                            estado === 'tardanza' ? 'bg-amber-100' :
-                            estado === 'justificado' ? 'bg-sky-100' : 'bg-[#f9fafb]'
+                          const est = getEstadoHistorial(alumno.id, dia)
+                          const colors: Record<string, string> = { presente: 'bg-emerald-100', ausente: 'bg-red-100', tardanza: 'bg-amber-100', justificado: 'bg-sky-100' }
                           return (
-                            <td key={dia} className="px-0.5 py-2 text-center">
-                              <div className={`w-5 h-5 rounded-sm mx-auto ${bgColor}`} title={`${dia}: ${estado ?? 'Sin registro'}`}/>
+                            <td key={dia} className="px-1 py-2 text-center">
+                              {est ? <span className={`inline-block w-4 h-4 rounded-sm ${colors[est] ?? 'bg-slate-100'}`}/> : <span className="text-[#e8eaed]">·</span>}
                             </td>
                           )
                         })}
-                        <td className="px-3 py-2 text-center">
-                          <span className={`font-bold text-[12px] ${pctAlumno >= 85 ? 'text-[#1a7a4c]' : pctAlumno >= 70 ? 'text-[#b7791f]' : 'text-[#c53030]'}`}>
-                            {pctAlumno}%
-                          </span>
-                        </td>
+                        <td className={`px-3 py-2 text-center font-bold ${pctAlumno >= 85 ? 'text-emerald-600' : pctAlumno >= 70 ? 'text-amber-600' : 'text-red-600'}`}>{pctAlumno}%</td>
                       </tr>
                     )
                   })}
