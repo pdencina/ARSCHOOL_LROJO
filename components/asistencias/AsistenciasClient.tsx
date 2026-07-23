@@ -27,7 +27,11 @@ export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, col
   const [vista, setVista] = useState<'registro' | 'historial'>('registro')
   const [cursoSel, setCursoSel] = useState(cursos[0] ?? '')
   const [fecha, setFecha] = useState(fechaInicial)
-  const [bloqueSel, setBloqueSel] = useState<string>('')
+  const [bloqueSel, setBloqueSel] = useState<string>(() => {
+    // Si hay bloques del día, seleccionar el primero por defecto
+    if (bloquesDelDia.length > 0) return bloquesDelDia[0]?.hora ?? ''
+    return ''
+  })
   const [estados, setEstados] = useState<Record<string, EstadoAsistencia>>({})
   const [observaciones, setObservaciones] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
