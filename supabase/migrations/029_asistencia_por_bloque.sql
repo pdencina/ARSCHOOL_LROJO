@@ -8,6 +8,7 @@
 
 -- 1. Quitar constraint UNIQUE(alumno_id, fecha) que limita a 1 registro por día
 ALTER TABLE public.asistencias DROP CONSTRAINT IF EXISTS asistencias_alumno_id_fecha_key;
+DROP INDEX IF EXISTS idx_asistencias_alumno_fecha_unique;
 
 -- 2. Agregar columnas de bloque/experiencia
 ALTER TABLE public.asistencias ADD COLUMN IF NOT EXISTS experiencia_id uuid REFERENCES public.experiencias(id);

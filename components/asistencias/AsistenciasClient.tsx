@@ -183,26 +183,47 @@ export default function AsistenciasClient({ alumnos, asistenciasHoy, cursos, col
     // Eliminar registros existentes de este bloque/fecha y reinsertar
     const alumnoIds = upserts.map(u => u.alumno_id)
     
+    // Intentar borrar existentes (puede no haber ninguno la primera vez)
     if (bloqueSel) {
-      await supabase.from('asistencias')
+      const { error: delErr } = await supabase.from('asistencias')
         .delete()
         .eq('colegio_id', colegioId)
         .eq('fecha', fecha)
         .eq('bloque_horario', bloqueSel)
         .in('alumno_id', alumnoIds)
+      if (delErr) console.warn('Delete warning:', delErr.message)
     } else {
-      await supabase.from('asistencias')
+      const { error: delErr } = await supabase.from('asistencias')
         .delete()
         .eq('colegio_id', colegioId)
         .eq('fecha', fecha)
         .is('bloque_horario', null)
         .in('alumno_id', alumnoIds)
+      if (delErr) console.warn('Delete warning:', delErr.message)
     }
+
+    // Pequeña pausa para que el delete se complete antes del insert
+    await new Promise(r => setTimeout(r, 100))
 
     const { error } = await supabase.from('asistencias').insert(upserts)
 
     if (error) {
-      toast.error('Error al guardar: ' + error.message)
+      // Si falla por duplicado, intentar update individual
+      if (error.message.includes('duplicate') || error.message.includes('unique')) {
+        let updateOk = true
+        for (const u of upserts) {
+          const { error: updErr } = await supabase.from('asistencias')
+            .update({ estado: u.estado, observacion: u.observacion, registrado_por: u.registrado_por })
+            .eq('alumno_id', u.alumno_id)
+            .eq('fecha', u.fecha)
+            .eq('bloque_horario', u.bloque_horario ?? '')
+          if (updErr) updateOk = false
+        }
+        if (updateOk) toast.success('Asistencia actualizada')
+        else toast.error('Error al actualizar algunos registros')
+      } else {
+        toast.error('Error al guardar: ' + error.message)
+      }
     } else {
       toast.success('Asistencia guardada')
     }
