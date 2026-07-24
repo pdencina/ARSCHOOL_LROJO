@@ -8,10 +8,12 @@ interface Props { colegio: any; usuarios: any[]; alumnos: any[] }
 
 const ROL_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   super_admin: { label: 'Super Admin', color: 'text-red-700',     bg: 'bg-red-50' },
-  admin:       { label: 'Admin',       color: 'text-blue-700',    bg: 'bg-blue-50' },
-  tutor:       { label: 'Profesor',    color: 'text-violet-700',  bg: 'bg-violet-50' },
-  apoderado:   { label: 'Apoderado',   color: 'text-emerald-700', bg: 'bg-emerald-50' },
-  alumno:      { label: 'Alumno',      color: 'text-amber-700',   bg: 'bg-amber-50' },
+  admin:       { label: 'admin',       color: 'text-blue-700',    bg: 'bg-blue-50' },
+  pastor_campus: { label: 'pastor_campus', color: 'text-purple-700', bg: 'bg-purple-50' },
+  gestor_admision: { label: 'gestor_admision', color: 'text-sky-700', bg: 'bg-sky-50' },
+  tutor:       { label: 'tutor',       color: 'text-violet-700',  bg: 'bg-violet-50' },
+  apoderado:   { label: 'apoderado',   color: 'text-emerald-700', bg: 'bg-emerald-50' },
+  alumno:      { label: 'alumno',      color: 'text-amber-700',   bg: 'bg-amber-50' },
 }
 
 export default function GestionarColegioClient({ colegio, usuarios, alumnos }: Props) {
@@ -58,7 +60,7 @@ export default function GestionarColegioClient({ colegio, usuarios, alumnos }: P
           { label: 'Usuarios', val: usuarios.length, icon: 'ti-users', color: 'text-blue-600', bg: 'bg-blue-50' },
           { label: 'Alumnos activos', val: alumnos.length, icon: 'ti-school', color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Cursos', val: cursos.length, icon: 'ti-layout-grid', color: 'text-violet-600', bg: 'bg-violet-50' },
-          { label: 'Profesores', val: usuarios.filter(u => u.rol === 'tutor').length, icon: 'ti-pencil', color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Tutores', val: usuarios.filter(u => u.rol === 'tutor').length, icon: 'ti-pencil', color: 'text-amber-600', bg: 'bg-amber-50' },
         ].map((k, i) => (
           <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 flex items-start gap-3">
             <div className={`w-9 h-9 rounded-lg ${k.bg} flex items-center justify-center flex-shrink-0`}>

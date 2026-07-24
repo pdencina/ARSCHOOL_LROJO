@@ -63,13 +63,13 @@ const NAV_ALUMNO: NavItem[] = [
 ]
 
 const ROL_BADGE: Record<string, { label: string; color: string; icon: string }> = {
-  super_admin:     { label: 'Administración General',       color: 'bg-[#FEF3EC] text-[#E8722A] border border-[#E8722A]/20', icon: 'ti-shield-check' },
-  admin:           { label: 'Administración',               color: 'bg-[#FEF3EC] text-[#E8722A] border border-[#E8722A]/20', icon: 'ti-briefcase' },
-  pastor_campus:   { label: 'Pastor de Campus',             color: 'bg-[#F0EDF8] text-[#5B3E96] border border-[#5B3E96]/15', icon: 'ti-building-church' },
-  gestor_admision: { label: 'Admisión y Vinculación',       color: 'bg-[#EDF6FA] text-[#1B3A5C] border border-[#1B3A5C]/15', icon: 'ti-user-plus' },
-  tutor:           { label: 'Docente',                      color: 'bg-[#EDF5F0] text-[#3D6B4F] border border-[#3D6B4F]/20', icon: 'ti-school' },
-  apoderado:       { label: 'Apoderado',                    color: 'bg-[#f0f4f8] text-[#1B3A5C] border border-[#1B3A5C]/15', icon: 'ti-heart-handshake' },
-  alumno:          { label: 'Alumno',                       color: 'bg-[#EDF6FA] text-[#5B8FA8] border border-[#5B8FA8]/20', icon: 'ti-backpack' },
+  super_admin:     { label: 'super_admin',              color: 'bg-[#FEF3EC] text-[#E8722A] border border-[#E8722A]/20', icon: 'ti-shield-check' },
+  admin:           { label: 'admin',                    color: 'bg-[#FEF3EC] text-[#E8722A] border border-[#E8722A]/20', icon: 'ti-briefcase' },
+  pastor_campus:   { label: 'pastor_campus',            color: 'bg-[#F0EDF8] text-[#5B3E96] border border-[#5B3E96]/15', icon: 'ti-building-church' },
+  gestor_admision: { label: 'gestor_admision',          color: 'bg-[#EDF6FA] text-[#1B3A5C] border border-[#1B3A5C]/15', icon: 'ti-user-plus' },
+  tutor:           { label: 'tutor',                    color: 'bg-[#EDF5F0] text-[#3D6B4F] border border-[#3D6B4F]/20', icon: 'ti-school' },
+  apoderado:       { label: 'apoderado',                color: 'bg-[#f0f4f8] text-[#1B3A5C] border border-[#1B3A5C]/15', icon: 'ti-heart-handshake' },
+  alumno:          { label: 'alumno',                   color: 'bg-[#EDF6FA] text-[#5B8FA8] border border-[#5B8FA8]/20', icon: 'ti-backpack' },
 }
 
 interface Props { rol?: string; modulosHabilitados?: string[] | null }

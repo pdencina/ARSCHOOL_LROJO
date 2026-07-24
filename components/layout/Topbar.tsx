@@ -8,11 +8,12 @@ import { useState } from 'react'
 interface Props { usuario: any }
 
 const ROL_LABEL: Record<string, string> = {
-  super_admin: 'Administrador General',
-  admin:       'Administración',
-  gestor_admision: 'Admisión y Vinculación',
-  tutor:       'Docente',
-  apoderado:   'Apoderado',
+  super_admin: 'super_admin',
+  admin:       'admin',
+  pastor_campus: 'pastor_campus',
+  gestor_admision: 'gestor_admision',
+  tutor:       'tutor',
+  apoderado:   'apoderado',
   alumno:      'Alumno',
 }
 

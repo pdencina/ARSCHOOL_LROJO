@@ -7,10 +7,12 @@ import toast from 'react-hot-toast'
 interface Props { usuarios: any[]; alumnos: any[]; colegioId: string }
 
 const ROL_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-  admin:     { label: 'Admin',     color: 'text-blue-700',    bg: 'bg-blue-50',    icon: 'ti-briefcase' },
-  tutor:     { label: 'Profesor',  color: 'text-violet-700',  bg: 'bg-violet-50',  icon: 'ti-school' },
-  apoderado: { label: 'Apoderado', color: 'text-emerald-700', bg: 'bg-emerald-50', icon: 'ti-heart-handshake' },
-  alumno:    { label: 'Alumno',    color: 'text-amber-700',   bg: 'bg-amber-50',   icon: 'ti-backpack' },
+  admin:     { label: 'admin',     color: 'text-blue-700',    bg: 'bg-blue-50',    icon: 'ti-briefcase' },
+  pastor_campus: { label: 'pastor_campus', color: 'text-purple-700', bg: 'bg-purple-50', icon: 'ti-building-church' },
+  gestor_admision: { label: 'gestor_admision', color: 'text-sky-700', bg: 'bg-sky-50', icon: 'ti-user-plus' },
+  tutor:     { label: 'tutor',     color: 'text-violet-700',  bg: 'bg-violet-50',  icon: 'ti-school' },
+  apoderado: { label: 'apoderado', color: 'text-emerald-700', bg: 'bg-emerald-50', icon: 'ti-heart-handshake' },
+  alumno:    { label: 'alumno',    color: 'text-amber-700',   bg: 'bg-amber-50',   icon: 'ti-backpack' },
 }
 
 export default function UsuariosColegioClient({ usuarios, alumnos, colegioId }: Props) {

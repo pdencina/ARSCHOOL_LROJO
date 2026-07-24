@@ -7,10 +7,11 @@ import toast from 'react-hot-toast'
 interface Props { permisos: any[] }
 
 const ROLES = [
-  { key: 'admin', label: 'Administrativo', icon: 'ti-briefcase', color: 'text-[#2c4a6e]' },
-  { key: 'gestor_admision', label: 'Admisión y Vinculación', icon: 'ti-user-plus', color: 'text-sky-700' },
-  { key: 'tutor', label: 'Docente', icon: 'ti-school', color: 'text-violet-700' },
-  { key: 'apoderado', label: 'Apoderado', icon: 'ti-heart-handshake', color: 'text-emerald-700' },
+  { key: 'admin', label: 'admin', icon: 'ti-briefcase', color: 'text-[#2c4a6e]' },
+  { key: 'pastor_campus', label: 'pastor_campus', icon: 'ti-building-church', color: 'text-purple-700' },
+  { key: 'gestor_admision', label: 'gestor_admision', icon: 'ti-user-plus', color: 'text-sky-700' },
+  { key: 'tutor', label: 'tutor', icon: 'ti-school', color: 'text-violet-700' },
+  { key: 'apoderado', label: 'apoderado', icon: 'ti-heart-handshake', color: 'text-emerald-700' },
   { key: 'alumno', label: 'Alumno', icon: 'ti-backpack', color: 'text-amber-700' },
 ]
 
