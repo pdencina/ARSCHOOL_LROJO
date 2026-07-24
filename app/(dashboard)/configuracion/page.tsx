@@ -35,5 +35,13 @@ export default async function ConfiguracionPage() {
     stats.cursos = [...new Set((als ?? []).map((a: any) => a.curso))].length
   }
 
-  return <ConfiguracionClient usuario={usuario} stats={stats} />
+  // Horarios de jornada
+  const { data: horariosJornada } = await admin
+    .from('horarios_jornada')
+    .select('*')
+    .eq('activo', true)
+    .order('nivel')
+    .order('dia')
+
+  return <ConfiguracionClient usuario={usuario} stats={stats} horariosJornada={(horariosJornada as any[]) ?? []} />
 }

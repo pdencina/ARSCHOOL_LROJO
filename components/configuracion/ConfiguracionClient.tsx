@@ -8,9 +8,10 @@ import { createClient } from '@/lib/supabase/client'
 interface Props {
   usuario: any
   stats: { alumnos: number; usuarios: number; cursos: number }
+  horariosJornada: any[]
 }
 
-export default function ConfiguracionClient({ usuario, stats }: Props) {
+export default function ConfiguracionClient({ usuario, stats, horariosJornada }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const colegio = usuario?.colegio
@@ -176,6 +177,42 @@ export default function ConfiguracionClient({ usuario, stats }: Props) {
             ))}
           </div>
         </div>
+      {/* Horarios de jornada */}
+        {canEdit && (
+          <div className="bg-white border border-slate-200 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-semibold text-slate-800 font-display">Horarios de jornada</h2>
+                <p className="text-[11px] text-slate-400 mt-0.5">Horarios de ingreso y salida por nivel. Se aplican a todas las sedes.</p>
+              </div>
+            </div>
+
+            {/* Agrupar por nivel */}
+            {['Preschool', 'Ciclo 1 a High School'].map(nivel => {
+              const diasOrden = ['lunes','martes','miercoles','jueves','viernes']
+              const horarios = horariosJornada.filter(h => h.nivel === nivel)
+              return (
+                <div key={nivel} className="mb-4 last:mb-0">
+                  <div className="text-[12px] font-bold text-[#1B3A5C] mb-2">{nivel === 'Preschool' ? 'Preschool (Ciclo 0)' : nivel}</div>
+                  <div className="grid grid-cols-5 gap-2">
+                    {diasOrden.map(dia => {
+                      const h = horarios.find(x => x.dia === dia)
+                      return (
+                        <div key={dia} className="bg-[#f9fafb] rounded-lg p-2.5 text-center">
+                          <div className="text-[9px] font-bold text-slate-400 uppercase mb-1">{dia.slice(0, 3)}</div>
+                          <div className="text-[12px] font-medium text-[#1a2332]">{h?.hora_ingreso ?? '—'}</div>
+                          <div className="text-[9px] text-slate-400">a</div>
+                          <div className="text-[12px] font-medium text-[#1a2332]">{h?.hora_salida ?? '—'}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+            <p className="text-[10px] text-slate-400 mt-3">Para modificar estos horarios, contacta al administrador del sistema o edítalos desde la tabla <code>horarios_jornada</code> en la base de datos.</p>
+          </div>
+        )}
       </div>
 
       {/* Modal cambiar contraseña */}
