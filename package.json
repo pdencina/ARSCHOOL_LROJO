@@ -21,7 +21,8 @@
     "react-hot-toast": "2.4.1",
     "recharts": "2.12.7",
     "resend": "^6.16.0",
-    "tailwind-merge": "2.5.2"
+    "tailwind-merge": "2.5.2",
+    "transbank-sdk": "^6.1.1"
   },
   "devDependencies": {
     "@types/node": "20.14.10",

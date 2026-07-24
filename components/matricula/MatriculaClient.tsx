@@ -314,20 +314,30 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                     const cursoLower = form.curso.toLowerCase()
                     const esHighSchool = cursoLower.includes('high school') || cursoLower.includes('medio')
                     const esMiddleSchool = cursoLower.includes('middle school')
+                    const esPreschool = cursoLower.includes('pre school') || cursoLower.includes('kinder')
+                    const esPlaygroup = cursoLower.includes('play group')
                     const soloCompleta = esHighSchool || esMiddleSchool
-                    const esPuntaArenas = form.sede === 'punta_arenas'
-                    const horaInicio = esPuntaArenas ? '07:45' : '08:00'
-                    const horaFinLJ = '18:00'
-                    const horaFinV = '17:00'
 
-                    if (soloCompleta) {
-                      return <option value="completa">Jornada Completa (Lun-Jue {horaInicio}-{horaFinLJ}, Vie {horaInicio}-{horaFinV})</option>
+                    if (esPlaygroup) {
+                      return (
+                        <>
+                          <option value="completa">Jornada Completa (Lun-Jue 08:30-18:00, Vie 08:30-17:00)</option>
+                          <option value="am">Media Jornada AM (Lun-Vie 08:30-13:00)</option>
+                          <option value="especial">Jornada Especial (1 a 4 días por semana)</option>
+                        </>
+                      )
                     }
+                    if (esPreschool) {
+                      return <option value="completa">Jornada Única (Lun-Vie 08:30-12:45)</option>
+                    }
+                    if (soloCompleta) {
+                      return <option value="completa">Jornada Completa (Lun-Mar-Jue 08:30-16:00, Mié-Vie 08:30-13:40)</option>
+                    }
+                    // Elementary
                     return (
                       <>
-                        <option value="completa">Jornada Completa (Lun-Jue {horaInicio}-{horaFinLJ}, Vie {horaInicio}-{horaFinV})</option>
-                        <option value="am">Media Jornada AM (Lun-Vie {horaInicio}-13:00)</option>
-                        <option value="pm">Media Jornada PM (Lun-Jue 13:00-{horaFinLJ}, Vie 13:00-{horaFinV})</option>
+                        <option value="completa">Jornada Completa (Lun-Mar-Jue 08:30-16:00, Mié-Vie 08:30-13:40)</option>
+                        <option value="am">Media Jornada AM (Lun-Vie 08:30-13:00)</option>
                         <option value="especial">Jornada Especial (1 a 4 días por semana)</option>
                       </>
                     )
@@ -335,13 +345,12 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                 </select>
                 {(() => {
                   const cursoLower = form.curso.toLowerCase()
-                  const soloCompleta = cursoLower.includes('high school') || cursoLower.includes('medio') || cursoLower.includes('middle school')
+                  const soloCompleta = cursoLower.includes('high school') || cursoLower.includes('medio') || cursoLower.includes('middle school') || cursoLower.includes('pre school') || cursoLower.includes('kinder')
                   if (soloCompleta && form.jornada !== 'completa') {
-                    // Auto-corregir si cambió de curso
                     setTimeout(() => setForm(p => ({...p, jornada: 'completa'})), 0)
                   }
                   return soloCompleta ? (
-                    <span className="text-[10px] text-[#6b7280] mt-1 block">Middle y High School solo admiten jornada completa</span>
+                    <span className="text-[10px] text-[#6b7280] mt-1 block">Preschool, Middle y High School tienen jornada única</span>
                   ) : null
                 })()}
               </div>

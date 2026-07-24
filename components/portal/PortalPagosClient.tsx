@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
@@ -8,10 +9,46 @@ const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov'
 interface Props { cobros: any[] }
 
 export default function PortalPagosClient({ cobros }: Props) {
+  const searchParams = useSearchParams()
+  const resultado = searchParams.get('resultado')
+
   const [reportandoId, setReportandoId] = useState<string | null>(null)
   const [comprobante, setComprobante] = useState('')
   const [enviando, setEnviando] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const [pagandoWebpay, setPagandoWebpay] = useState<string | null>(null)
+
+  async function pagarConWebpay(cobroId: string) {
+    setPagandoWebpay(cobroId)
+    try {
+      const res = await fetch('/api/pagos/webpay/crear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cobro_id: cobroId }),
+      })
+      const data = await res.json()
+      if (res.ok && data.url && data.token) {
+        // Redirigir a Transbank
+        const form = document.createElement('form')
+        form.method = 'POST'
+        form.action = data.url
+        const input = document.createElement('input')
+        input.type = 'hidden'
+        input.name = 'token_ws'
+        input.value = data.token
+        form.appendChild(input)
+        document.body.appendChild(form)
+        form.submit()
+      } else {
+        toast.error(data.error || 'Error al iniciar pago')
+        setPagandoWebpay(null)
+      }
+    } catch {
+      toast.error('Error de conexión')
+      setPagandoWebpay(null)
+    }
+  }
 
   const pendientes = cobros.filter(c => c.estado !== 'pagado')
   const pagados = cobros.filter(c => c.estado === 'pagado')
@@ -51,6 +88,35 @@ export default function PortalPagosClient({ cobros }: Props) {
         <h1 className="page-title">Estado de aportes</h1>
         <p className="page-subtitle">Detalle de aportes mensuales y opciones de pago</p>
       </div>
+
+      {/* Resultado del pago */}
+      {resultado === 'exito' && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+          <i className="ti ti-circle-check text-emerald-600 text-xl" aria-hidden="true"/>
+          <div>
+            <div className="text-[13px] font-bold text-emerald-800">Pago realizado con éxito</div>
+            <div className="text-[11px] text-emerald-700">Tu pago fue procesado correctamente por Webpay.</div>
+          </div>
+        </div>
+      )}
+      {resultado === 'rechazado' && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+          <i className="ti ti-x text-red-600 text-xl" aria-hidden="true"/>
+          <div>
+            <div className="text-[13px] font-bold text-red-800">Pago rechazado</div>
+            <div className="text-[11px] text-red-700">Tu banco rechazó la transacción. Intenta con otra tarjeta o contacta a tu banco.</div>
+          </div>
+        </div>
+      )}
+      {resultado === 'cancelado' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+          <i className="ti ti-alert-circle text-amber-600 text-xl" aria-hidden="true"/>
+          <div>
+            <div className="text-[13px] font-bold text-amber-800">Pago cancelado</div>
+            <div className="text-[11px] text-amber-700">Cancelaste el pago. Puedes intentar nuevamente cuando quieras.</div>
+          </div>
+        </div>
+      )}
 
       {/* Resumen */}
       {totalPendiente > 0 && (
@@ -108,8 +174,15 @@ export default function PortalPagosClient({ cobros }: Props) {
                       <div className="text-[15px] font-bold text-[#1B3A5C]">${c.monto.toLocaleString('es-CL')}</div>
                       <span className="inline-flex items-center px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[9px] font-bold rounded uppercase">Pendiente</span>
                     </div>
-                    <button onClick={() => { setReportandoId(c.id); setComprobante('') }} className="btn-primary text-[11px] py-2 px-3">
-                      <i className="ti ti-upload text-xs" aria-hidden="true"/> Reportar pago
+                    <button onClick={() => { setReportandoId(c.id); setComprobante('') }} className="btn-secondary text-[11px] py-2 px-3">
+                      <i className="ti ti-upload text-xs" aria-hidden="true"/> Transferencia
+                    </button>
+                    <button onClick={() => pagarConWebpay(c.id)} disabled={pagandoWebpay === c.id} className="btn-primary text-[11px] py-2 px-3 disabled:opacity-60">
+                      {pagandoWebpay === c.id ? (
+                        <><i className="ti ti-loader text-xs animate-spin" aria-hidden="true"/> Procesando...</>
+                      ) : (
+                        <><i className="ti ti-credit-card text-xs" aria-hidden="true"/> Pagar con tarjeta</>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -191,16 +264,16 @@ export default function PortalPagosClient({ cobros }: Props) {
       <div className="mt-8 bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
         <h3 className="text-[13px] font-bold text-[#1B3A5C] mb-3">Formas de pago</h3>
         <div className="grid grid-cols-2 gap-3">
-          <a href="https://www.webpay.cl/company/41244" target="_blank" className="flex flex-col items-center gap-2 p-4 border border-[var(--ar-border)] rounded-lg hover:border-[#E8722A] hover:bg-[#FEF3EC]/30 transition-colors">
-            <i className="ti ti-credit-card text-[#E8722A] text-xl" aria-hidden="true"/>
+          <div className="flex flex-col items-center gap-2 p-4 border border-[var(--ar-border)] rounded-lg bg-emerald-50/30">
+            <i className="ti ti-credit-card text-emerald-600 text-xl" aria-hidden="true"/>
             <span className="text-[11px] font-semibold text-[#1B3A5C]">Pagar con Webpay</span>
-            <span className="text-[9px] text-[#9ca3af]">Tarjeta débito o crédito</span>
-          </a>
-          <button onClick={() => setReportandoId(pendientes[0]?.id || null)} className="flex flex-col items-center gap-2 p-4 border border-[var(--ar-border)] rounded-lg hover:border-[#5B8FA8] hover:bg-blue-50/30 transition-colors">
+            <span className="text-[9px] text-[#9ca3af] text-center">Tarjeta débito, crédito o prepago. Haz clic en "Pagar con tarjeta" en cada cobro.</span>
+          </div>
+          <div className="flex flex-col items-center gap-2 p-4 border border-[var(--ar-border)] rounded-lg">
             <i className="ti ti-building-bank text-[#5B8FA8] text-xl" aria-hidden="true"/>
-            <span className="text-[11px] font-semibold text-[#1B3A5C]">Reportar transferencia</span>
-            <span className="text-[9px] text-[#9ca3af]">Subir comprobante</span>
-          </button>
+            <span className="text-[11px] font-semibold text-[#1B3A5C]">Transferencia bancaria</span>
+            <span className="text-[9px] text-[#9ca3af] text-center">BancoEstado · Cta. Cte. 291-0-008051-4<br/>RUT: 65.168.392-0 · adm@arschoolglobal.com</span>
+          </div>
         </div>
       </div>
 
