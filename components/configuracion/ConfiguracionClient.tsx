@@ -29,6 +29,26 @@ export default function ConfiguracionClient({ usuario, stats, horariosJornada }:
   const [passwords, setPasswords] = useState({ nueva: '', confirmar: '' })
   const [savingPass, setSavingPass] = useState(false)
 
+  // Horarios de jornada
+  const [editandoHorario, setEditandoHorario] = useState<string | null>(null)
+  const [horarioForm, setHorarioForm] = useState({ ingreso: '', salida: '' })
+
+  async function handleGuardarHorario(id?: string) {
+    if (!id) return
+    const res = await fetch('/api/horarios-jornada', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, hora_ingreso: horarioForm.ingreso, hora_salida: horarioForm.salida }),
+    })
+    if (res.ok) {
+      toast.success('Horario actualizado')
+      setEditandoHorario(null)
+      router.refresh()
+    } else {
+      toast.error('Error al guardar horario')
+    }
+  }
+
   async function handleGuardarColegio() {
     setSaving(true)
     const res = await fetch('/api/colegios', {
@@ -183,7 +203,7 @@ export default function ConfiguracionClient({ usuario, stats, horariosJornada }:
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="font-semibold text-slate-800 font-display">Horarios de jornada</h2>
-                <p className="text-[11px] text-slate-400 mt-0.5">Horarios de ingreso y salida por nivel. Se aplican a todas las sedes.</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Horarios de ingreso y salida por nivel. Haz clic en una celda para editar.</p>
               </div>
             </div>
 
@@ -192,17 +212,37 @@ export default function ConfiguracionClient({ usuario, stats, horariosJornada }:
               const diasOrden = ['lunes','martes','miercoles','jueves','viernes']
               const horarios = horariosJornada.filter(h => h.nivel === nivel)
               return (
-                <div key={nivel} className="mb-4 last:mb-0">
+                <div key={nivel} className="mb-5 last:mb-0">
                   <div className="text-[12px] font-bold text-[#1B3A5C] mb-2">{nivel === 'Preschool' ? 'Preschool (Ciclo 0)' : nivel}</div>
                   <div className="grid grid-cols-5 gap-2">
                     {diasOrden.map(dia => {
                       const h = horarios.find(x => x.dia === dia)
+                      const isEditing = editandoHorario === `${nivel}-${dia}`
                       return (
-                        <div key={dia} className="bg-[#f9fafb] rounded-lg p-2.5 text-center">
+                        <div key={dia} className={`rounded-lg p-2.5 text-center cursor-pointer transition-all ${isEditing ? 'bg-blue-50 border-2 border-blue-300' : 'bg-[#f9fafb] hover:bg-[#f0f4f8] border border-transparent'}`}
+                          onClick={() => {
+                            if (!isEditing && h) {
+                              setEditandoHorario(`${nivel}-${dia}`)
+                              setHorarioForm({ ingreso: h.hora_ingreso, salida: h.hora_salida })
+                            }
+                          }}>
                           <div className="text-[9px] font-bold text-slate-400 uppercase mb-1">{dia.slice(0, 3)}</div>
-                          <div className="text-[12px] font-medium text-[#1a2332]">{h?.hora_ingreso ?? '—'}</div>
-                          <div className="text-[9px] text-slate-400">a</div>
-                          <div className="text-[12px] font-medium text-[#1a2332]">{h?.hora_salida ?? '—'}</div>
+                          {isEditing ? (
+                            <div className="space-y-1">
+                              <input type="time" value={horarioForm.ingreso} onChange={e => setHorarioForm(p => ({...p, ingreso: e.target.value}))} className="w-full text-[11px] px-1 py-0.5 border border-blue-200 rounded text-center"/>
+                              <input type="time" value={horarioForm.salida} onChange={e => setHorarioForm(p => ({...p, salida: e.target.value}))} className="w-full text-[11px] px-1 py-0.5 border border-blue-200 rounded text-center"/>
+                              <div className="flex gap-1 mt-1">
+                                <button onClick={(e) => { e.stopPropagation(); handleGuardarHorario(h?.id) }} className="flex-1 text-[9px] bg-blue-600 text-white rounded py-0.5 font-medium">OK</button>
+                                <button onClick={(e) => { e.stopPropagation(); setEditandoHorario(null) }} className="flex-1 text-[9px] bg-slate-200 text-slate-600 rounded py-0.5">✕</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="text-[12px] font-medium text-[#1a2332]">{h?.hora_ingreso ?? '—'}</div>
+                              <div className="text-[9px] text-slate-400">a</div>
+                              <div className="text-[12px] font-medium text-[#1a2332]">{h?.hora_salida ?? '—'}</div>
+                            </>
+                          )}
                         </div>
                       )
                     })}
@@ -210,7 +250,6 @@ export default function ConfiguracionClient({ usuario, stats, horariosJornada }:
                 </div>
               )
             })}
-            <p className="text-[10px] text-slate-400 mt-3">Para modificar estos horarios, contacta al administrador del sistema o edítalos desde la tabla <code>horarios_jornada</code> en la base de datos.</p>
           </div>
         )}
       </div>
