@@ -32,6 +32,8 @@ export default function ConfiguracionClient({ usuario, stats, horariosJornada }:
   // Horarios de jornada
   const [editandoHorario, setEditandoHorario] = useState<string | null>(null)
   const [horarioForm, setHorarioForm] = useState({ ingreso: '', salida: '' })
+  const [showNuevoNivel, setShowNuevoNivel] = useState(false)
+  const [nuevoNivelForm, setNuevoNivelForm] = useState({ nivel: '', ingreso: '08:30', salida: '13:00' })
 
   async function handleGuardarHorario(id?: string) {
     if (!id) return
@@ -46,6 +48,31 @@ export default function ConfiguracionClient({ usuario, stats, horariosJornada }:
       router.refresh()
     } else {
       toast.error('Error al guardar horario')
+    }
+  }
+
+  async function handleCrearNivel() {
+    if (!nuevoNivelForm.nivel || !nuevoNivelForm.ingreso || !nuevoNivelForm.salida) {
+      toast.error('Completa todos los campos')
+      return
+    }
+    const dias = ['lunes','martes','miercoles','jueves','viernes']
+    let ok = true
+    for (const dia of dias) {
+      const res = await fetch('/api/horarios-jornada', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nivel: nuevoNivelForm.nivel, dia, hora_ingreso: nuevoNivelForm.ingreso, hora_salida: nuevoNivelForm.salida }),
+      })
+      if (!res.ok) ok = false
+    }
+    if (ok) {
+      toast.success(`Horario "${nuevoNivelForm.nivel}" creado para los 5 días`)
+      setShowNuevoNivel(false)
+      setNuevoNivelForm({ nivel: '', ingreso: '08:30', salida: '13:00' })
+      router.refresh()
+    } else {
+      toast.error('Error al crear algunos días')
     }
   }
 
@@ -205,15 +232,44 @@ export default function ConfiguracionClient({ usuario, stats, horariosJornada }:
                 <h2 className="font-semibold text-slate-800 font-display">Horarios de jornada</h2>
                 <p className="text-[11px] text-slate-400 mt-0.5">Horarios de ingreso y salida por nivel. Haz clic en una celda para editar.</p>
               </div>
+              <button onClick={() => setShowNuevoNivel(true)} className="btn-primary text-xs">
+                <i className="ti ti-plus text-xs" aria-hidden="true"/> Agregar nivel
+              </button>
             </div>
 
+            {/* Formulario nuevo nivel */}
+            {showNuevoNivel && (
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <h4 className="text-[12px] font-semibold text-blue-800 mb-3">Nuevo horario por nivel</h4>
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Nombre del nivel</label>
+                    <input value={nuevoNivelForm.nivel} onChange={e => setNuevoNivelForm(p => ({...p, nivel: e.target.value}))} className="input-base text-[12px]" placeholder="Ej: Playgroup, Ciclo 1 a High School"/>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Hora ingreso</label>
+                    <input type="time" value={nuevoNivelForm.ingreso} onChange={e => setNuevoNivelForm(p => ({...p, ingreso: e.target.value}))} className="input-base text-[12px]"/>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Hora salida</label>
+                    <input type="time" value={nuevoNivelForm.salida} onChange={e => setNuevoNivelForm(p => ({...p, salida: e.target.value}))} className="input-base text-[12px]"/>
+                  </div>
+                </div>
+                <p className="text-[10px] text-blue-600 mb-3">Se creará para los 5 días de la semana con el mismo horario. Después puedes editar cada día individualmente.</p>
+                <div className="flex gap-2">
+                  <button onClick={handleCrearNivel} className="btn-primary text-xs">Crear horario</button>
+                  <button onClick={() => setShowNuevoNivel(false)} className="btn-secondary text-xs">Cancelar</button>
+                </div>
+              </div>
+            )}
+
             {/* Agrupar por nivel */}
-            {['Preschool', 'Ciclo 1 a High School'].map(nivel => {
+            {[...new Set(horariosJornada.map(h => h.nivel))].map(nivel => {
               const diasOrden = ['lunes','martes','miercoles','jueves','viernes']
               const horarios = horariosJornada.filter(h => h.nivel === nivel)
               return (
                 <div key={nivel} className="mb-5 last:mb-0">
-                  <div className="text-[12px] font-bold text-[#1B3A5C] mb-2">{nivel === 'Preschool' ? 'Preschool (Ciclo 0)' : nivel}</div>
+                  <div className="text-[12px] font-bold text-[#1B3A5C] mb-2">{nivel}</div>
                   <div className="grid grid-cols-5 gap-2">
                     {diasOrden.map(dia => {
                       const h = horarios.find(x => x.dia === dia)
