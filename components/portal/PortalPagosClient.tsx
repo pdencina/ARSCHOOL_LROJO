@@ -18,6 +18,9 @@ export default function PortalPagosClient({ cobros }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const [pagandoWebpay, setPagandoWebpay] = useState<string | null>(null)
+  const [qrCobroId, setQrCobroId] = useState<string | null>(null)
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
+  const [qrLoading, setQrLoading] = useState(false)
 
   async function pagarConWebpay(cobroId: string) {
     setPagandoWebpay(cobroId)
@@ -48,6 +51,34 @@ export default function PortalPagosClient({ cobros }: Props) {
       toast.error('Error de conexión')
       setPagandoWebpay(null)
     }
+  }
+
+  async function generarQR(cobroId: string) {
+    setQrCobroId(cobroId)
+    setQrLoading(true)
+    setQrDataUrl(null)
+    try {
+      const res = await fetch('/api/pagos/webpay/crear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cobro_id: cobroId }),
+      })
+      const data = await res.json()
+      if (res.ok && data.url && data.token) {
+        const paymentUrl = `${data.url}?token_ws=${data.token}`
+        // Generar QR dinámicamente
+        const QRCode = (await import('qrcode')).default
+        const qrImg = await QRCode.toDataURL(paymentUrl, { width: 280, margin: 2 })
+        setQrDataUrl(qrImg)
+      } else {
+        toast.error(data.error || 'Error al generar QR')
+        setQrCobroId(null)
+      }
+    } catch {
+      toast.error('Error de conexión')
+      setQrCobroId(null)
+    }
+    setQrLoading(false)
   }
 
   const pendientes = cobros.filter(c => c.estado !== 'pagado')
@@ -177,6 +208,9 @@ export default function PortalPagosClient({ cobros }: Props) {
                     <button onClick={() => { setReportandoId(c.id); setComprobante('') }} className="btn-secondary text-[11px] py-2 px-3">
                       <i className="ti ti-upload text-xs" aria-hidden="true"/> Transferencia
                     </button>
+                    <button onClick={() => generarQR(c.id)} className="btn-secondary text-[11px] py-2 px-3">
+                      <i className="ti ti-qrcode text-xs" aria-hidden="true"/> QR
+                    </button>
                     <button onClick={() => pagarConWebpay(c.id)} disabled={pagandoWebpay === c.id} className="btn-primary text-[11px] py-2 px-3 disabled:opacity-60">
                       {pagandoWebpay === c.id ? (
                         <><i className="ti ti-loader text-xs animate-spin" aria-hidden="true"/> Procesando...</>
@@ -278,6 +312,36 @@ export default function PortalPagosClient({ cobros }: Props) {
       </div>
 
       <input ref={inputRef} type="file" accept="image/*" onChange={handleFileInput} className="hidden"/>
+
+      {/* Modal QR */}
+      {qrCobroId && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => { setQrCobroId(null); setQrDataUrl(null) }}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-[#1a2332] px-6 py-4 flex items-center justify-between">
+              <h3 className="font-semibold text-white text-[14px]">Pagar con QR</h3>
+              <button onClick={() => { setQrCobroId(null); setQrDataUrl(null) }} className="text-white/50 hover:text-white">
+                <i className="ti ti-x" aria-hidden="true"/>
+              </button>
+            </div>
+            <div className="p-6 text-center">
+              {qrLoading ? (
+                <div className="py-10">
+                  <i className="ti ti-loader text-3xl text-[#1a2332] animate-spin block mb-3" aria-hidden="true"/>
+                  <p className="text-[13px] text-[#6b7280]">Generando código QR...</p>
+                </div>
+              ) : qrDataUrl ? (
+                <>
+                  <p className="text-[12px] text-[#6b7280] mb-4">Escanea este código con tu celular para pagar desde tu app bancaria</p>
+                  <img src={qrDataUrl} alt="QR de pago" className="mx-auto rounded-xl border border-slate-200 shadow-sm"/>
+                  <p className="text-[11px] text-[#9ca3af] mt-4">Al escanear se abrirá Webpay en tu celular.<br/>El QR expira en 5 minutos.</p>
+                </>
+              ) : (
+                <p className="text-[13px] text-red-500 py-10">Error al generar QR</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
