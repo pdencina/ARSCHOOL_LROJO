@@ -93,10 +93,10 @@ export default function CobranzaClient({ cobros, logReciente, anio }: Props) {
 
       {/* KPIs ejecutivos */}
       <div className="grid grid-cols-4 gap-3 mb-6">
-        <div className="kpi-card"><div className="kpi-label">Recaudado {anio}</div><div className="kpi-value text-emerald-600">${(totalRecaudado / 1000000).toFixed(1)}M</div><div className="kpi-sub">{cobros.filter(c => c.estado === 'pagado').length} cuotas pagadas</div></div>
-        <div className="kpi-card"><div className="kpi-label">Por recaudar</div><div className="kpi-value text-[#1a2332]">${(totalPorRecaudar / 1000000).toFixed(1)}M</div><div className="kpi-sub">{cuotasPendientes} cuotas pendientes</div></div>
-        <div className="kpi-card"><div className="kpi-label">Morosidad</div><div className="kpi-value text-red-600">${(totalMorosidad / 1000).toFixed(0)}K</div><div className="kpi-sub">{alumnosConDeuda} alumno{alumnosConDeuda !== 1 ? 's' : ''} · {pctMorosidad}%</div></div>
-        <div className="kpi-card"><div className="kpi-label">Mes actual</div><div className="kpi-value text-blue-600">${(recaudadoMes / 1000).toFixed(0)}K</div><div className="kpi-sub">{MESES[mesActual - 1]} — {cobrosMes.filter(c => c.estado === 'pagado').length}/{cobrosMes.length}</div></div>
+        <div className="kpi-card"><div className="kpi-label">Recaudado {anio}</div><div className="kpi-value text-emerald-600">${totalRecaudado.toLocaleString('es-CL')}</div><div className="kpi-sub">{cobros.filter(c => c.estado === 'pagado').length} cuotas pagadas</div></div>
+        <div className="kpi-card"><div className="kpi-label">Por recaudar</div><div className="kpi-value text-[#1a2332]">${totalPorRecaudar.toLocaleString('es-CL')}</div><div className="kpi-sub">{cuotasPendientes} cuotas pendientes</div></div>
+        <div className="kpi-card"><div className="kpi-label">Morosidad</div><div className="kpi-value text-red-600">${totalMorosidad.toLocaleString('es-CL')}</div><div className="kpi-sub">{alumnosConDeuda} alumno{alumnosConDeuda !== 1 ? 's' : ''} · {pctMorosidad}%</div></div>
+        <div className="kpi-card"><div className="kpi-label">Mes actual</div><div className="kpi-value text-blue-600">${recaudadoMes.toLocaleString('es-CL')}</div><div className="kpi-sub">{MESES[mesActual - 1]} — {cobrosMes.filter(c => c.estado === 'pagado').length}/{cobrosMes.length}</div></div>
       </div>
 
       {/* Semáforo visual */}
@@ -190,7 +190,7 @@ export default function CobranzaClient({ cobros, logReciente, anio }: Props) {
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[12px] font-medium text-[#1a2332]">{r.curso}</span>
-                        <span className="text-[11px] text-red-600 font-bold">{r.pct}% · ${(r.monto / 1000).toFixed(0)}K</span>
+                        <span className="text-[11px] text-red-600 font-bold">{r.pct}% · ${r.monto.toLocaleString('es-CL')}</span>
                       </div>
                       <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div className="h-full bg-red-400 rounded-full" style={{ width: `${Math.min(r.pct, 100)}%` }}/>
