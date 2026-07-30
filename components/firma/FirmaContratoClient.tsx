@@ -84,6 +84,7 @@ export default function FirmaContratoClient({ matriculaId, alumno, firmadoContra
   const [pagareConfirmado, setPagareConfirmado] = useState(false)
   const [savingPago, setSavingPago] = useState(false)
   const [pagoRegistrado, setPagoRegistrado] = useState(false)
+  const [pagandoAhora, setPagandoAhora] = useState(false)
 
   // Descuento 5% solo aplica si se paga antes del 12 de marzo del año escolar
   const anioEscolar = new Date().getFullYear() + (new Date().getMonth() >= 6 ? 1 : 0) // Si estamos en jul+ es para el año siguiente
@@ -236,6 +237,66 @@ export default function FirmaContratoClient({ matriculaId, alumno, firmadoContra
               >
                 {savingPago ? 'Registrando...' : 'Registrar medio de pago'}
               </button>
+
+              {/* Pagar ahora con tarjeta (si eligió transferencia o tarjeta) */}
+              {['transferencia', 'tarjeta'].includes(medioPago) && (
+                <button
+                  onClick={async () => {
+                    // Primero registrar el medio de pago
+                    await handleRegistrarMedioPago()
+                    // Luego iniciar pago Webpay con el primer cobro pendiente
+                    setPagandoAhora(true)
+                    try {
+                      // Buscar cobros pendientes de esta matrícula
+                      const resCobros = await fetch(`/api/cobros/avisos?matricula_id=${matriculaId}`)
+                      let cobroId = null
+                      if (resCobros.ok) {
+                        const cobros = await resCobros.json()
+                        const pendiente = cobros.find?.((c: any) => c.estado === 'pendiente')
+                        if (pendiente) cobroId = pendiente.id
+                      }
+                      if (!cobroId) {
+                        toast.success('Medio de pago registrado. No hay cobros pendientes por pagar ahora.')
+                        setPagandoAhora(false)
+                        return
+                      }
+                      // Crear transacción Webpay
+                      const res = await fetch('/api/pagos/webpay/crear', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cobro_id: cobroId }),
+                      })
+                      const data = await res.json()
+                      if (res.ok && data.url && data.token) {
+                        const form = document.createElement('form')
+                        form.method = 'POST'
+                        form.action = data.url
+                        const input = document.createElement('input')
+                        input.type = 'hidden'
+                        input.name = 'token_ws'
+                        input.value = data.token
+                        form.appendChild(input)
+                        document.body.appendChild(form)
+                        form.submit()
+                      } else {
+                        toast.error(data.error || 'Error al iniciar pago')
+                        setPagandoAhora(false)
+                      }
+                    } catch {
+                      toast.error('Error de conexión')
+                      setPagandoAhora(false)
+                    }
+                  }}
+                  disabled={!medioPago || savingPago || pagandoAhora}
+                  className="mt-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-semibold text-[13px] disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                >
+                  {pagandoAhora ? (
+                    <><i className="ti ti-loader animate-spin text-sm" aria-hidden="true"/> Redirigiendo a Webpay...</>
+                  ) : (
+                    <><i className="ti ti-credit-card text-sm" aria-hidden="true"/> Pagar ahora con tarjeta</>
+                  )}
+                </button>
+              )}
             </div>
           ) : (
             <div className="bg-white border border-[var(--ar-border)] rounded-xl p-6 text-center" style={{ boxShadow: 'var(--shadow-sm)' }}>
@@ -355,7 +416,7 @@ export default function FirmaContratoClient({ matriculaId, alumno, firmadoContra
                         </div>
                       </label>
                     </div>
-                    <FirmaDigital onFirmar={(firma) => handleFirmar(firma, 'contrato')} />
+                    <FirmaDigital onFirmar={(firma) => handleFirmar(firma, 'contrato')} disabled={!consentimiento} />
                     {saving && <p className="text-[12px] text-[#9ca3af] mt-2 text-center">Guardando firma con evidencia legal...</p>}
                   </div>
                 ) : (
@@ -433,7 +494,7 @@ export default function FirmaContratoClient({ matriculaId, alumno, firmadoContra
                         </div>
                       </label>
                     </div>
-                    <FirmaDigital onFirmar={(firma) => handleFirmar(firma, 'pagare')} />
+                    <FirmaDigital onFirmar={(firma) => handleFirmar(firma, 'pagare')} disabled={!consentimiento} />
                     {saving && <p className="text-[12px] text-[#9ca3af] mt-2 text-center">Guardando firma con evidencia legal...</p>}
                   </div>
                 ) : (

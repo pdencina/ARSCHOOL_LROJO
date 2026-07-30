@@ -5,9 +5,10 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 interface Props {
   onFirmar: (firmaDataUrl: string) => void
   firma?: string | null
+  disabled?: boolean
 }
 
-export default function FirmaDigital({ onFirmar, firma }: Props) {
+export default function FirmaDigital({ onFirmar, firma, disabled = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [dibujando, setDibujando] = useState(false)
   const [hayFirma, setHayFirma] = useState(false)
@@ -53,6 +54,7 @@ export default function FirmaDigital({ onFirmar, firma }: Props) {
   }
 
   function iniciar(e: React.MouseEvent | React.TouchEvent) {
+    if (disabled) return
     e.preventDefault()
     setDibujando(true)
     const ctx = canvasRef.current?.getContext('2d')
@@ -95,7 +97,7 @@ export default function FirmaDigital({ onFirmar, firma }: Props) {
       <div className="border border-[var(--ar-border)] rounded-xl overflow-hidden bg-white" style={{ boxShadow: 'var(--shadow-sm)' }}>
         <canvas
           ref={canvasRef}
-          className="w-full h-[160px] cursor-crosshair touch-none block"
+          className={`w-full h-[160px] touch-none block ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-crosshair'}`}
           onMouseDown={iniciar}
           onMouseMove={dibujar}
           onMouseUp={terminar}
@@ -106,12 +108,12 @@ export default function FirmaDigital({ onFirmar, firma }: Props) {
         />
       </div>
       <div className="flex items-center justify-between">
-        <p className="text-[11px] text-[#9ca3af]">Dibuje su firma con el mouse o el dedo en pantalla táctil</p>
+        <p className="text-[11px] text-[#9ca3af]">{disabled ? 'Acepte el consentimiento para habilitar la firma' : 'Dibuje su firma con el mouse o el dedo en pantalla táctil'}</p>
         <div className="flex gap-2">
           <button onClick={limpiar} className="btn-secondary text-xs py-1.5 px-3">
             Limpiar
           </button>
-          <button onClick={confirmar} disabled={!hayFirma} className="btn-primary text-xs py-1.5 px-3 disabled:opacity-40">
+          <button onClick={confirmar} disabled={!hayFirma || disabled} className="btn-primary text-xs py-1.5 px-3 disabled:opacity-40">
             Confirmar firma
           </button>
         </div>
