@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { getWebpayTransaction } from '@/lib/transbank'
+import { webpayCreateLimiter, webpayGlobalLimiter, getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit'
 
 function getAdmin() {
   return createAdminClient(
@@ -14,9 +15,23 @@ function getAdmin() {
 // POST /api/pagos/webpay/crear
 // Crea una transacción en Webpay Plus y retorna la URL + token para redirigir
 export async function POST(request: NextRequest) {
+  // --- Rate limiting ---
+  // Global limiter: protect Transbank API quota
+  const globalCheck = webpayGlobalLimiter.check('global')
+  if (!globalCheck.success) {
+    return rateLimitResponse(globalCheck)
+  }
+
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  // Per-user limiter: prevent rapid-fire payment attempts
+  const userIdentifier = getClientIdentifier(request, user.id)
+  const userCheck = webpayCreateLimiter.check(userIdentifier)
+  if (!userCheck.success) {
+    return rateLimitResponse(userCheck)
+  }
 
   const body = await request.json()
   const { cobro_id } = body

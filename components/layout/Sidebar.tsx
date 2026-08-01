@@ -63,14 +63,14 @@ const NAV_ALUMNO: NavItem[] = [
   { label: 'Mi perfil',       href: '/portal/perfil',         icon: 'ti-user',            roles: ['alumno'] },
 ]
 
-const ROL_BADGE: Record<string, { label: string; color: string; icon: string }> = {
-  super_admin:     { label: 'super_admin',              color: 'bg-[#FEF3EC] text-[#E8722A] border border-[#E8722A]/20', icon: 'ti-shield-check' },
-  admin:           { label: 'admin',                    color: 'bg-[#FEF3EC] text-[#E8722A] border border-[#E8722A]/20', icon: 'ti-briefcase' },
-  pastor_campus:   { label: 'pastor_campus',            color: 'bg-[#F0EDF8] text-[#5B3E96] border border-[#5B3E96]/15', icon: 'ti-building-church' },
-  gestor_admision: { label: 'gestor_admision',          color: 'bg-[#EDF6FA] text-[#1B3A5C] border border-[#1B3A5C]/15', icon: 'ti-user-plus' },
-  tutor:           { label: 'tutor',                    color: 'bg-[#EDF5F0] text-[#3D6B4F] border border-[#3D6B4F]/20', icon: 'ti-school' },
-  apoderado:       { label: 'apoderado',                color: 'bg-[#f0f4f8] text-[#1B3A5C] border border-[#1B3A5C]/15', icon: 'ti-heart-handshake' },
-  alumno:          { label: 'alumno',                   color: 'bg-[#EDF6FA] text-[#5B8FA8] border border-[#5B8FA8]/20', icon: 'ti-backpack' },
+const ROL_BADGE: Record<string, { label: string; color: string; icon: string; accent: string; activeBg: string; activeIndicator: string }> = {
+  super_admin:     { label: 'Super Admin',     color: 'bg-[#FEF3EC] text-[#C45A1A] border border-[#C45A1A]/20', icon: 'ti-shield-check',      accent: '#C45A1A', activeBg: 'bg-[#C45A1A]', activeIndicator: '#C45A1A' },
+  admin:           { label: 'Administrador',   color: 'bg-[#FEF3EC] text-[#C45A1A] border border-[#C45A1A]/20', icon: 'ti-briefcase',         accent: '#C45A1A', activeBg: 'bg-[#C45A1A]', activeIndicator: '#C45A1A' },
+  pastor_campus:   { label: 'Pastor Campus',   color: 'bg-[#F0EDF8] text-[#4A3080] border border-[#4A3080]/15', icon: 'ti-building-church',   accent: '#4A3080', activeBg: 'bg-[#4A3080]', activeIndicator: '#4A3080' },
+  gestor_admision: { label: 'Gestión Admisión', color: 'bg-[#EDF6FA] text-[#1B3A5C] border border-[#1B3A5C]/15', icon: 'ti-user-plus',        accent: '#1B3A5C', activeBg: 'bg-[#1B3A5C]', activeIndicator: '#1B3A5C' },
+  tutor:           { label: 'Tutor',           color: 'bg-[#EDF5F0] text-[#2D5A3F] border border-[#2D5A3F]/20', icon: 'ti-school',            accent: '#2D5A3F', activeBg: 'bg-[#2D5A3F]', activeIndicator: '#2D5A3F' },
+  apoderado:       { label: 'Apoderado',       color: 'bg-[#EDF6FA] text-[#3D7A94] border border-[#3D7A94]/15', icon: 'ti-heart-handshake',   accent: '#3D7A94', activeBg: 'bg-[#3D7A94]', activeIndicator: '#3D7A94' },
+  alumno:          { label: 'Alumno',          color: 'bg-[#F3EFFE] text-[#6B4C9A] border border-[#6B4C9A]/20', icon: 'ti-backpack',          accent: '#6B4C9A', activeBg: 'bg-[#6B4C9A]', activeIndicator: '#6B4C9A' },
 }
 
 interface Props { rol?: string; modulosHabilitados?: string[] | null }
@@ -154,23 +154,26 @@ export default function Sidebar({ rol = 'admin', modulosHabilitados = null }: Pr
       return i
     })
     if (!visibles.length) return null
+
+    const roleAccent = badge?.accent || '#1B3A5C'
+
     return (
       <div className="mb-6">
-        <div className="px-3 py-1 text-[10px] font-bold text-[#b0b7c3] uppercase tracking-[0.1em] mb-2">{section}</div>
+        <div className="px-3 py-1 text-[10px] font-bold text-[var(--ar-muted)] uppercase tracking-[0.1em] mb-2">{section}</div>
         {visibles.map(item => {
           const active = pathname === item.href || (item.href !== '/inicio' && item.href !== '/portal' && pathname.startsWith(item.href))
           return (
             <Link key={item.href + item.label} href={item.href}
               className={`group relative flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13px] font-medium mb-[2px] transition-all duration-150 ${
                 active
-                  ? 'bg-[var(--ar-navy)] text-white'
+                  ? 'text-white'
                   : 'text-[#5f6876] hover:bg-[#f4f5f7] hover:text-[var(--ar-text)]'
               }`}
-              style={active ? { boxShadow: '0 1px 3px rgba(26,35,50,0.15)' } : undefined}>
-              {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-[var(--ar-accent)] rounded-r-full"/>}
-              <i className={`ti ${item.icon} text-[15px] flex-shrink-0 transition-colors duration-150 ${active ? 'text-[var(--ar-accent)]' : 'text-[#b0b7c3] group-hover:text-[#7c8390]'}`} aria-hidden="true"/>
+              style={active ? { backgroundColor: roleAccent, boxShadow: '0 1px 3px rgba(26,35,50,0.15)' } : undefined}>
+              {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-white/60 rounded-r-full"/>}
+              <i className={`ti ${item.icon} text-[15px] flex-shrink-0 transition-colors duration-150 ${active ? 'text-white/90' : 'text-[var(--ar-muted)] group-hover:text-[#7c8390]'}`} aria-hidden="true"/>
               <span className="flex-1 truncate">{item.label}</span>
-              {item.badge && <span className="bg-[var(--ar-danger)] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">{item.badge}</span>}
+              {item.badge && <span className="bg-white/20 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">{item.badge}</span>}
             </Link>
           )
         })}
@@ -179,15 +182,17 @@ export default function Sidebar({ rol = 'admin', modulosHabilitados = null }: Pr
   }
 
   return (
-    <aside className="w-[220px] bg-white border-r border-[var(--ar-border)] flex flex-col shrink-0 min-h-[calc(100vh-56px)]">
+    <aside className="w-[220px] bg-white border-r border-[var(--ar-border)] flex flex-col shrink-0 min-h-[calc(100vh-56px)] relative">
+      {/* Role accent strip at top */}
+      <div className="absolute top-0 left-0 right-0 h-[3px] rounded-b-sm" style={{ backgroundColor: badge?.accent || '#1B3A5C' }}/>
       <div className="px-4 pt-5 pb-3">
         {badge && (
           <div className={`inline-flex items-center gap-1.5 px-2.5 py-[6px] rounded-lg text-[10px] font-semibold ${badge.color}`}>
-            <i className={`ti ${badge.icon} text-[10px]`} aria-hidden="true"/> {badge.label}
+            <i className={`ti ${badge.icon} text-[11px]`} aria-hidden="true"/> {badge.label}
           </div>
         )}
       </div>
-      <nav className="flex-1 py-2 px-3 overflow-y-auto">
+      <nav className="flex-1 py-2 px-3 overflow-y-auto" aria-label="Navegación principal">
         {rolTyped === 'apoderado' && renderGroup(NAV_APODERADO, 'Mi espacio')}
         {rolTyped === 'alumno'    && renderGroup(NAV_ALUMNO,    'Mi espacio')}
         {!isPortal && (
@@ -199,7 +204,7 @@ export default function Sidebar({ rol = 'admin', modulosHabilitados = null }: Pr
         )}
       </nav>
       <div className="px-4 py-3 border-t border-[#f3f4f6]">
-        <div className="text-[10px] text-[#d1d5db] tracking-wide">AR School v1.0</div>
+        <div className="text-[10px] text-[var(--ar-muted)] tracking-wide">AR School v1.0</div>
       </div>
     </aside>
   )

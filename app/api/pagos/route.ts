@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { paymentApiLimiter, getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit'
 
 function getAdmin() {
   return createAdminClient(
@@ -12,6 +13,13 @@ function getAdmin() {
 
 // POST: Reportar un pago (apoderado sube comprobante) o registrar pago (admin)
 export async function POST(request: NextRequest) {
+  // Rate limiting per IP/user
+  const ipIdentifier = getClientIdentifier(request)
+  const ipCheck = paymentApiLimiter.check(ipIdentifier)
+  if (!ipCheck.success) {
+    return rateLimitResponse(ipCheck)
+  }
+
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
