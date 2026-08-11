@@ -73,6 +73,13 @@ export default function PreAdmisionForm() {
     try {
       const payload = {
         ...form,
+        // Concatenar nombres completos para el backend
+        alumno_nombre: `${form.alumno_nombre || ''} ${form.alumno_segundo_nombre || ''}`.replace(/\s+/g, ' ').trim(),
+        alumno_apellido: `${form.alumno_apellido || ''} ${form.alumno_apellido_materno || ''}`.replace(/\s+/g, ' ').trim(),
+        apoderado_nombre: `${form.apoderado_nombre || ''} ${form.apoderado_segundo_nombre || ''}`.replace(/\s+/g, ' ').trim(),
+        apoderado_apellido: `${form.apoderado_apellido || ''} ${form.apoderado_apellido_materno || ''}`.replace(/\s+/g, ' ').trim(),
+        padre_nombre: form.padre_nombre ? `${form.padre_nombre || ''} ${form.padre_segundo_nombre || ''}`.replace(/\s+/g, ' ').trim() : null,
+        padre_apellido: form.padre_apellido ? `${form.padre_apellido || ''} ${form.padre_apellido_materno || ''}`.replace(/\s+/g, ' ').trim() : null,
         alumno_rut: form.alumno_rut ? limpiarRut(form.alumno_rut) : null,
         apoderado_rut: form.apoderado_rut ? limpiarRut(form.apoderado_rut) : null,
         padre_rut: form.padre_rut ? limpiarRut(form.padre_rut) : null,
@@ -135,8 +142,12 @@ export default function PreAdmisionForm() {
           <section className="space-y-4 animate-[fadeIn_0.2s]">
             <div className="mb-2"><h2 className="text-lg font-bold text-[#1B3A5C]">Datos del alumno</h2><p className="text-xs text-gray-500">Información del estudiante a matricular. Los campos con * son obligatorios.</p></div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Nombre *" value={form.alumno_nombre} onChange={v => { set('alumno_nombre', v); clearError('alumno_nombre') }} error={errores.alumno_nombre} placeholder="Ej: Benjamín" autoCapitalize/>
-              <Field label="Apellido *" value={form.alumno_apellido} onChange={v => { set('alumno_apellido', v); clearError('alumno_apellido') }} error={errores.alumno_apellido} placeholder="Ej: Pinto" autoCapitalize/>
+              <Field label="Primer nombre *" value={form.alumno_nombre} onChange={v => { set('alumno_nombre', v); clearError('alumno_nombre') }} error={errores.alumno_nombre} placeholder="Ej: Benjamín" autoCapitalize/>
+              <Field label="Segundo nombre" value={form.alumno_segundo_nombre} onChange={v => set('alumno_segundo_nombre', v)} placeholder="Ej: Ananías" autoCapitalize/>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Apellido paterno *" value={form.alumno_apellido} onChange={v => { set('alumno_apellido', v); clearError('alumno_apellido') }} error={errores.alumno_apellido} placeholder="Ej: Pinto" autoCapitalize/>
+              <Field label="Apellido materno *" value={form.alumno_apellido_materno} onChange={v => { set('alumno_apellido_materno', v); clearError('alumno_apellido_materno') }} error={errores.alumno_apellido_materno} placeholder="Ej: Guzmán" autoCapitalize/>
             </div>
             <RutField label="RUT del alumno" value={form.alumno_rut} onChange={v => { set('alumno_rut', v); clearError('alumno_rut') }} error={errores.alumno_rut}/>
             <div className="grid grid-cols-2 gap-3">
@@ -163,8 +174,12 @@ export default function PreAdmisionForm() {
           <section className="space-y-4 animate-[fadeIn_0.2s]">
             <div className="mb-2"><h2 className="text-lg font-bold text-[#1B3A5C]">Datos del apoderado</h2><p className="text-xs text-gray-500">Persona responsable que firmará el contrato.</p></div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Nombre *" value={form.apoderado_nombre} onChange={v => { set('apoderado_nombre', v); clearError('apoderado_nombre') }} error={errores.apoderado_nombre} autoCapitalize/>
-              <Field label="Apellido *" value={form.apoderado_apellido} onChange={v => { set('apoderado_apellido', v); clearError('apoderado_apellido') }} error={errores.apoderado_apellido} autoCapitalize/>
+              <Field label="Primer nombre *" value={form.apoderado_nombre} onChange={v => { set('apoderado_nombre', v); clearError('apoderado_nombre') }} error={errores.apoderado_nombre} autoCapitalize/>
+              <Field label="Segundo nombre" value={form.apoderado_segundo_nombre} onChange={v => set('apoderado_segundo_nombre', v)} autoCapitalize/>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Apellido paterno *" value={form.apoderado_apellido} onChange={v => { set('apoderado_apellido', v); clearError('apoderado_apellido') }} error={errores.apoderado_apellido} autoCapitalize/>
+              <Field label="Apellido materno *" value={form.apoderado_apellido_materno} onChange={v => { set('apoderado_apellido_materno', v); clearError('apoderado_apellido_materno') }} error={errores.apoderado_apellido_materno} autoCapitalize/>
             </div>
             <RutField label="RUT del apoderado" value={form.apoderado_rut} onChange={v => { set('apoderado_rut', v); clearError('apoderado_rut') }} error={errores.apoderado_rut}/>
             <Field label="Email *" type="email" value={form.apoderado_email} onChange={v => { set('apoderado_email', v); clearError('apoderado_email') }} error={errores.apoderado_email} placeholder="correo@ejemplo.com"/>
@@ -176,8 +191,12 @@ export default function PreAdmisionForm() {
             <hr className="my-5 border-gray-100"/>
             <div className="mb-2"><h3 className="text-sm font-bold text-[#1B3A5C]">Padre / segundo apoderado</h3><p className="text-[10px] text-gray-400">Opcional — complete si aplica</p></div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Nombre" value={form.padre_nombre} onChange={v => set('padre_nombre', v)} autoCapitalize/>
-              <Field label="Apellido" value={form.padre_apellido} onChange={v => set('padre_apellido', v)} autoCapitalize/>
+              <Field label="Primer nombre" value={form.padre_nombre} onChange={v => set('padre_nombre', v)} autoCapitalize/>
+              <Field label="Segundo nombre" value={form.padre_segundo_nombre} onChange={v => set('padre_segundo_nombre', v)} autoCapitalize/>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Apellido paterno" value={form.padre_apellido} onChange={v => set('padre_apellido', v)} autoCapitalize/>
+              <Field label="Apellido materno" value={form.padre_apellido_materno} onChange={v => set('padre_apellido_materno', v)} autoCapitalize/>
             </div>
             <RutField label="RUT" value={form.padre_rut} onChange={v => { set('padre_rut', v); clearError('padre_rut') }} error={errores.padre_rut}/>
             <PhoneField label="Teléfono" codigoPais={form.padre_telefono_cod} onCodigoChange={v => set('padre_telefono_cod', v)} numero={form.padre_telefono_num} onNumeroChange={v => set('padre_telefono_num', v)}/>
@@ -241,8 +260,8 @@ export default function PreAdmisionForm() {
         {paso === 5 && (
           <section className="space-y-4 animate-[fadeIn_0.2s]">
             <div className="mb-2"><h2 className="text-lg font-bold text-[#1B3A5C]">Resumen de solicitud</h2><p className="text-xs text-gray-500">Verifique que todo esté correcto antes de enviar.</p></div>
-            <SumCard title="Alumno" rows={[['Nombre',`${form.alumno_nombre||''} ${form.alumno_apellido||''}`],['RUT',form.alumno_rut],['Edad',edadInfo?`${edadInfo.anios} años`:null],['Curso',form.curso_solicitado],['Sede',SEDES.find(s=>s.value===form.sede)?.label],['Jornada',form.jornada==='completa'?'Completa':'Media']]}/>
-            <SumCard title="Apoderado" rows={[['Nombre',`${form.apoderado_nombre||''} ${form.apoderado_apellido||''}`],['RUT',form.apoderado_rut],['Email',form.apoderado_email],['Teléfono',form.apoderado_telefono_num?`${form.apoderado_telefono_cod} ${form.apoderado_telefono_num}`:null],['Dirección',form.apoderado_direccion],['Comuna',form.apoderado_comuna]]}/>
+            <SumCard title="Alumno" rows={[['Nombre completo',`${form.alumno_nombre||''} ${form.alumno_segundo_nombre||''} ${form.alumno_apellido||''} ${form.alumno_apellido_materno||''}`.replace(/\s+/g,' ').trim()],['RUT',form.alumno_rut],['Edad',edadInfo?`${edadInfo.anios} años`:null],['Curso',form.curso_solicitado],['Sede',SEDES.find(s=>s.value===form.sede)?.label],['Jornada',form.jornada==='completa'?'Completa':'Media']]}/>
+            <SumCard title="Apoderado" rows={[['Nombre completo',`${form.apoderado_nombre||''} ${form.apoderado_segundo_nombre||''} ${form.apoderado_apellido||''} ${form.apoderado_apellido_materno||''}`.replace(/\s+/g,' ').trim()],['RUT',form.apoderado_rut],['Email',form.apoderado_email],['Teléfono',form.apoderado_telefono_num?`${form.apoderado_telefono_cod} ${form.apoderado_telefono_num}`:null],['Dirección',form.apoderado_direccion],['Comuna',form.apoderado_comuna]]}/>
             <SumCard title="Documentos" rows={[['Obligatorios',`${DOCS_OBL.filter(d=>documentos[d.key]).length}/${DOCS_OBL.length} subidos`],['Opcionales',`${DOCS_OPT.filter(d=>documentos[d.key]).length} subidos`]]}/>
             <div><label className="text-[11px] font-semibold text-gray-600 mb-1 block">Observaciones para el equipo de admisión (opcional)</label><textarea value={form.observaciones_apoderado||''} onChange={e=>set('observaciones_apoderado',e.target.value)} rows={3} placeholder="Algo que desee comunicar..." className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm resize-none focus:ring-2 focus:ring-[#1B3A5C]/20 focus:border-[#1B3A5C] outline-none"/></div>
           </section>

@@ -203,8 +203,9 @@ export function validarFormularioAdmision(form: any, paso: number): Record<strin
   const errores: Record<string, string> = {}
 
   if (paso === 1) {
-    if (!campoRequerido(form.alumno_nombre)) errores.alumno_nombre = 'Nombre es obligatorio'
-    if (!campoRequerido(form.alumno_apellido)) errores.alumno_apellido = 'Apellido es obligatorio'
+    if (!campoRequerido(form.alumno_nombre)) errores.alumno_nombre = 'Primer nombre es obligatorio'
+    if (!campoRequerido(form.alumno_apellido)) errores.alumno_apellido = 'Apellido paterno es obligatorio'
+    if (!campoRequerido(form.alumno_apellido_materno)) errores.alumno_apellido_materno = 'Apellido materno es obligatorio'
     if (!form.curso_solicitado) errores.curso_solicitado = 'Seleccione un curso'
     if (!form.alumno_fecha_nacimiento) errores.alumno_fecha_nacimiento = 'Fecha de nacimiento es obligatoria'
     if (form.alumno_rut && !validarRut(form.alumno_rut)) errores.alumno_rut = 'RUT inválido'
@@ -212,8 +213,9 @@ export function validarFormularioAdmision(form: any, paso: number): Record<strin
   }
 
   if (paso === 2) {
-    if (!campoRequerido(form.apoderado_nombre)) errores.apoderado_nombre = 'Nombre es obligatorio'
-    if (!campoRequerido(form.apoderado_apellido)) errores.apoderado_apellido = 'Apellido es obligatorio'
+    if (!campoRequerido(form.apoderado_nombre)) errores.apoderado_nombre = 'Primer nombre es obligatorio'
+    if (!campoRequerido(form.apoderado_apellido)) errores.apoderado_apellido = 'Apellido paterno es obligatorio'
+    if (!campoRequerido(form.apoderado_apellido_materno)) errores.apoderado_apellido_materno = 'Apellido materno es obligatorio'
     if (!form.apoderado_email || !validarEmail(form.apoderado_email)) errores.apoderado_email = 'Email válido es obligatorio'
     if (!form.apoderado_telefono_num) errores.apoderado_telefono = 'Teléfono es obligatorio'
     else if (!validarTelefono(form.apoderado_telefono_num, form.apoderado_telefono_cod || '+56')) errores.apoderado_telefono = 'Teléfono incompleto'
