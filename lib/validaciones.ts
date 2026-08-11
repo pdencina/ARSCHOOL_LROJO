@@ -1,203 +1,254 @@
-// ============================================================
-// Utilidades de validación y formateo — AR School
-// ============================================================
-
 /**
- * Capitaliza la primera letra de cada palabra
- * "juan pedro" → "Juan Pedro"
+ * Utilidades de validación y formateo para formularios chilenos.
+ * RUT, teléfonos con código de área, email, campos obligatorios.
  */
-export function capitalizarNombre(valor: string): string {
-  return valor
-    .toLowerCase()
-    .split(' ')
-    .map(p => p.charAt(0).toUpperCase() + p.slice(1))
-    .join(' ')
-}
+
+// =====================
+// RUT CHILENO
+// =====================
 
 /**
- * Formatea RUT chileno mientras se escribe
- * "123456789" → "12.345.678-9"
- */
-export function formatearRut(valor: string): string {
-  // Remover todo excepto números y K/k
-  let limpio = valor.replace(/[^0-9kK]/g, '').toUpperCase()
-  if (!limpio) return ''
-
-  // Separar cuerpo y DV
-  const dv = limpio.slice(-1)
-  const cuerpo = limpio.slice(0, -1)
-
-  if (!cuerpo) return limpio
-
-  // Formatear con puntos
-  let formateado = ''
-  let count = 0
-  for (let i = cuerpo.length - 1; i >= 0; i--) {
-    formateado = cuerpo[i] + formateado
-    count++
-    if (count % 3 === 0 && i > 0) formateado = '.' + formateado
-  }
-
-  return `${formateado}-${dv}`
-}
-
-/**
- * Valida si un RUT chileno es correcto (módulo 11)
+ * Valida un RUT chileno (formato XX.XXX.XXX-X o sin puntos).
+ * Retorna true si es válido, false si no.
  */
 export function validarRut(rut: string): boolean {
-  const limpio = rut.replace(/[^0-9kK]/g, '').toUpperCase()
+  if (!rut || rut.length < 3) return false
+
+  // Limpiar: quitar puntos, espacios, guiones extras
+  const limpio = rut.replace(/\./g, '').replace(/-/g, '').replace(/\s/g, '').toUpperCase()
   if (limpio.length < 2) return false
 
   const cuerpo = limpio.slice(0, -1)
-  const dvIngresado = limpio.slice(-1)
+  const dv = limpio.slice(-1)
 
+  // Verificar que el cuerpo sea numérico
+  if (!/^\d+$/.test(cuerpo)) return false
+  if (parseInt(cuerpo) < 1000000) return false // Mínimo 1.000.000
+
+  // Calcular dígito verificador
+  const dvCalculado = calcularDV(parseInt(cuerpo))
+  return dv === dvCalculado
+}
+
+function calcularDV(rut: number): string {
   let suma = 0
   let multiplicador = 2
-  for (let i = cuerpo.length - 1; i >= 0; i--) {
-    suma += parseInt(cuerpo[i]) * multiplicador
+  let rutStr = rut.toString()
+
+  for (let i = rutStr.length - 1; i >= 0; i--) {
+    suma += parseInt(rutStr[i]) * multiplicador
     multiplicador = multiplicador === 7 ? 2 : multiplicador + 1
   }
 
   const resto = suma % 11
-  const dvCalculado = resto === 0 ? '0' : resto === 1 ? 'K' : String(11 - resto)
+  const dv = 11 - resto
 
-  return dvIngresado === dvCalculado
+  if (dv === 11) return '0'
+  if (dv === 10) return 'K'
+  return dv.toString()
 }
 
 /**
- * Formatea teléfono con prefijo internacional editable.
- * Si no tiene prefijo, asume +56 (Chile).
- * Acepta: "+56 9 1234 5678", "+58 412 123 4567", "+1 305 123 4567", "+54 9 11 1234 5678"
+ * Formatea un RUT a XX.XXX.XXX-X
  */
-export function formatearTelefono(valor: string): string {
-  // Permitir el signo + al inicio
-  const tienePrefix = valor.startsWith('+')
-  let nums = valor.replace(/[^0-9]/g, '')
+export function formatearRut(valor: string): string {
+  // Limpiar todo excepto números y K
+  let limpio = valor.replace(/[^0-9kK]/g, '').toUpperCase()
+  if (!limpio) return ''
 
-  if (!nums) return tienePrefix ? '+' : ''
+  // Separar cuerpo y DV
+  if (limpio.length > 1) {
+    const dv = limpio.slice(-1)
+    const cuerpo = limpio.slice(0, -1)
 
-  // Si el usuario escribió + manualmente, respetar el prefijo completo
-  if (tienePrefix) {
-    nums = nums.slice(0, 14) // Max 14 dígitos total (E.164)
-
-    // Detectar código de país para formatear correctamente
-    // +1 (USA/Canadá): 1 dígito de código país
-    if (nums.startsWith('1')) {
-      const cc = nums.slice(0, 1)
-      const rest = nums.slice(1)
-      if (rest.length <= 3) return `+${cc} ${rest}`
-      if (rest.length <= 6) return `+${cc} ${rest.slice(0, 3)} ${rest.slice(3)}`
-      return `+${cc} ${rest.slice(0, 3)} ${rest.slice(3, 6)} ${rest.slice(6, 10)}`
-    }
-
-    // +56 (Chile): formato 9 XXXX XXXX
-    if (nums.startsWith('56')) {
-      const rest = nums.slice(2)
-      if (!rest) return '+56'
-      if (rest.length <= 1) return `+56 ${rest}`
-      if (rest.length <= 5) return `+56 ${rest[0]} ${rest.slice(1)}`
-      return `+56 ${rest[0]} ${rest.slice(1, 5)} ${rest.slice(5, 9)}`
-    }
-
-    // +58 (Venezuela): formato XXX XXX XXXX
-    if (nums.startsWith('58')) {
-      const rest = nums.slice(2)
-      if (!rest) return '+58'
-      if (rest.length <= 3) return `+58 ${rest}`
-      if (rest.length <= 6) return `+58 ${rest.slice(0, 3)} ${rest.slice(3)}`
-      return `+58 ${rest.slice(0, 3)} ${rest.slice(3, 6)} ${rest.slice(6, 10)}`
-    }
-
-    // +54 (Argentina): formato X XX XXXX XXXX
-    if (nums.startsWith('54')) {
-      const rest = nums.slice(2)
-      if (!rest) return '+54'
-      if (rest.length <= 2) return `+54 ${rest}`
-      if (rest.length <= 4) return `+54 ${rest.slice(0, 1)} ${rest.slice(1)}`
-      if (rest.length <= 8) return `+54 ${rest.slice(0, 1)} ${rest.slice(1, 3)} ${rest.slice(3)}`
-      return `+54 ${rest.slice(0, 1)} ${rest.slice(1, 3)} ${rest.slice(3, 7)} ${rest.slice(7, 11)}`
-    }
-
-    // Genérico: +XX XXX XXX XXXX (código de 2 dígitos por defecto)
-    if (nums.length <= 2) return `+${nums}`
-    const cc = nums.slice(0, 2)
-    const rest = nums.slice(2)
-    if (rest.length <= 3) return `+${cc} ${rest}`
-    if (rest.length <= 6) return `+${cc} ${rest.slice(0, 3)} ${rest.slice(3)}`
-    return `+${cc} ${rest.slice(0, 3)} ${rest.slice(3, 6)} ${rest.slice(6, 10)}`
+    // Formatear cuerpo con puntos
+    const cuerpoFormateado = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+    return `${cuerpoFormateado}-${dv}`
   }
 
-  // Sin prefijo: asumir Chile (+56)
-  if (nums.startsWith('56')) nums = nums.slice(2)
-  if (!nums) return '+56 '
-  if (nums.length <= 1) return `+56 ${nums}`
-  if (nums.length <= 5) return `+56 ${nums[0]} ${nums.slice(1)}`
-  nums = nums.slice(0, 9)
-  if (nums.length <= 9) return `+56 ${nums[0]} ${nums.slice(1, 5)} ${nums.slice(5)}`
-  return `+56 ${nums[0]} ${nums.slice(1, 5)} ${nums.slice(5)}`
+  return limpio
 }
 
 /**
- * Valida email básico
+ * Limpia un RUT para almacenamiento (sin puntos, con guión)
+ */
+export function limpiarRut(rut: string): string {
+  const limpio = rut.replace(/\./g, '').replace(/\s/g, '').toUpperCase()
+  // Asegurar formato con guión
+  if (!limpio.includes('-') && limpio.length > 1) {
+    return limpio.slice(0, -1) + '-' + limpio.slice(-1)
+  }
+  return limpio
+}
+
+// =====================
+// TELÉFONOS
+// =====================
+
+export interface CodigoPais {
+  codigo: string
+  pais: string
+  bandera: string
+  formato: string // placeholder de ejemplo
+  largo: number // dígitos después del código (sin espacios)
+}
+
+export const CODIGOS_PAIS: CodigoPais[] = [
+  { codigo: '+56', pais: 'Chile', bandera: '🇨🇱', formato: '9 1234 5678', largo: 9 },
+  { codigo: '+58', pais: 'Venezuela', bandera: '🇻🇪', formato: '412 123 4567', largo: 10 },
+  { codigo: '+57', pais: 'Colombia', bandera: '🇨🇴', formato: '310 123 4567', largo: 10 },
+  { codigo: '+51', pais: 'Perú', bandera: '🇵🇪', formato: '999 123 456', largo: 9 },
+  { codigo: '+54', pais: 'Argentina', bandera: '🇦🇷', formato: '11 1234 5678', largo: 10 },
+  { codigo: '+55', pais: 'Brasil', bandera: '🇧🇷', formato: '11 91234 5678', largo: 11 },
+  { codigo: '+593', pais: 'Ecuador', bandera: '🇪🇨', formato: '99 123 4567', largo: 9 },
+  { codigo: '+591', pais: 'Bolivia', bandera: '🇧🇴', formato: '7 123 4567', largo: 8 },
+  { codigo: '+1', pais: 'EE.UU. / Canadá', bandera: '🇺🇸', formato: '555 123 4567', largo: 10 },
+]
+
+/**
+ * Formatea número de teléfono según país.
+ * Solo permite dígitos, agrega espacios para legibilidad.
+ */
+export function formatearTelefono(valor: string, codigoPais: string): string {
+  const soloDigitos = valor.replace(/\D/g, '')
+  const config = CODIGOS_PAIS.find(c => c.codigo === codigoPais)
+
+  if (!config) return soloDigitos
+
+  // Chile: 9 1234 5678
+  if (codigoPais === '+56' && soloDigitos.length > 0) {
+    if (soloDigitos.length <= 1) return soloDigitos
+    if (soloDigitos.length <= 5) return `${soloDigitos.slice(0, 1)} ${soloDigitos.slice(1)}`
+    return `${soloDigitos.slice(0, 1)} ${soloDigitos.slice(1, 5)} ${soloDigitos.slice(5, 9)}`
+  }
+
+  // Venezuela/Colombia: XXX XXX XXXX
+  if (['+58', '+57'].includes(codigoPais)) {
+    if (soloDigitos.length <= 3) return soloDigitos
+    if (soloDigitos.length <= 6) return `${soloDigitos.slice(0, 3)} ${soloDigitos.slice(3)}`
+    return `${soloDigitos.slice(0, 3)} ${soloDigitos.slice(3, 6)} ${soloDigitos.slice(6, 10)}`
+  }
+
+  // Default: XXX XXXX XXXX
+  if (soloDigitos.length <= 3) return soloDigitos
+  if (soloDigitos.length <= 7) return `${soloDigitos.slice(0, 3)} ${soloDigitos.slice(3)}`
+  return `${soloDigitos.slice(0, 3)} ${soloDigitos.slice(3, 7)} ${soloDigitos.slice(7)}`
+}
+
+/**
+ * Valida largo del teléfono según país
+ */
+export function validarTelefono(numero: string, codigoPais: string): boolean {
+  const soloDigitos = numero.replace(/\D/g, '')
+  const config = CODIGOS_PAIS.find(c => c.codigo === codigoPais)
+  if (!config) return soloDigitos.length >= 7
+  return soloDigitos.length === config.largo
+}
+
+/**
+ * Construye teléfono completo para almacenamiento
+ */
+export function telefonoCompleto(codigoPais: string, numero: string): string {
+  const limpio = numero.replace(/\D/g, '')
+  return `${codigoPais} ${limpio}`
+}
+
+// =====================
+// EMAIL
+// =====================
+
+/**
+ * Valida formato de email
  */
 export function validarEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  if (!email) return false
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return regex.test(email.trim())
+}
+
+// =====================
+// HELPERS GENERALES
+// =====================
+
+/**
+ * Valida que un campo obligatorio no esté vacío
+ */
+export function campoRequerido(valor: string | undefined | null): boolean {
+  return !!valor && valor.trim().length > 0
 }
 
 /**
- * Formatea fecha mientras se escribe (DD-MM-AAAA)
- * "25062026" → "25-06-2026"
- * Retorna { display: "25-06-2026", value: "2026-06-25" }
+ * Calcula edad a partir de fecha de nacimiento
  */
-export function formatearFecha(valor: string): { display: string; value: string } {
-  // Solo números
-  const nums = valor.replace(/[^0-9]/g, '').slice(0, 8)
-  
-  let display = ''
-  if (nums.length <= 2) display = nums
-  else if (nums.length <= 4) display = `${nums.slice(0, 2)}-${nums.slice(2)}`
-  else display = `${nums.slice(0, 2)}-${nums.slice(2, 4)}-${nums.slice(4)}`
+export function calcularEdad(fechaNacimiento: string): { anios: number; meses: number } {
+  const hoy = new Date()
+  const nac = new Date(fechaNacimiento + 'T12:00')
+  let anios = hoy.getFullYear() - nac.getFullYear()
+  let meses = hoy.getMonth() - nac.getMonth()
 
-  // Convertir a formato ISO para la BD (YYYY-MM-DD)
-  let value = ''
-  if (nums.length === 8) {
-    const dia = nums.slice(0, 2)
-    const mes = nums.slice(2, 4)
-    const anio = nums.slice(4, 8)
-    value = `${anio}-${mes}-${dia}`
+  if (meses < 0 || (meses === 0 && hoy.getDate() < nac.getDate())) {
+    anios--
+    meses += 12
+  }
+  if (hoy.getDate() < nac.getDate()) meses--
+
+  return { anios, meses: Math.max(0, meses) }
+}
+
+/**
+ * Retorna errores de validación para todo el formulario.
+ * Retorna un objeto { campo: "mensaje de error" }
+ */
+export function validarFormularioAdmision(form: any, paso: number): Record<string, string> {
+  const errores: Record<string, string> = {}
+
+  if (paso === 1) {
+    if (!campoRequerido(form.alumno_nombre)) errores.alumno_nombre = 'Nombre es obligatorio'
+    if (!campoRequerido(form.alumno_apellido)) errores.alumno_apellido = 'Apellido es obligatorio'
+    if (!form.curso_solicitado) errores.curso_solicitado = 'Seleccione un curso'
+    if (!form.alumno_fecha_nacimiento) errores.alumno_fecha_nacimiento = 'Fecha de nacimiento es obligatoria'
+    if (form.alumno_rut && !validarRut(form.alumno_rut)) errores.alumno_rut = 'RUT inválido'
+    if (!form.alumno_sexo) errores.alumno_sexo = 'Seleccione sexo'
   }
 
-  return { display, value }
+  if (paso === 2) {
+    if (!campoRequerido(form.apoderado_nombre)) errores.apoderado_nombre = 'Nombre es obligatorio'
+    if (!campoRequerido(form.apoderado_apellido)) errores.apoderado_apellido = 'Apellido es obligatorio'
+    if (!form.apoderado_email || !validarEmail(form.apoderado_email)) errores.apoderado_email = 'Email válido es obligatorio'
+    if (!form.apoderado_telefono_num) errores.apoderado_telefono = 'Teléfono es obligatorio'
+    else if (!validarTelefono(form.apoderado_telefono_num, form.apoderado_telefono_cod || '+56')) errores.apoderado_telefono = 'Teléfono incompleto'
+    if (form.apoderado_rut && !validarRut(form.apoderado_rut)) errores.apoderado_rut = 'RUT inválido'
+    if (!campoRequerido(form.apoderado_direccion)) errores.apoderado_direccion = 'Dirección es obligatoria'
+    if (!campoRequerido(form.apoderado_comuna)) errores.apoderado_comuna = 'Comuna es obligatoria'
+    // Padre: validar RUT si se ingresó
+    if (form.padre_rut && !validarRut(form.padre_rut)) errores.padre_rut = 'RUT inválido'
+  }
+
+  if (paso === 3) {
+    if (!campoRequerido(form.contacto_emergencia)) errores.contacto_emergencia = 'Contacto de emergencia es obligatorio'
+    if (!form.telefono_emergencia_num) errores.telefono_emergencia = 'Teléfono de emergencia es obligatorio'
+  }
+
+  return errores
+}
+
+// =====================
+// EXPORTS ADICIONALES (usados por MatriculaClient)
+// =====================
+
+/**
+ * Capitaliza primera letra de cada palabra
+ */
+export function capitalizarNombre(s: string): string {
+  if (!s) return ''
+  return s.replace(/\b\w/g, c => c.toUpperCase())
 }
 
 /**
- * Convierte fecha ISO (YYYY-MM-DD) a display (DD-MM-AAAA)
+ * Formatea fecha ISO a dd/mm/yyyy
  */
-export function fechaISOaDisplay(iso: string): string {
-  if (!iso || iso.length !== 10) return ''
-  const [anio, mes, dia] = iso.split('-')
-  return `${dia}-${mes}-${anio}`
-}
-
-/**
- * Formatea número como monto mientras se escribe
- * "1600000" → "1.600.000"
- */
-export function formatearMontoInput(valor: string): { display: string; value: number } {
-  const nums = valor.replace(/[^0-9]/g, '')
-  const numValue = parseInt(nums) || 0
-  const display = numValue > 0 ? numValue.toLocaleString('es-CL') : ''
-  return { display, value: numValue }
-}
-
-/**
- * Formatea montos CLP
- * 150000 → "$150.000"
- */
-export function formatearMontoCLP(valor: number): string {
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency',
-    currency: 'CLP',
-    minimumFractionDigits: 0,
-  }).format(valor)
+export function formatearFecha(fecha: string): string {
+  if (!fecha) return ''
+  const d = new Date(fecha + 'T12:00')
+  return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }

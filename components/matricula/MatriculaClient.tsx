@@ -7,10 +7,11 @@ import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validar
 import CapturaDocumento from '@/components/ui/CapturaDocumento'
 import CapturaMovilSection from '@/components/matricula/CapturaMovilSection'
 import SelectorRegionComuna from '@/components/ui/SelectorRegionComuna'
+import PreAdmisionesQueue from '@/components/matricula/PreAdmisionesQueue'
 
-interface Props { planes: any[]; matriculas: any[]; cursos: string[]; aportes: any[]; becasAprobadas: any[] }
+interface Props { planes: any[]; matriculas: any[]; cursos: string[]; aportes: any[]; becasAprobadas: any[]; preAdmisiones?: any[] }
 
-export default function MatriculaClient({ planes, matriculas, cursos, aportes, becasAprobadas }: Props) {
+export default function MatriculaClient({ planes, matriculas, cursos, aportes, becasAprobadas, preAdmisiones = [] }: Props) {
   const router = useRouter()
   const [vista, setVista] = useState<'lista' | 'nueva'>('lista')
   const [saving, setSaving] = useState(false)
@@ -201,6 +202,20 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
       {/* Lista de matrículas */}
       {vista === 'lista' && (
         <>
+          {/* Cola de pre-admisiones */}
+          {preAdmisiones.length > 0 && (
+            <PreAdmisionesQueue
+              preAdmisiones={preAdmisiones}
+              onImportar={(datos) => {
+                // Pre-llenar formulario con datos de la pre-admisión
+                setForm((f: any) => ({ ...f, ...datos }))
+                if (datos.documentos) setDocumentos(datos.documentos)
+                setVista('nueva')
+                toast.success('Datos importados. Complete el plan de cobro y envíe a firma.')
+              }}
+            />
+          )}
+
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="kpi-card"><div className="kpi-label">Matriculados {new Date().getFullYear()}</div><div className="kpi-value">{matriculas.length}</div></div>
             <div className="kpi-card"><div className="kpi-label">Activas</div><div className="kpi-value text-[#1a7a4c]">{matriculas.filter(m => m.estado === 'activa').length}</div></div>
@@ -244,6 +259,26 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                               ? '⚠ Falta pagaré'
                               : 'Firmar'}
                         </a>
+                        {!m.firma_apoderado && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch('/api/contratos/enviar-firma', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ matricula_id: m.id, tipo: 'contrato' }),
+                                })
+                                const data = await res.json()
+                                if (!res.ok) throw new Error(data.error)
+                                toast.success(`Enviado a ${data.email_enviado_a}`)
+                              } catch (e: any) { toast.error(e.message) }
+                            }}
+                            className="text-[11px] font-medium text-[var(--ar-accent)] hover:underline"
+                            title="Enviar contrato por email para firma remota"
+                          >
+                            📧 Enviar
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

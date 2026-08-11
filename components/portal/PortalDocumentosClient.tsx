@@ -131,6 +131,39 @@ export default function PortalDocumentosClient({ matriculas, documentos, fichas 
         )}
       </div>
 
+      {/* Certificado de matrícula */}
+      {matriculas.filter(m => m.estado === 'activa').length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <i className="ti ti-certificate text-[#2D5A3F] text-lg" aria-hidden="true"/>
+            <h2 className="text-[15px] font-bold text-[#1a2332]">Certificado de matrícula</h2>
+          </div>
+          <div className="space-y-2">
+            {matriculas.filter(m => m.estado === 'activa').map(m => (
+              <div key={`cert-${m.id}`} className="bg-white border border-[var(--ar-border)] rounded-xl p-4 flex items-center gap-4" style={{ boxShadow: 'var(--shadow-sm)' }}>
+                <div className="w-10 h-10 bg-[#EDF5F0] rounded-full flex items-center justify-center flex-shrink-0">
+                  <i className="ti ti-certificate text-[#2D5A3F] text-lg" aria-hidden="true"/>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-semibold text-[#1a2332]">Certificado de matrícula — {m.alumno?.nombre} {m.alumno?.apellido}</div>
+                  <div className="text-[11px] text-[#9ca3af] mt-0.5">{m.alumno?.curso} · Año {m.anio_escolar}</div>
+                </div>
+                <a
+                  href={`/api/contratos/certificado-matricula?alumno_id=${m.alumno_id}`}
+                  target="_blank"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2D5A3F] text-white text-[11px] font-semibold rounded-lg hover:bg-[#245234] transition-colors flex-shrink-0"
+                >
+                  <i className="ti ti-download text-xs" aria-hidden="true"/> Descargar
+                </a>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-[var(--ar-muted)] mt-2">
+            Este certificado acredita la matrícula del alumno. No constituye un certificado de alumno regular.
+          </p>
+        </div>
+      )}
+
       {/* Documentos compartidos */}
       {documentos.length > 0 && (
         <div>
