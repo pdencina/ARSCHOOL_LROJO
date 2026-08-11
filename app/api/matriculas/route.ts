@@ -262,14 +262,71 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Generar cobros del año (con beca y descuento contado aplicados)
+    // 4. Generar cobros del año (con beca, descuento contado, y descuento multi-hijo)
     const cobrosGenerados = []
     const porcentaje_beca = body.porcentaje_beca || 0
     const descuentoContado = body.descuento_contado || 0
     const factorBeca = 1 - (porcentaje_beca / 100)
     const factorDescuento = 1 - (descuentoContado / 100)
-    const montoMatFinal = Math.round((monto_matricula || 0) * factorBeca)
-    const montoMensFinal = Math.round((monto_mensual || 0) * factorBeca * factorDescuento)
+
+    // Calcular descuento multi-hijo (por matrícula)
+    let descuentoMatriculaMultiHijo = 0
+    if (rut_apoderado || email_apoderado) {
+      // Contar cuántos alumnos activos tiene este apoderado en el colegio
+      const lookupField = rut_apoderado ? 'rut' : 'email'
+      const lookupValue = rut_apoderado || email_apoderado
+      const { data: familiasApoderado } = await admin
+        .from('familias')
+        .select('alumno_id')
+        .eq('colegio_id', colegioId)
+        .eq(lookupField, lookupValue)
+
+      const alumnosDelApoderado = (familiasApoderado ?? []).length // Incluye el recién creado
+      if (alumnosDelApoderado >= 2) {
+        // Buscar config de descuento multi-hijo
+        const { data: configDesc } = await admin
+          .from('config_descuentos')
+          .select('*')
+          .eq('colegio_id', colegioId)
+          .eq('tipo', 'multi_hijo')
+          .eq('activo', true)
+          .lte('cantidad_hijos', alumnosDelApoderado)
+          .order('cantidad_hijos', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (configDesc) {
+          descuentoMatriculaMultiHijo = (configDesc as any).descuento_matricula || 0
+        }
+      }
+    }
+
+    // Aplicar override manual si existe
+    const montoMensualBase = body.monto_override || monto_mensual || 0
+    const montoMatFinal = Math.round((monto_matricula || 0) * factorBeca * (1 - descuentoMatriculaMultiHijo / 100))
+    const montoMensFinal = Math.round(montoMensualBase * factorBeca * factorDescuento)
+
+    // Calcular fechas de contrato (Play/sala cuna = 12 meses desde ingreso)
+    const cursoLower = (curso || '').toLowerCase()
+    const esPlayOSalaCuna = cursoLower.includes('play') || cursoLower.includes('sala cuna')
+    const fechaIngreso = new Date()
+    let fechaInicioContrato = fechaIngreso
+    let fechaFinContrato: Date
+    let duracionMeses: number
+    let tipoContrato: string
+
+    if (esPlayOSalaCuna) {
+      // Play/sala cuna: 12 meses corridos desde fecha de ingreso
+      tipoContrato = '12_meses'
+      duracionMeses = 12
+      fechaFinContrato = new Date(fechaIngreso)
+      fechaFinContrato.setMonth(fechaFinContrato.getMonth() + 12)
+    } else {
+      // Otros niveles: marzo a diciembre del año escolar
+      tipoContrato = 'anual'
+      duracionMeses = meses_cobro || 10
+      fechaFinContrato = new Date(new Date().getFullYear(), 11, 31) // 31 dic
+    }
 
     if (monto_mensual && meses_cobro) {
       const anio = new Date().getFullYear()
@@ -277,6 +334,12 @@ export async function POST(request: NextRequest) {
 
       // Cobro de aporte inicial (si aplica)
       if (montoMatFinal > 0) {
+        const obsMatricula = [
+          `Aporte inicial ${anio}`,
+          porcentaje_beca > 0 ? `(beca ${porcentaje_beca}%)` : '',
+          descuentoMatriculaMultiHijo > 0 ? `(dcto. multi-hijo ${descuentoMatriculaMultiHijo}%)` : '',
+        ].filter(Boolean).join(' ')
+
         const { data: cobroMat } = await admin.from('cobros').insert({
           colegio_id: colegioId,
           familia_id: familiaId,
@@ -288,13 +351,14 @@ export async function POST(request: NextRequest) {
           fecha_vencimiento: new Date().toISOString().split('T')[0],
           estado: 'pendiente',
           tipo_concepto: 'aporte_inicial',
-          observaciones: `Aporte inicial ${anio}${porcentaje_beca > 0 ? ` (beca ${porcentaje_beca}%)` : ''}`,
+          observaciones: obsMatricula,
         }).select().single()
         if (cobroMat) cobrosGenerados.push(cobroMat)
       }
 
       // Cobros mensuales
-      for (let i = 0; i < meses_cobro; i++) {
+      const mesesGenerar = esPlayOSalaCuna ? 12 : meses_cobro
+      for (let i = 0; i < mesesGenerar; i++) {
         const mes = ((mesInicio - 1 + i) % 12) + 1
         const anioC = mesInicio + i > 12 ? anio + 1 : anio
         const vencimiento = `${anioC}-${String(mes).padStart(2, '0')}-05`
@@ -322,16 +386,24 @@ export async function POST(request: NextRequest) {
       alumno_id: (alumno as any).id,
       familia_id: familiaId,
       plan_cobro_id: plan_cobro_id || null,
-      monto_matricula: monto_matricula || 0,
-      monto_mensual: monto_mensual || 0,
+      monto_matricula: montoMatFinal,
+      monto_mensual: montoMensFinal,
       observaciones,
       registrado_por: user.id,
       firma_apoderado: firma_apoderado || null,
       firmado_at: firma_apoderado ? new Date().toISOString() : null,
       medio_pago_matricula: body.medio_pago_matricula || null,
       descuento_contado: body.descuento_contado || 0,
-      monto_mensual_final: body.monto_mensual_final || null,
+      monto_mensual_final: montoMensFinal,
       pagare_confirmado: body.pagare_confirmado || false,
+      // Nuevos campos de contrato dinámico
+      fecha_inicio_contrato: fechaInicioContrato.toISOString().split('T')[0],
+      fecha_fin_contrato: fechaFinContrato.toISOString().split('T')[0],
+      duracion_contrato_meses: duracionMeses,
+      tipo_contrato: tipoContrato,
+      // Override manual
+      monto_override: body.monto_override || null,
+      motivo_override: body.motivo_override || null,
     }).select().single()
 
     // 6. Guardar documentos adjuntos

@@ -46,8 +46,12 @@ export async function POST(request: NextRequest) {
   // =====================
   const { data: cobrosPendientes } = await admin
     .from('cobros')
-    .select('id, colegio_id, familia_id, alumno_id, fecha_vencimiento, estado, monto, monto_pagado, mes, anio')
+    .select('id, colegio_id, familia_id, alumno_id, fecha_vencimiento, estado, monto, monto_pagado, mes, anio, tipo_concepto, interes_mora')
     .in('estado', ['pendiente', 'mora', 'parcial'])
+
+  // Cargar config de mora por colegio
+  const { data: configsMora } = await admin.from('config_mora').select('*').eq('activo', true)
+  const moraMap = new Map((configsMora ?? []).map((c: any) => [c.colegio_id, c]))
 
   for (const cobro of (cobrosPendientes ?? [])) {
     const vencimiento = new Date(cobro.fecha_vencimiento + 'T00:00:00')
@@ -69,8 +73,29 @@ export async function POST(request: NextRequest) {
       semaforo = 'amarillo'
     }
 
+    // Calcular interés por mora (3% diario desde día configurado)
+    const configMora = moraMap.get(cobro.colegio_id) as any
+    let interesMora = 0
+    if (configMora && diasAtraso >= configMora.dia_inicio_mora) {
+      const tiposAplican = configMora.aplica_a || ['aporte_mensual']
+      if (tiposAplican.includes(cobro.tipo_concepto)) {
+        const diasConInteres = diasAtraso - configMora.dia_inicio_mora + 1
+        const tasaDiaria = configMora.interes_diario / 100
+        interesMora = Math.round(cobro.monto * tasaDiaria * diasConInteres)
+        // Aplicar tope si existe
+        if (configMora.monto_maximo_interes && interesMora > configMora.monto_maximo_interes) {
+          interesMora = configMora.monto_maximo_interes
+        }
+      }
+    }
+
     // Actualizar cobro
-    const updates: any = { dias_atraso: diasAtraso, semaforo }
+    const updates: any = {
+      dias_atraso: diasAtraso,
+      semaforo,
+      interes_mora: interesMora,
+      monto_total_con_interes: cobro.monto + interesMora,
+    }
     if (nuevoEstado !== cobro.estado && cobro.estado !== 'parcial') {
       updates.estado = nuevoEstado
     }
@@ -206,6 +231,48 @@ export async function POST(request: NextRequest) {
       resultados.recordatorios_post++
     } catch (err) {
       console.error('Error alerta post-vencimiento:', err)
+    }
+  }
+
+  // =====================
+  // 4. NOTIFICACIONES DE VENCIMIENTO DE CONTRATO (Play/sala cuna)
+  // =====================
+  const enUnMes = new Date(hoy)
+  enUnMes.setDate(enUnMes.getDate() + 30)
+  const enUnMesStr = enUnMes.toISOString().split('T')[0]
+
+  const { data: contratosProxVencer } = await admin
+    .from('matriculas')
+    .select('id, colegio_id, alumno_id, fecha_fin_contrato, familia_id, alumno:alumnos(nombre, apellido), familia:familias(email, nombre_apoderado)')
+    .eq('estado', 'activa')
+    .not('fecha_fin_contrato', 'is', null)
+    .lte('fecha_fin_contrato', enUnMesStr)
+    .gte('fecha_fin_contrato', hoyStr)
+
+  for (const mat of (contratosProxVencer ?? [])) {
+    const m = mat as any
+    if (!m.familia?.email) continue
+    const diasParaVencer = Math.ceil((new Date(m.fecha_fin_contrato).getTime() - hoy.getTime()) / (1000*60*60*24))
+    // Solo notificar a 30, 15 y 7 días
+    if (![30, 15, 7].includes(diasParaVencer)) continue
+
+    try {
+      await enviarEmail({
+        to: m.familia.email,
+        subject: `AR School — Contrato próximo a vencer (${diasParaVencer} días)`,
+        html: `
+          <div style="font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+            <h2 style="color:#1a2332;">Contrato próximo a vencer</h2>
+            <p>Estimado/a ${m.familia.nombre_apoderado ?? 'Apoderado'},</p>
+            <p>Le informamos que el contrato de servicios educacionales del alumno <strong>${m.alumno?.nombre ?? ''} ${m.alumno?.apellido ?? ''}</strong> vence en <strong>${diasParaVencer} días</strong> (${new Date(m.fecha_fin_contrato).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}).</p>
+            <p>Para renovar, por favor contacte a la administración del colegio o espere indicaciones sobre el proceso de re-matrícula.</p>
+            <p style="font-size:12px;color:#9ca3af;">Este es un recordatorio automático de AR School Global.</p>
+          </div>
+        `,
+      })
+      resultados.alertas_admin++
+    } catch (err) {
+      console.error('Error notificación vencimiento contrato:', err)
     }
   }
 
