@@ -6,6 +6,7 @@ import {
   CODIGOS_PAIS, formatearTelefono, validarTelefono, telefonoCompleto,
   validarEmail, calcularEdad, validarFormularioAdmision,
 } from '@/lib/validaciones'
+import { TODAS_COMUNAS, PREVISIONES_SALUD, NACIONALIDADES, PARENTESCOS } from '@/lib/comunas-chile'
 
 const CURSOS = [
   'Play Group (2-3 años)', 'Pre School (3-4 años)', 'Kinder (Ciclo 0)',
@@ -86,6 +87,8 @@ export default function PreAdmisionForm() {
         apoderado_telefono: form.apoderado_telefono_num ? telefonoCompleto(form.apoderado_telefono_cod, form.apoderado_telefono_num) : null,
         telefono_emergencia: form.telefono_emergencia_num ? telefonoCompleto(form.telefono_emergencia_cod, form.telefono_emergencia_num) : null,
         padre_telefono: form.padre_telefono_num ? telefonoCompleto(form.padre_telefono_cod, form.padre_telefono_num) : null,
+        contacto_especialista: form.nombre_especialista ? `${form.nombre_especialista}${form.especialista_telefono_num ? ' | ' + telefonoCompleto(form.especialista_telefono_cod || '+56', form.especialista_telefono_num) : ''}` : null,
+        retiro_telefono: form.retiro_telefono_num ? telefonoCompleto(form.retiro_telefono_cod || '+56', form.retiro_telefono_num) : null,
         documentos,
       }
       const res = await fetch('/api/admision/pre-registro', {
@@ -161,11 +164,11 @@ export default function PreAdmisionForm() {
               <SelectField label="Jornada" value={form.jornada} onChange={v => set('jornada', v)} options={[{v:'completa',l:'Jornada completa'},{v:'media',l:'Media jornada'}]}/>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Nacionalidad" value={form.alumno_nacionalidad} onChange={v => set('alumno_nacionalidad', v)}/>
+              <SelectField label="Nacionalidad" value={form.alumno_nacionalidad} onChange={v => set('alumno_nacionalidad', v)} options={NACIONALIDADES.map(n => ({v:n, l:n}))}/>
               <Field label="País de nacimiento" value={form.alumno_pais_natal} onChange={v => set('alumno_pais_natal', v)}/>
             </div>
             <Field label="Dirección del alumno" value={form.alumno_direccion} onChange={v => set('alumno_direccion', v)} placeholder="Calle, número, depto"/>
-            <Field label="Comuna" value={form.alumno_comuna} onChange={v => set('alumno_comuna', v)}/>
+            <ComunaField label="Comuna" value={form.alumno_comuna} onChange={v => set('alumno_comuna', v)}/>
           </section>
         )}
 
@@ -185,8 +188,8 @@ export default function PreAdmisionForm() {
             <Field label="Email *" type="email" value={form.apoderado_email} onChange={v => { set('apoderado_email', v); clearError('apoderado_email') }} error={errores.apoderado_email} placeholder="correo@ejemplo.com"/>
             <PhoneField label="Teléfono *" codigoPais={form.apoderado_telefono_cod} onCodigoChange={v => set('apoderado_telefono_cod', v)} numero={form.apoderado_telefono_num} onNumeroChange={v => { set('apoderado_telefono_num', v); clearError('apoderado_telefono') }} error={errores.apoderado_telefono}/>
             <Field label="Dirección *" value={form.apoderado_direccion} onChange={v => { set('apoderado_direccion', v); clearError('apoderado_direccion') }} error={errores.apoderado_direccion} placeholder="Calle, número, depto"/>
-            <Field label="Comuna *" value={form.apoderado_comuna} onChange={v => { set('apoderado_comuna', v); clearError('apoderado_comuna') }} error={errores.apoderado_comuna}/>
-            <SelectField label="Parentesco con el alumno" value={form.apoderado_parentesco} onChange={v => set('apoderado_parentesco', v)} options={[{v:'madre/padre',l:'Madre / Padre'},{v:'abuelo/a',l:'Abuelo/a'},{v:'tutor_legal',l:'Tutor legal'},{v:'otro',l:'Otro'}]}/>
+            <ComunaField label="Comuna *" value={form.apoderado_comuna} onChange={v => { set('apoderado_comuna', v); clearError('apoderado_comuna') }} error={errores.apoderado_comuna}/>
+            <SelectField label="Parentesco con el alumno" value={form.apoderado_parentesco} onChange={v => set('apoderado_parentesco', v)} options={PARENTESCOS.map(p => ({v:p, l:p}))}/>
 
             <hr className="my-5 border-gray-100"/>
             <div className="mb-2"><h3 className="text-sm font-bold text-[#1B3A5C]">Padre / segundo apoderado</h3><p className="text-[10px] text-gray-400">Opcional — complete si aplica</p></div>
@@ -208,13 +211,16 @@ export default function PreAdmisionForm() {
         {paso === 3 && (
           <section className="space-y-4 animate-[fadeIn_0.2s]">
             <div className="mb-2"><h2 className="text-lg font-bold text-[#1B3A5C]">Salud y emergencia</h2><p className="text-xs text-gray-500">Información médica y contacto ante emergencias.</p></div>
-            <Field label="Previsión de salud" value={form.prevision_salud} onChange={v => set('prevision_salud', v)} placeholder="Fonasa, Isapre, particular"/>
+            <SelectField label="Previsión de salud" value={form.prevision_salud} onChange={v => set('prevision_salud', v)} options={[{v:'',l:'Seleccionar...'},...PREVISIONES_SALUD.map(p => ({v:p, l:p}))]}/>
             <Field label="Alergia alimentaria" value={form.alergia_alimentaria} onChange={v => set('alergia_alimentaria', v)} placeholder="Dejar vacío si no aplica"/>
             <Field label="Alergia a medicamentos" value={form.alergia_medicamento} onChange={v => set('alergia_medicamento', v)} placeholder="Dejar vacío si no aplica"/>
             <Field label="Enfermedad crónica" value={form.enfermedad_cronica} onChange={v => set('enfermedad_cronica', v)} placeholder="Ej: asma, diabetes, epilepsia"/>
             <Field label="Centro de salud para emergencias" value={form.centro_salud_emergencia} onChange={v => set('centro_salud_emergencia', v)} placeholder="Hospital o clínica más cercana"/>
             <Field label="Diagnóstico (condición neurológica)" value={form.diagnostico} onChange={v => set('diagnostico', v)} placeholder="Ej: TEA, TDAH, dislexia"/>
-            <Field label="Contacto del especialista tratante" value={form.contacto_especialista} onChange={v => set('contacto_especialista', v)} placeholder="Nombre y teléfono"/>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Nombre especialista tratante" value={form.nombre_especialista} onChange={v => set('nombre_especialista', v)} placeholder="Ej: Dra. María López" autoCapitalize/>
+              <PhoneField label="Teléfono especialista" codigoPais={form.especialista_telefono_cod || '+56'} onCodigoChange={v => set('especialista_telefono_cod', v)} numero={form.especialista_telefono_num} onNumeroChange={v => set('especialista_telefono_num', v)}/>
+            </div>
 
             <hr className="my-5 border-gray-100"/>
             <div className="mb-2"><h3 className="text-sm font-bold text-[#1B3A5C]">Contacto de emergencia *</h3><p className="text-[10px] text-gray-400">Persona a contactar si no se ubica al apoderado</p></div>
@@ -225,11 +231,11 @@ export default function PreAdmisionForm() {
             <div className="mb-2"><h3 className="text-sm font-bold text-[#1B3A5C]">Persona autorizada para retiro</h3><p className="text-[10px] text-gray-400">Opcional — quien puede retirar al alumno además del apoderado</p></div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Nombre" value={form.retiro_nombre} onChange={v => set('retiro_nombre', v)} autoCapitalize/>
-              <Field label="Parentesco" value={form.retiro_parentesco} onChange={v => set('retiro_parentesco', v)} placeholder="Ej: Abuela"/>
+              <SelectField label="Parentesco" value={form.retiro_parentesco} onChange={v => set('retiro_parentesco', v)} options={[{v:'',l:'Seleccionar...'}, ...PARENTESCOS.map(p => ({v:p, l:p}))]}/>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <RutField label="RUT" value={form.retiro_rut} onChange={v => set('retiro_rut', v)}/>
-              <Field label="Teléfono" value={form.retiro_telefono} onChange={v => set('retiro_telefono', v)} placeholder="+56 9..."/>
+              <PhoneField label="Teléfono" codigoPais={form.retiro_telefono_cod || '+56'} onCodigoChange={v => set('retiro_telefono_cod', v)} numero={form.retiro_telefono_num} onNumeroChange={v => set('retiro_telefono_num', v)}/>
             </div>
           </section>
         )}
@@ -351,6 +357,40 @@ function SelectField({ label, value, onChange, options, error }: { label:string;
         className={`w-full px-3.5 py-2.5 bg-gray-50 border rounded-xl text-sm outline-none appearance-none focus:ring-2 focus:ring-[#1B3A5C]/20 ${error ? 'border-red-300 bg-red-50/50' : 'border-gray-200'}`}>
         {options.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
       </select>
+      {error && <p className="text-[10px] text-red-600 mt-0.5">{error}</p>}
+    </div>
+  )
+}
+
+function ComunaField({ label, value, onChange, error }: { label: string; value?: string; onChange: (v: string) => void; error?: string }) {
+  const [busqueda, setBusqueda] = useState('')
+  const [abierto, setAbierto] = useState(false)
+  const filtradas = busqueda.length > 0
+    ? TODAS_COMUNAS.filter(c => c.toLowerCase().includes(busqueda.toLowerCase())).slice(0, 12)
+    : TODAS_COMUNAS.slice(0, 20)
+
+  return (
+    <div className="relative">
+      <label className="text-[11px] font-semibold text-gray-600 mb-1 block">{label}</label>
+      <input
+        type="text"
+        value={abierto ? busqueda : (value || '')}
+        onFocus={() => { setAbierto(true); setBusqueda(value || '') }}
+        onChange={e => { setBusqueda(e.target.value); setAbierto(true) }}
+        placeholder="Escriba para buscar..."
+        className={`w-full px-3.5 py-2.5 bg-gray-50 border rounded-xl text-sm outline-none transition-all focus:ring-2 focus:ring-[#1B3A5C]/20 focus:border-[#1B3A5C] ${error ? 'border-red-300 bg-red-50/50' : 'border-gray-200'}`}
+      />
+      {abierto && filtradas.length > 0 && (
+        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+          {filtradas.map(c => (
+            <button key={c} type="button" onClick={() => { onChange(c); setAbierto(false); setBusqueda('') }}
+              className={`w-full text-left px-3.5 py-2 text-sm hover:bg-[#f0f4f8] transition-colors ${c === value ? 'bg-[#f0f4f8] font-semibold text-[#1B3A5C]' : 'text-gray-700'}`}>
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+      {abierto && <div className="fixed inset-0 z-10" onClick={() => setAbierto(false)}/>}
       {error && <p className="text-[10px] text-red-600 mt-0.5">{error}</p>}
     </div>
   )
