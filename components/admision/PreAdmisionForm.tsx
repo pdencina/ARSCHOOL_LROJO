@@ -273,7 +273,9 @@ export default function PreAdmisionForm() {
         <div className="max-w-lg mx-auto flex gap-3">
           {paso > 1 && <button onClick={() => setPaso((paso-1) as Paso)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 active:scale-[0.98] transition-transform">Anterior</button>}
           {paso < 5 ? (
-            <button onClick={intentarAvanzar} className="flex-1 py-3 rounded-xl bg-[#1B3A5C] text-white text-sm font-semibold active:scale-[0.98] transition-transform">Siguiente</button>
+            <button onClick={intentarAvanzar} disabled={paso === 4 && DOCS_OBL.some(d => !documentos[d.key])} className="flex-1 py-3 rounded-xl bg-[#1B3A5C] text-white text-sm font-semibold active:scale-[0.98] transition-transform disabled:opacity-50">
+              {paso === 4 && DOCS_OBL.some(d => !documentos[d.key]) ? 'Faltan documentos obligatorios' : 'Siguiente'}
+            </button>
           ) : (
             <button onClick={enviar} disabled={loading} className="flex-1 py-3 rounded-xl bg-[#2D5A3F] text-white text-sm font-semibold active:scale-[0.98] disabled:opacity-50 transition-transform">{loading ? 'Enviando...' : 'Enviar solicitud de admisión'}</button>
           )}

@@ -221,6 +221,12 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
                     ✓ Aprobar
                   </button>
                 )}
+                {pa.estado !== 'aprobada' && pa.estado !== 'matriculada' && pa.estado !== 'rechazada' && (
+                  <button onClick={() => { if (!observaciones.trim()) { toast.error('Escriba la observación que verá el apoderado'); return }; cambiarEstado('subsanar') }} disabled={loading}
+                    className="flex-1 py-2.5 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors">
+                    📩 Solicitar corrección
+                  </button>
+                )}
                 {pa.estado === 'aprobada' && (
                   <button onClick={importar} disabled={loading}
                     className="flex-1 py-2.5 bg-[#1B3A5C] text-white text-xs font-semibold rounded-lg hover:bg-[#143050] disabled:opacity-50 transition-colors">
