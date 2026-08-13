@@ -1,0 +1,104 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { enviarEmail } from '@/lib/email'
+
+function getAdmin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
+
+// GET /api/admision/[id] — Detalle completo de una pre-admisión
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const admin = getAdmin()
+  const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
+  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision'].includes((ur as any)?.rol)) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
+  const { data } = await admin.from('pre_admisiones').select('*').eq('id', params.id).single()
+  if (!data) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
+
+  return NextResponse.json(data)
+}
+
+// PUT /api/admision/[id] — Actualizar estado (aprobar, rechazar, observar)
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const admin = getAdmin()
+  const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
+  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision'].includes((ur as any)?.rol)) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
+  const body = await request.json()
+  const { accion, observaciones_admin, motivo_rechazo } = body
+
+  const updates: any = {
+    revisado_por: user.id,
+    revisado_at: new Date().toISOString(),
+  }
+
+  if (accion === 'aprobar') {
+    updates.estado = 'aprobada'
+    updates.observaciones_admin = observaciones_admin || null
+  } else if (accion === 'rechazar') {
+    updates.estado = 'rechazada'
+    updates.motivo_rechazo = motivo_rechazo || 'No cumple requisitos'
+    updates.observaciones_admin = observaciones_admin || null
+  } else if (accion === 'en_revision') {
+    updates.estado = 'en_revision'
+    updates.observaciones_admin = observaciones_admin || null
+  } else if (accion === 'observar') {
+    updates.observaciones_admin = observaciones_admin
+  } else {
+    return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
+  }
+
+  const { error } = await admin.from('pre_admisiones').update(updates).eq('id', params.id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Notificar al apoderado si se aprobó o rechazó
+  if (accion === 'aprobar' || accion === 'rechazar') {
+    const { data: pa } = await admin.from('pre_admisiones').select('apoderado_email, apoderado_nombre, apoderado_apellido, alumno_nombre, alumno_apellido, codigo_seguimiento').eq('id', params.id).single()
+    const p = pa as any
+    if (p?.apoderado_email) {
+      const esAprobada = accion === 'aprobar'
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      await enviarEmail({
+        to: p.apoderado_email,
+        subject: `AR School — Solicitud ${esAprobada ? 'aprobada' : 'no aprobada'} (${p.codigo_seguimiento})`,
+        html: `
+          <div style="font-family:-apple-system,sans-serif;max-width:550px;margin:0 auto;padding:30px 20px;">
+            <div style="text-align:center;margin-bottom:20px;"><strong style="font-size:16px;color:#1B3A5C;">AR SCHOOL</strong></div>
+            <h2 style="color:${esAprobada ? '#2D5A3F' : '#A8432B'};font-size:18px;text-align:center;">
+              Solicitud ${esAprobada ? 'aprobada' : 'no aprobada'}
+            </h2>
+            <p style="color:#4b5563;font-size:13px;">Estimado/a ${p.apoderado_nombre} ${p.apoderado_apellido},</p>
+            <p style="color:#4b5563;font-size:13px;line-height:1.6;">
+              ${esAprobada
+                ? `La solicitud de admisión de <strong>${p.alumno_nombre} ${p.alumno_apellido}</strong> ha sido <strong>aprobada</strong>. Pronto recibirá instrucciones para completar el proceso de matrícula y firma de contrato.`
+                : `Lamentamos informar que la solicitud de admisión de <strong>${p.alumno_nombre} ${p.alumno_apellido}</strong> no fue aprobada.${motivo_rechazo ? ` Motivo: ${motivo_rechazo}` : ''}`
+              }
+            </p>
+            ${esAprobada ? `<div style="text-align:center;margin:24px 0;"><a href="${baseUrl}/admision/seguimiento?codigo=${p.codigo_seguimiento}" style="display:inline-block;background:#1B3A5C;color:white;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:13px;font-weight:600;">Ver estado</a></div>` : ''}
+            <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;"/>
+            <p style="font-size:11px;color:#9ca3af;text-align:center;">Fundación Educacional AR Ministries · RUT 65.168.392-0</p>
+          </div>
+        `,
+      })
+    }
+  }
+
+  return NextResponse.json({ ok: true, estado: updates.estado })
+}
