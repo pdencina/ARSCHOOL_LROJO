@@ -39,9 +39,11 @@ CREATE TABLE IF NOT EXISTS public.firma_tokens (
 -- Acceso público (sin auth) para la página de firma
 ALTER TABLE public.firma_tokens ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "public: select firma_tokens by token" ON public.firma_tokens;
 CREATE POLICY "public: select firma_tokens by token" ON public.firma_tokens
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "service: all firma_tokens" ON public.firma_tokens;
 CREATE POLICY "service: all firma_tokens" ON public.firma_tokens
   FOR ALL USING (true) WITH CHECK (true);
 
@@ -71,9 +73,11 @@ CREATE TABLE IF NOT EXISTS public.documentos_admision_config (
 
 ALTER TABLE public.documentos_admision_config ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "public: select docs config" ON public.documentos_admision_config;
 CREATE POLICY "public: select docs config" ON public.documentos_admision_config
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "service: all docs config" ON public.documentos_admision_config;
 CREATE POLICY "service: all docs config" ON public.documentos_admision_config
   FOR ALL USING (true) WITH CHECK (true);
 
@@ -83,14 +87,15 @@ GRANT ALL ON public.documentos_admision_config TO service_role;
 
 -- Datos iniciales: documentos requeridos por la fundación
 INSERT INTO public.documentos_admision_config (colegio_id, categoria, nombre_display, descripcion, obligatorio, aplica_a, orden) VALUES
-  (NULL, 'cedula_alumno', 'Cédula de identidad del alumno', 'Copia por ambos lados', true, ARRAY['todos'], 1),
-  (NULL, 'cert_nacimiento_alumno', 'Certificado de nacimiento del alumno', 'Original o copia legalizada', true, ARRAY['todos'], 2),
-  (NULL, 'cedula_apoderado', 'Cédula de identidad del apoderado', 'Copia por ambos lados', true, ARRAY['todos'], 3),
-  (NULL, 'cert_nacimiento_apoderado', 'Certificado de nacimiento del apoderado', 'Para verificación de parentesco', true, ARRAY['todos'], 4),
-  (NULL, 'cuenta_servicios', 'Cuenta de servicios básicos', 'Luz, agua o gas. Para verificar domicilio (requerido para pagarés)', true, ARRAY['todos'], 5),
-  (NULL, 'cert_medico', 'Certificado médico', 'Solo si el alumno tiene alguna patología crónica', false, ARRAY['todos'], 6),
-  (NULL, 'cert_diagnostico', 'Certificado de diagnóstico', 'Solo si existe condición neurológica o terapéutica diagnosticada', false, ARRAY['todos'], 7),
-  (NULL, 'notas_anteriores', 'Certificado de notas del colegio anterior', 'Últimos 2 años cursados', false, ARRAY['elementary', 'middle', 'high'], 8);
+  (NULL, 'cedula_alumno_frente', 'CI alumno — Frente', 'Foto clara del frente de la cédula de identidad', true, ARRAY['todos'], 1),
+  (NULL, 'cedula_alumno_dorso', 'CI alumno — Dorso', 'Foto clara del reverso de la cédula de identidad', true, ARRAY['todos'], 2),
+  (NULL, 'cedula_apoderado_frente', 'CI apoderado — Frente', 'Foto clara del frente de la cédula del apoderado', true, ARRAY['todos'], 3),
+  (NULL, 'cedula_apoderado_dorso', 'CI apoderado — Dorso', 'Foto clara del reverso de la cédula del apoderado', true, ARRAY['todos'], 4),
+  (NULL, 'cert_nacimiento_alumno', 'Certificado de nacimiento del alumno', 'Original o copia legalizada', true, ARRAY['todos'], 5),
+  (NULL, 'cuenta_servicios', 'Cuenta de servicios básicos', 'Luz, agua o gas. Para verificar domicilio (requerido para pagarés)', true, ARRAY['todos'], 6),
+  (NULL, 'cert_medico', 'Certificado médico', 'Solo si el alumno tiene alguna patología crónica', false, ARRAY['todos'], 7),
+  (NULL, 'cert_diagnostico', 'Certificado de diagnóstico', 'Solo si existe condición neurológica o terapéutica diagnosticada', false, ARRAY['todos'], 8),
+  (NULL, 'notas_anteriores', 'Certificado de notas del colegio anterior', 'Últimos 2 años cursados', false, ARRAY['elementary', 'middle', 'high'], 9);
 
 -- =====================
 -- 3. TABLA DE DOCUMENTOS SUBIDOS POR ADMISIÓN
@@ -118,11 +123,13 @@ CREATE TABLE IF NOT EXISTS public.documentos_admision (
 
 ALTER TABLE public.documentos_admision ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "colegio: all documentos_admision" ON public.documentos_admision;
 CREATE POLICY "colegio: all documentos_admision" ON public.documentos_admision
   FOR ALL USING (colegio_id = public.mi_colegio_id())
   WITH CHECK (colegio_id = public.mi_colegio_id());
 
 -- Apoderados pueden ver sus propios documentos
+DROP POLICY IF EXISTS "apoderado: select own docs" ON public.documentos_admision;
 CREATE POLICY "apoderado: select own docs" ON public.documentos_admision
   FOR SELECT USING (
     alumno_id IN (SELECT alumno_id FROM public.tutor_alumnos WHERE tutor_id = auth.uid())

@@ -20,9 +20,11 @@ const SEDES = [
   { value: 'punta_arenas', label: 'Punta Arenas' },
 ]
 const DOCS_OBL = [
-  { key: 'cedula_alumno', label: 'Cédula de identidad del alumno', desc: 'Copia ambos lados (foto o PDF)' },
+  { key: 'cedula_alumno_frente', label: 'CI alumno — Frente', desc: 'Foto clara del frente de la cédula' },
+  { key: 'cedula_alumno_dorso', label: 'CI alumno — Dorso', desc: 'Foto clara del reverso de la cédula' },
+  { key: 'cedula_apoderado_frente', label: 'CI apoderado — Frente', desc: 'Foto clara del frente de la cédula' },
+  { key: 'cedula_apoderado_dorso', label: 'CI apoderado — Dorso', desc: 'Foto clara del reverso de la cédula' },
   { key: 'cert_nacimiento_alumno', label: 'Certificado de nacimiento', desc: 'Del alumno — original o copia' },
-  { key: 'cedula_apoderado', label: 'Cédula de identidad del apoderado', desc: 'Copia ambos lados' },
   { key: 'cuenta_servicios', label: 'Cuenta de servicios básicos', desc: 'Luz, agua o gas (verifica domicilio)' },
 ]
 const DOCS_OPT = [

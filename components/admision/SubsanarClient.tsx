@@ -3,9 +3,11 @@ import { useState } from 'react'
 import toast, { Toaster } from 'react-hot-toast'
 
 const DOCS_OBL = [
-  { key: 'cedula_alumno', label: 'Cédula de identidad del alumno' },
+  { key: 'cedula_alumno_frente', label: 'CI alumno — Frente' },
+  { key: 'cedula_alumno_dorso', label: 'CI alumno — Dorso' },
+  { key: 'cedula_apoderado_frente', label: 'CI apoderado — Frente' },
+  { key: 'cedula_apoderado_dorso', label: 'CI apoderado — Dorso' },
   { key: 'cert_nacimiento_alumno', label: 'Certificado de nacimiento del alumno' },
-  { key: 'cedula_apoderado', label: 'Cédula de identidad del apoderado' },
   { key: 'cuenta_servicios', label: 'Cuenta de servicios básicos' },
 ]
 const DOCS_OPT = [

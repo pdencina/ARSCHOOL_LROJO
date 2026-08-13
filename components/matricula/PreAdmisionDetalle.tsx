@@ -10,9 +10,13 @@ interface Props {
 }
 
 const DOCS_LABELS: Record<string, string> = {
+  cedula_alumno_frente: 'CI alumno (frente)',
+  cedula_alumno_dorso: 'CI alumno (dorso)',
   cedula_alumno: 'Cédula alumno',
-  cert_nacimiento_alumno: 'Cert. nacimiento alumno',
+  cedula_apoderado_frente: 'CI apoderado (frente)',
+  cedula_apoderado_dorso: 'CI apoderado (dorso)',
   cedula_apoderado: 'Cédula apoderado',
+  cert_nacimiento_alumno: 'Cert. nacimiento alumno',
   cert_nacimiento_apoderado: 'Cert. nacimiento apoderado',
   cuenta_servicios: 'Cuenta servicios',
   cert_medico: 'Cert. médico',
@@ -164,7 +168,7 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
 
             {/* Verificación de obligatorios */}
             <div className="mt-3 space-y-1">
-              {['cedula_alumno', 'cert_nacimiento_alumno', 'cedula_apoderado', 'cuenta_servicios'].map(key => (
+              {['cedula_alumno_frente', 'cedula_alumno_dorso', 'cedula_apoderado_frente', 'cedula_apoderado_dorso', 'cert_nacimiento_alumno', 'cuenta_servicios'].map(key => (
                 <div key={key} className="flex items-center gap-2 text-[10px]">
                   {docs[key] ? (
                     <span className="text-[#2D5A3F] font-bold">✓</span>
