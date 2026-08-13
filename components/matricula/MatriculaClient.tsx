@@ -297,13 +297,33 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                                 })
                                 const data = await res.json()
                                 if (!res.ok) throw new Error(data.error)
-                                toast.success(`Enviado a ${data.email_enviado_a}`)
+                                toast.success(`Contrato enviado a ${data.email_enviado_a}`)
                               } catch (e: any) { toast.error(e.message) }
                             }}
                             className="text-[11px] font-medium text-[var(--ar-accent)] hover:underline"
                             title="Enviar contrato por email para firma remota"
                           >
-                            📧 Enviar
+                            📧 Contrato
+                          </button>
+                        )}
+                        {!m.firma_pagare && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch('/api/contratos/enviar-firma', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ matricula_id: m.id, tipo: 'pagare' }),
+                                })
+                                const data = await res.json()
+                                if (!res.ok) throw new Error(data.error)
+                                toast.success(`Pagaré enviado a ${data.email_enviado_a}`)
+                              } catch (e: any) { toast.error(e.message) }
+                            }}
+                            className="text-[11px] font-medium text-[#3D7A94] hover:underline"
+                            title="Enviar pagaré por email para firma remota"
+                          >
+                            📧 Pagaré
                           </button>
                         )}
                       </div>
