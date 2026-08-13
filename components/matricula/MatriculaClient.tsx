@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validarEmail, formatearFecha, fechaISOaDisplay, formatearMontoInput } from '@/lib/validaciones'
@@ -44,20 +44,39 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
   }
 
   // Auto-completar montos desde tabla de aportes
-  function calcularMontos(curso: string, jornada: string, sede: string) {
+  function calcularMontos(curso: string, jornada: string, sede: string, tipoIngresoOverride?: string) {
     const anioActual = new Date().getFullYear()
     const esPlaygroup = curso.toLowerCase().includes('play group') || curso.toLowerCase().includes('pre school')
     const nivel = esPlaygroup ? 'Playgroup' : 'Preschool a High School'
     const jornadaTipo = jornada === 'completa' ? 'completa' : 'media'
     const sedeKey = sede || null
+    const tipoIngreso = tipoIngresoOverride || form.tipo_ingreso || 'nuevo'
 
-    // Buscar aporte inicial
-    let inicial = aportes.find(a => a.tipo === 'inicial' && a.nivel === nivel && a.anio === anioActual && (a.sede === sedeKey || (!sedeKey && !a.sede)))
-    if (!inicial) inicial = aportes.find(a => a.tipo === 'inicial' && a.nivel === nivel && a.anio === anioActual && !a.sede)
+    // Buscar aporte inicial — no filtra por tipo_ingreso (la matrícula es igual para todos)
+    let inicial = aportes.find((a: any) =>
+      a.tipo === 'inicial' && a.nivel === nivel && a.anio === anioActual &&
+      (a.sede === sedeKey || !a.sede)
+    )
+    if (!inicial) inicial = aportes.find((a: any) => a.tipo === 'inicial' && a.nivel === nivel && !a.sede)
+    if (!inicial) inicial = aportes.find((a: any) => a.tipo === 'inicial' && a.nivel === nivel)
 
-    // Buscar aporte mensual
-    let mensual = aportes.find(a => a.tipo === 'mensual' && a.nivel === nivel && a.anio === anioActual && (a.jornada === jornadaTipo || !a.jornada) && (a.sede === sedeKey || (!sedeKey && !a.sede)))
-    if (!mensual) mensual = aportes.find(a => a.tipo === 'mensual' && a.nivel === nivel && a.anio === anioActual && (a.jornada === jornadaTipo || !a.jornada) && !a.sede)
+    // Buscar aporte mensual — priorizar por tipo_ingreso, luego 'todos', luego cualquiera
+    let mensual = aportes.find((a: any) =>
+      a.tipo === 'mensual' && a.nivel === nivel && a.anio === anioActual &&
+      (a.jornada === jornadaTipo || !a.jornada) &&
+      (a.sede === sedeKey || !a.sede) &&
+      (a.tipo_ingreso === tipoIngreso || a.tipo_ingreso === 'todos')
+    )
+    if (!mensual) mensual = aportes.find((a: any) =>
+      a.tipo === 'mensual' && a.nivel === nivel &&
+      (a.jornada === jornadaTipo || !a.jornada) &&
+      (a.sede === sedeKey || !a.sede)
+    )
+    if (!mensual) mensual = aportes.find((a: any) =>
+      a.tipo === 'mensual' && a.nivel === nivel &&
+      (a.jornada === jornadaTipo || !a.jornada)
+    )
+    if (!mensual) mensual = aportes.find((a: any) => a.tipo === 'mensual' && a.nivel === nivel)
 
     const montoInicial = inicial?.monto ?? 0
     const montoMensual = mensual?.monto ?? 0
@@ -94,6 +113,14 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
     crear_cuenta_apoderado: true, password_apoderado: '',
     observaciones: '', firma_apoderado: '',
   })
+
+  // Calcular montos al montar (con valores iniciales del form)
+  useEffect(() => {
+    if (form.curso && aportes.length > 0) {
+      calcularMontos(form.curso, form.jornada, form.sede)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function buscarApoderado(email: string) {
     if (!validarEmail(email)) { setApoderadoExiste(null); return }
@@ -398,7 +425,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                 </select>
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Tipo de ingreso</label>
-                <select value={form.tipo_ingreso} onChange={e => setForm(p => ({...p, tipo_ingreso: e.target.value}))} className="select-base w-full">
+                <select value={form.tipo_ingreso} onChange={e => { setForm(p => ({...p, tipo_ingreso: e.target.value})); calcularMontos(form.curso, form.jornada, form.sede, e.target.value) }} className="select-base w-full">
                   <option value="nuevo">Nuevo ingreso</option>
                   <option value="continuidad">Continuidad</option>
                 </select>
