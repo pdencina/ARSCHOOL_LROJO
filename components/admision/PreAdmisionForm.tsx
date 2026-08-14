@@ -410,9 +410,15 @@ function DocRow({ doc, uploaded, onSelect, onRemove }: { doc:{key:string;label:s
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
         {uploaded && <button onClick={onRemove} className="p-1 text-gray-400 hover:text-red-500"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg></button>}
+        {/* Botón cámara — abre cámara directamente en mobile */}
+        <label className="px-2 py-1.5 rounded-lg text-[10px] font-semibold cursor-pointer bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors" title="Tomar foto">
+          📷
+          <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { if(e.target.files?.[0]) onSelect(e.target.files[0]); e.target.value='' }}/>
+        </label>
+        {/* Botón archivo — abre selector de archivos/galería */}
         <label className={`px-2.5 py-1.5 rounded-lg text-[10px] font-semibold cursor-pointer transition-colors ${uploaded ? 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' : 'bg-[#1B3A5C] text-white hover:bg-[#143050]'}`}>
-          {uploaded ? 'Cambiar' : 'Subir'}
-          <input type="file" accept="image/*,.pdf" capture="environment" className="hidden" onChange={e => { if(e.target.files?.[0]) onSelect(e.target.files[0]); e.target.value='' }}/>
+          {uploaded ? 'Cambiar' : 'Adjuntar'}
+          <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => { if(e.target.files?.[0]) onSelect(e.target.files[0]); e.target.value='' }}/>
         </label>
       </div>
     </div>
