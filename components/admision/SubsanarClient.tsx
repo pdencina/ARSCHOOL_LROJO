@@ -13,7 +13,7 @@ const DOCS_OBL = [
 const DOCS_OPT = [
   { key: 'cert_medico', label: 'Certificado médico' },
   { key: 'cert_diagnostico', label: 'Certificado de diagnóstico' },
-  { key: 'notas_anteriores', label: 'Notas colegio anterior' },
+  { key: 'notas_anteriores', label: 'Notas centro educacional anterior' },
 ]
 
 interface Props { preAdmision: any }
@@ -88,7 +88,7 @@ export default function SubsanarClient({ preAdmision: pa }: Props) {
             <div className="flex items-start gap-2">
               <span className="text-lg">⚠️</span>
               <div>
-                <h3 className="text-sm font-bold text-amber-800 mb-1">Observación del colegio</h3>
+                <h3 className="text-sm font-bold text-amber-800 mb-1">Observación del Centro Educacional</h3>
                 <p className="text-xs text-amber-700 leading-relaxed">{pa.observaciones_admin}</p>
               </div>
             </div>
@@ -150,7 +150,7 @@ export default function SubsanarClient({ preAdmision: pa }: Props) {
 
         {/* Respuesta del apoderado */}
         <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <label className="text-[11px] font-semibold text-gray-600 mb-1 block">Respuesta al colegio (opcional)</label>
+          <label className="text-[11px] font-semibold text-gray-600 mb-1 block">Respuesta al Centro Educacional (opcional)</label>
           <textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} rows={3} placeholder="Explique correcciones realizadas o consultas..."
             className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs resize-none focus:ring-2 focus:ring-[#1B3A5C]/20 focus:border-[#1B3A5C] outline-none"/>
         </div>

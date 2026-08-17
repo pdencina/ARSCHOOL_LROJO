@@ -30,7 +30,7 @@ const DOCS_OBL = [
 const DOCS_OPT = [
   { key: 'cert_medico', label: 'Certificado médico', desc: 'Solo si hay patología crónica' },
   { key: 'cert_diagnostico', label: 'Certificado de diagnóstico', desc: 'Condición neurológica/terapéutica' },
-  { key: 'notas_anteriores', label: 'Notas colegio anterior', desc: 'Últimos 2 años cursados' },
+  { key: 'notas_anteriores', label: 'Notas centro educacional anterior', desc: 'Últimos 2 años cursados' },
 ]
 
 type Paso = 1 | 2 | 3 | 4 | 5

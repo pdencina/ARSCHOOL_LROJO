@@ -97,7 +97,7 @@ function SeguimientoContent() {
               </div>
               {resultado.observaciones && (
                 <div className="bg-blue-50 rounded-lg p-2.5 mt-2">
-                  <div className="font-semibold text-blue-700 mb-0.5">Mensaje del colegio:</div>
+                  <div className="font-semibold text-blue-700 mb-0.5">Mensaje del Centro Educacional:</div>
                   <div className="text-blue-600">{resultado.observaciones}</div>
                 </div>
               )}
