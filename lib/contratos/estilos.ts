@@ -34,9 +34,8 @@ table th { background: #f5f5f5; font-weight: bold; }
 `
 
 export const HEADER_FUNDACION = `
-<div class="header">
-<h2>FUNDACIÓN</h2>
-<h3>arm global</h3>
+<div class="header" style="text-align:center;margin-bottom:40px;">
+<img src="${process.env.NEXT_PUBLIC_SITE_URL || ''}/logo-fundacion.png" alt="Fundación ARM Global" style="height:60px;margin-bottom:8px;"/>
 </div>`
 
 export const FOOTER_SEDES = `
@@ -76,7 +75,9 @@ export function seccionFirmas(firmaApoderado: string | null, firmadoAt: string |
 <div class="firmas-section">
 <div class="firmas-grid">
 <div class="firma-box">
-<div class="firma-espacio"></div>
+<div class="firma-espacio">
+<img src="${process.env.NEXT_PUBLIC_SITE_URL || ''}/firma-pastor.png" class="firma-img" alt="Firma Patricio Burgos" style="max-height:80px;"/>
+</div>
 <div class="firma-linea"></div>
 <div class="firma-nombre">PATRICIO FERNANDO BURGOS PÉREZ</div>
 <div class="firma-detalle">RUT N° 12.274.490-6</div>
