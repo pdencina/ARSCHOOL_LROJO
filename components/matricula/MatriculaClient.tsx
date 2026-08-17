@@ -46,11 +46,12 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
   }
 
   // Auto-completar montos desde tabla de aportes (fetch en tiempo real)
-  async function calcularMontos(curso: string, jornada: string, sede: string, tipoIngresoOverride?: string) {
+  async function calcularMontos(curso: string, jornada: string, sede: string, tipoIngresoOverride?: string, anioOverride?: number) {
     if (!curso) return
     const tipoIngreso = tipoIngresoOverride || form.tipo_ingreso || 'nuevo'
+    const anio = anioOverride || form.anio_escolar || new Date().getFullYear()
     try {
-      const params = new URLSearchParams({ curso, sede: sede || '', jornada: jornada || 'completa', tipo_ingreso: tipoIngreso })
+      const params = new URLSearchParams({ curso, sede: sede || '', jornada: jornada || 'completa', tipo_ingreso: tipoIngreso, anio: String(anio) })
       const res = await fetch(`/api/aportes/consultar?${params}`)
       if (res.ok) {
         const data = await res.json()
@@ -84,6 +85,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
     // Cobros
     plan_cobro_id: '', monto_matricula: 0, monto_mensual: 0, meses_cobro: 10, porcentaje_beca: 0,
     medio_pago_matricula: '' as '' | 'transferencia' | 'tarjeta' | 'cheque' | 'pagare',
+    anio_escolar: new Date().getFullYear(),
     // Config
     crear_cuenta_apoderado: true, password_apoderado: '',
     observaciones: '', firma_apoderado: '',
@@ -614,6 +616,14 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
               <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Plan de aportes</h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Año escolar</label>
+                <select value={form.anio_escolar} onChange={e => { const v = parseInt(e.target.value); setForm(p => ({...p, anio_escolar: v})); calcularMontos(form.curso, form.jornada, form.sede, undefined, v) }} className="select-base w-full">
+                  <option value={2026}>2026</option>
+                  <option value={2027}>2027</option>
+                  <option value={2028}>2028</option>
+                </select>
+              </div>
               <div>
                 <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Aporte inicial ($)</label>
                 <input type="text" value={montoMatDisplay} onChange={e => { const v = e.target.value.replace(/\D/g, ''); setMontoMatDisplay(v ? parseInt(v).toLocaleString('es-CL') : ''); setForm(p => ({...p, monto_matricula: parseInt(v) || 0})) }} className="input-base" placeholder="130.000"/>
