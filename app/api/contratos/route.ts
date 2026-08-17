@@ -85,14 +85,20 @@ export async function GET(request: NextRequest) {
   const comunaApoderado = familia?.comuna ?? 'Santiago'
 
   // Cobros para tabla
-  const { data: cobros } = await admin.from('cobros').select('monto, mes, anio').eq('alumno_id', alumno.id).order('anio').order('mes')
+  const { data: cobros } = await admin.from('cobros').select('monto, mes, anio, observaciones').eq('alumno_id', alumno.id).order('anio').order('mes')
   const cobrosmensuales = (cobros ?? []).filter((c: any) => c.monto !== montoInicial)
   const montoMensualReal = cobrosmensuales.length > 0 ? (cobrosmensuales as any[])[0].monto : Math.round(montoMensual * (1 - porcentajeBeca / 100))
 
   const mesesNombres = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
   let tablaAportes = ''
   if (cobrosmensuales.length > 0) {
-    tablaAportes = (cobrosmensuales as any[]).map((c: any) => `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td><td></td><td></td></tr>`).join('')
+    tablaAportes = (cobrosmensuales as any[]).map((c: any) => {
+      // Extraer datos de cheque de observaciones si existen
+      const chequeMatch = (c.observaciones || '').match(/Cheque N° ([^\s—]+)\s*—\s*(.*)$/)
+      const numCheque = chequeMatch ? chequeMatch[1] : ''
+      const banco = chequeMatch ? chequeMatch[2].trim() : ''
+      return `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
+    }).join('')
   } else {
     const meses = ['marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
     tablaAportes = meses.map(m => `<tr><td>1 ${m} ${anio}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td><td></td><td></td></tr>`).join('')

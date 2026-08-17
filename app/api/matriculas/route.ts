@@ -374,7 +374,8 @@ export async function POST(request: NextRequest) {
           fecha_vencimiento: vencimiento,
           estado: 'pendiente',
           tipo_concepto: 'aporte_mensual',
-          observaciones: `Aporte mensual ${mes}/${anioC}${porcentaje_beca > 0 ? ` (beca ${porcentaje_beca}%)` : ''}${descuentoContado > 0 ? ` (dcto. contado ${descuentoContado}%)` : ''}`,
+          medio_pago: body.medio_pago_matricula === 'cheque' ? 'cheque' : null,
+          observaciones: `Aporte mensual ${mes}/${anioC}${porcentaje_beca > 0 ? ` (beca ${porcentaje_beca}%)` : ''}${descuentoContado > 0 ? ` (dcto. contado ${descuentoContado}%)` : ''}${body.medio_pago_matricula === 'cheque' && body.cheques?.[i] ? ` | Cheque N° ${body.cheques[i]} — ${body.banco_cheque || ''}` : ''}`,
         }).select().single()
         if (cobro) cobrosGenerados.push(cobro)
       }
