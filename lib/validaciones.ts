@@ -247,10 +247,38 @@ export function capitalizarNombre(s: string): string {
 }
 
 /**
- * Formatea fecha ISO a dd/mm/yyyy
+ * Formatea fecha ISO a dd/mm/yyyy (helper simple)
  */
 export function formatearFecha(fecha: string): string {
   if (!fecha) return ''
   const d = new Date(fecha + 'T12:00')
+  if (isNaN(d.getTime())) return fecha
   return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+/**
+ * Parsea input de fecha DD-MM-AAAA mientras el usuario escribe.
+ * Retorna { display: string formateado, value: ISO string o '' si incompleta }
+ */
+export function parsearFechaInput(raw: string): { display: string; value: string } {
+  const soloDigitos = raw.replace(/\D/g, '').slice(0, 8)
+
+  // Formatear progresivamente: DD-MM-AAAA
+  let display = ''
+  if (soloDigitos.length > 0) display = soloDigitos.slice(0, 2)
+  if (soloDigitos.length > 2) display += '-' + soloDigitos.slice(2, 4)
+  if (soloDigitos.length > 4) display += '-' + soloDigitos.slice(4, 8)
+
+  // Si está completo (8 dígitos), convertir a ISO
+  let value = ''
+  if (soloDigitos.length === 8) {
+    const dia = parseInt(soloDigitos.slice(0, 2))
+    const mes = parseInt(soloDigitos.slice(2, 4))
+    const anio = parseInt(soloDigitos.slice(4, 8))
+    if (dia >= 1 && dia <= 31 && mes >= 1 && mes <= 12 && anio >= 1900 && anio <= 2030) {
+      value = `${soloDigitos.slice(4, 8)}-${soloDigitos.slice(2, 4)}-${soloDigitos.slice(0, 2)}`
+    }
+  }
+
+  return { display, value }
 }

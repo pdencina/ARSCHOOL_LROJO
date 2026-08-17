@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validarEmail, formatearFecha, fechaISOaDisplay, formatearMontoInput } from '@/lib/validaciones'
+import { capitalizarNombre, formatearRut, validarRut, formatearTelefono, validarEmail, parsearFechaInput, formatearFecha, fechaISOaDisplay, formatearMontoInput } from '@/lib/validaciones'
 import CapturaDocumento from '@/components/ui/CapturaDocumento'
 import CapturaMovilSection from '@/components/matricula/CapturaMovilSection'
 import SelectorRegionComuna from '@/components/ui/SelectorRegionComuna'
@@ -359,7 +359,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                 </select>
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Fecha nacimiento</label>
-                <input value={fechaDisplay} onChange={e => { const f = formatearFecha(e.target.value); setFechaDisplay(f.display); if(f.value) setForm(p => ({...p, fecha_nacimiento: f.value})) }} className="input-base" placeholder="DD-MM-AAAA" maxLength={10}/>
+                <input value={fechaDisplay} onChange={e => { const f = parsearFechaInput(e.target.value); setFechaDisplay(f.display); if(f.value) setForm(p => ({...p, fecha_nacimiento: f.value})) }} className="input-base" placeholder="DD-MM-AAAA" maxLength={10}/>
                 {form.fecha_nacimiento && (() => {
                   const nacimiento = new Date(form.fecha_nacimiento + 'T12:00')
                   const hoy = new Date()
