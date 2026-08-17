@@ -86,7 +86,12 @@ export function seccionFirmas(firmaApoderado: string | null, firmadoAt: string |
 <div class="firma-box">
 <div class="firma-espacio">
 ${esImagen ? `<img src="${firmaApoderado}" class="firma-img" alt="Firma del apoderado"/>` : ''}
-${esTextoFES ? `<div style="font-size:11px;color:#1a2332;font-weight:600;padding:8px 12px;background:#f0f4f8;border-radius:6px;border:1px solid #e2e8f0;text-align:center;">✓ Firmado electrónicamente</div>` : ''}
+${esTextoFES ? `<div style="padding:12px 16px;background:#f0f7ff;border:1.5px solid #1B3A5C;border-radius:8px;text-align:center;">
+<div style="font-size:11px;color:#1B3A5C;font-weight:700;margin-bottom:4px;">FIRMA ELECTRÓNICA SIMPLE</div>
+<div style="font-size:10px;color:#4b5563;margin-bottom:6px;">Ley 19.799 · Chile</div>
+<div style="font-size:13px;color:#1B3A5C;font-weight:800;letter-spacing:0.02em;border-top:1px solid #d0dce8;padding-top:8px;margin-top:4px;">${firmaApoderado?.replace('FIRMA ELECTRÓNICA: ', '').split(' | ')[0] || ''}</div>
+<div style="font-size:9px;color:#6b7280;margin-top:4px;">Verificado mediante código de seguridad enviado al correo electrónico del firmante.<br/>Documento íntegro — Hash SHA-256 registrado.</div>
+</div>` : ''}
 </div>
 <div class="firma-linea"></div>
 <div class="firma-nombre">${nombreApoderado}</div>

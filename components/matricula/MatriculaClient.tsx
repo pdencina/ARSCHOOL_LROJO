@@ -8,6 +8,7 @@ import CapturaDocumento from '@/components/ui/CapturaDocumento'
 import CapturaMovilSection from '@/components/matricula/CapturaMovilSection'
 import SelectorRegionComuna from '@/components/ui/SelectorRegionComuna'
 import PreAdmisionesQueue from '@/components/matricula/PreAdmisionesQueue'
+import EscanerCedula from '@/components/ui/EscanerCedula'
 
 interface Props { planes: any[]; matriculas: any[]; cursos: string[]; aportes: any[]; becasAprobadas: any[]; preAdmisiones?: any[] }
 
@@ -25,6 +26,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
   const [camposError, setCamposError] = useState<string[]>([])
   const [matriculaCompletada, setMatriculaCompletada] = useState<string | null>(null)
   const [enviandoFirma, setEnviandoFirma] = useState(false)
+  const [mostrarScanner, setMostrarScanner] = useState<'alumno' | 'apoderado' | null>(null)
 
   function esError(campo: string) {
     return camposError.includes(campo) ? 'border-red-400 ring-1 ring-red-200' : ''
@@ -344,9 +346,15 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
         <div className="max-w-3xl space-y-6">
           {/* Paso 1: Datos del alumno */}
           <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-full bg-[#1a2332] flex items-center justify-center text-white text-[11px] font-bold">1</div>
-              <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Datos del alumno</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-[#1a2332] flex items-center justify-center text-white text-[11px] font-bold">1</div>
+                <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Datos del alumno</h2>
+              </div>
+              <button onClick={() => setMostrarScanner('alumno')} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#f0f4f8] border border-[#dfe2e6] text-[#1B3A5C] text-[10px] font-semibold rounded-lg hover:bg-[#e8ecf0] transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                Escanear CI
+              </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombres *</label><input value={form.nombre} onChange={e => { setForm(p => ({...p, nombre: capitalizarNombre(e.target.value)})); setCamposError(prev => prev.filter(c => c !== 'nombre')) }} className={`input-base ${esError('nombre')}`} placeholder="Nombres completos"/></div>
@@ -536,9 +544,15 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
 
           {/* Paso 2: Datos del apoderado */}
           <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-full bg-[#1a2332] flex items-center justify-center text-white text-[11px] font-bold">2</div>
-              <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Datos del apoderado</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-[#1a2332] flex items-center justify-center text-white text-[11px] font-bold">2</div>
+                <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Datos del apoderado</h2>
+              </div>
+              <button onClick={() => setMostrarScanner('apoderado')} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#f0f4f8] border border-[#dfe2e6] text-[#1B3A5C] text-[10px] font-semibold rounded-lg hover:bg-[#e8ecf0] transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                Escanear CI
+              </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre_apoderado} onChange={e => { setForm(p => ({...p, nombre_apoderado: capitalizarNombre(e.target.value)})); setCamposError(prev => prev.filter(c => c !== 'nombre_apoderado')) }} className={`input-base ${esError('nombre_apoderado')}`} placeholder="Nombre"/></div>
@@ -862,6 +876,37 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
           </div>
         </div>
       </div>
+    )}
+    {/* Scanner de cédula */}
+    {mostrarScanner && (
+      <EscanerCedula
+        onDatosEscaneados={(datos) => {
+          if (mostrarScanner === 'alumno') {
+            setForm((p: any) => ({
+              ...p,
+              nombre: datos.nombres || p.nombre,
+              apellido: `${datos.apellidoPaterno} ${datos.apellidoMaterno}`.trim() || p.apellido,
+              rut: datos.rut || p.rut,
+              fecha_nacimiento: datos.fechaNacimiento || p.fecha_nacimiento,
+              sexo: datos.sexo || p.sexo,
+              nacionalidad: datos.nacionalidad || p.nacionalidad,
+            }))
+            if (datos.fechaNacimiento) {
+              const d = datos.fechaNacimiento.split('-')
+              setFechaDisplay(`${d[2]}-${d[1]}-${d[0]}`)
+            }
+          } else {
+            setForm((p: any) => ({
+              ...p,
+              nombre_apoderado: datos.nombres || p.nombre_apoderado,
+              apellido_apoderado: `${datos.apellidoPaterno} ${datos.apellidoMaterno}`.trim() || p.apellido_apoderado,
+              rut_apoderado: datos.rut || p.rut_apoderado,
+            }))
+          }
+          setMostrarScanner(null)
+        }}
+        onCerrar={() => setMostrarScanner(null)}
+      />
     )}
     </>
   )
