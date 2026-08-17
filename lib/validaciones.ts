@@ -206,7 +206,7 @@ export function validarFormularioAdmision(form: any, paso: number): Record<strin
     if (!campoRequerido(form.alumno_nombre)) errores.alumno_nombre = 'Primer nombre es obligatorio'
     if (!campoRequerido(form.alumno_apellido)) errores.alumno_apellido = 'Apellido paterno es obligatorio'
     if (!campoRequerido(form.alumno_apellido_materno)) errores.alumno_apellido_materno = 'Apellido materno es obligatorio'
-    if (!form.curso_solicitado) errores.curso_solicitado = 'Seleccione un curso'
+    if (!form.curso_solicitado) errores.curso_solicitado = 'Seleccione un nivel/ciclo'
     if (!form.alumno_fecha_nacimiento) errores.alumno_fecha_nacimiento = 'Fecha de nacimiento es obligatoria'
     if (form.alumno_rut && !validarRut(form.alumno_rut)) errores.alumno_rut = 'RUT inválido'
     if (!form.alumno_sexo) errores.alumno_sexo = 'Seleccione sexo'

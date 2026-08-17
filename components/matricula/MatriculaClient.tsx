@@ -43,47 +43,20 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
     } catch { /* silently fail */ }
   }
 
-  // Auto-completar montos desde tabla de aportes
-  function calcularMontos(curso: string, jornada: string, sede: string, tipoIngresoOverride?: string) {
-    const anioActual = new Date().getFullYear()
-    const esPlaygroup = curso.toLowerCase().includes('play group') || curso.toLowerCase().includes('pre school')
-    const nivel = esPlaygroup ? 'Playgroup' : 'Preschool a High School'
-    const jornadaTipo = jornada === 'completa' ? 'completa' : 'media'
-    const sedeKey = sede || null
+  // Auto-completar montos desde tabla de aportes (fetch en tiempo real)
+  async function calcularMontos(curso: string, jornada: string, sede: string, tipoIngresoOverride?: string) {
+    if (!curso) return
     const tipoIngreso = tipoIngresoOverride || form.tipo_ingreso || 'nuevo'
-
-    // Buscar aporte inicial — no filtra por tipo_ingreso (la matrícula es igual para todos)
-    let inicial = aportes.find((a: any) =>
-      a.tipo === 'inicial' && a.nivel === nivel && a.anio === anioActual &&
-      (a.sede === sedeKey || !a.sede)
-    )
-    if (!inicial) inicial = aportes.find((a: any) => a.tipo === 'inicial' && a.nivel === nivel && !a.sede)
-    if (!inicial) inicial = aportes.find((a: any) => a.tipo === 'inicial' && a.nivel === nivel)
-
-    // Buscar aporte mensual — priorizar por tipo_ingreso, luego 'todos', luego cualquiera
-    let mensual = aportes.find((a: any) =>
-      a.tipo === 'mensual' && a.nivel === nivel && a.anio === anioActual &&
-      (a.jornada === jornadaTipo || !a.jornada) &&
-      (a.sede === sedeKey || !a.sede) &&
-      (a.tipo_ingreso === tipoIngreso || a.tipo_ingreso === 'todos')
-    )
-    if (!mensual) mensual = aportes.find((a: any) =>
-      a.tipo === 'mensual' && a.nivel === nivel &&
-      (a.jornada === jornadaTipo || !a.jornada) &&
-      (a.sede === sedeKey || !a.sede)
-    )
-    if (!mensual) mensual = aportes.find((a: any) =>
-      a.tipo === 'mensual' && a.nivel === nivel &&
-      (a.jornada === jornadaTipo || !a.jornada)
-    )
-    if (!mensual) mensual = aportes.find((a: any) => a.tipo === 'mensual' && a.nivel === nivel)
-
-    const montoInicial = inicial?.monto ?? 0
-    const montoMensual = mensual?.monto ?? 0
-
-    setForm(p => ({ ...p, monto_matricula: montoInicial, monto_mensual: montoMensual }))
-    setMontoMatDisplay(montoInicial > 0 ? montoInicial.toLocaleString('es-CL') : '')
-    setMontoMensDisplay(montoMensual > 0 ? montoMensual.toLocaleString('es-CL') : '')
+    try {
+      const params = new URLSearchParams({ curso, sede: sede || '', jornada: jornada || 'completa', tipo_ingreso: tipoIngreso })
+      const res = await fetch(`/api/aportes/consultar?${params}`)
+      if (res.ok) {
+        const data = await res.json()
+        setForm((p: any) => ({ ...p, monto_matricula: data.monto_inicial, monto_mensual: data.monto_mensual }))
+        setMontoMatDisplay(data.monto_inicial > 0 ? data.monto_inicial.toLocaleString('es-CL') : '')
+        setMontoMensDisplay(data.monto_mensual > 0 ? data.monto_mensual.toLocaleString('es-CL') : '')
+      }
+    } catch { /* silently fail — keep manual values */ }
   }
   const [form, setForm] = useState({
     // Alumno

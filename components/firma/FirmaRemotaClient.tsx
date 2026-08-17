@@ -15,7 +15,7 @@ export default function FirmaRemotaClient({ token, tipo, nombreEsperado, contrat
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [codigo, setCodigo] = useState('')
-  const [nombreFirma, setNombreFirma] = useState('')
+  const [nombreFirma, setNombreFirma] = useState(nombreEsperado)
   const [rutFirma, setRutFirma] = useState('')
   const [codigoEnviado, setCodigoEnviado] = useState(false)
   const [evidencia, setEvidencia] = useState<any>(null)

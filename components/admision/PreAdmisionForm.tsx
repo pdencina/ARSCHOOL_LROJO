@@ -41,16 +41,60 @@ export default function PreAdmisionForm() {
   const [enviado, setEnviado] = useState(false)
   const [codigoSeguimiento, setCodigoSeguimiento] = useState('')
   const [errores, setErrores] = useState<Record<string, string>>({})
-  const [form, setForm] = useState<any>({
-    sede: 'santiago', jornada: 'completa', modalidad: 'presencial',
-    alumno_nacionalidad: 'Chilena', alumno_pais_natal: 'Chile',
-    apoderado_telefono_cod: '+56', telefono_emergencia_cod: '+56',
-    padre_telefono_cod: '+56',
+  const [form, setForm] = useState<any>(() => {
+    // Restaurar desde localStorage si existe
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ar_admision_form')
+      if (saved) try { return JSON.parse(saved) } catch {}
+    }
+    return {
+      sede: 'santiago', jornada: 'completa', modalidad: 'presencial',
+      alumno_nacionalidad: 'Chilena', alumno_pais_natal: 'Chile',
+      apoderado_telefono_cod: '+56', telefono_emergencia_cod: '+56',
+      padre_telefono_cod: '+56',
+    }
   })
-  const [documentos, setDocumentos] = useState<Record<string, string>>({})
+  const [documentos, setDocumentos] = useState<Record<string, string>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ar_admision_docs')
+      if (saved) try { return JSON.parse(saved) } catch {}
+    }
+    return {}
+  })
 
-  function set(field: string, value: any) { setForm((f: any) => ({ ...f, [field]: value })) }
+  function set(field: string, value: any) {
+    setForm((f: any) => {
+      const n = { ...f, [field]: value }
+      localStorage.setItem('ar_admision_form', JSON.stringify(n))
+      // Si cambia curso, sede o jornada → consultar montos
+      if (['curso_solicitado', 'sede', 'jornada'].includes(field)) {
+        const curso = field === 'curso_solicitado' ? value : n.curso_solicitado
+        const sede = field === 'sede' ? value : n.sede
+        const jornada = field === 'jornada' ? value : n.jornada
+        if (curso) fetchMontos(curso, sede, jornada)
+      }
+      return n
+    })
+  }
+
+  const [montosRef, setMontosRef] = useState<{ inicial: number; mensual: number } | null>(null)
+
+  async function fetchMontos(curso: string, sede: string, jornada: string) {
+    try {
+      const params = new URLSearchParams({ curso, sede: sede || '', jornada: jornada || 'completa', tipo_ingreso: 'nuevo' })
+      const res = await fetch(`/api/aportes/consultar?${params}`)
+      if (res.ok) {
+        const data = await res.json()
+        setMontosRef({ inicial: data.monto_inicial, mensual: data.monto_mensual })
+      }
+    } catch { /* silently fail */ }
+  }
   function clearError(field: string) { setErrores(e => { const n = { ...e }; delete n[field]; return n }) }
+
+  // Guardar documentos en localStorage al cambiar
+  function setDocumentosAndSave(updater: (d: Record<string, string>) => Record<string, string>) {
+    setDocumentos(prev => { const n = updater(prev); localStorage.setItem('ar_admision_docs', JSON.stringify(n)); return n })
+  }
 
   function intentarAvanzar() {
     const errs = validarFormularioAdmision(form, paso)
@@ -67,7 +111,7 @@ export default function PreAdmisionForm() {
     const tipos = ['image/jpeg','image/png','image/webp','application/pdf']
     if (!tipos.includes(file.type)) { toast.error('Solo JPG, PNG o PDF'); return }
     const reader = new FileReader()
-    reader.onload = () => { setDocumentos(d => ({ ...d, [key]: reader.result as string })); toast.success('Adjuntado') }
+    reader.onload = () => { setDocumentosAndSave(d => ({ ...d, [key]: reader.result as string })); toast.success('Adjuntado') }
     reader.readAsDataURL(file)
   }
 
@@ -100,6 +144,8 @@ export default function PreAdmisionForm() {
       if (!res.ok) throw new Error(data.error)
       setCodigoSeguimiento(data.codigo_seguimiento)
       setEnviado(true)
+      localStorage.removeItem('ar_admision_form')
+      localStorage.removeItem('ar_admision_docs')
     } catch (e: any) { toast.error(e.message) } finally { setLoading(false) }
   }
 
@@ -160,7 +206,7 @@ export default function PreAdmisionForm() {
               {edadInfo && <div className="flex items-end pb-1"><span className="text-xs font-semibold text-[#2D5A3F] bg-[#EDF5F0] px-2 py-1 rounded-lg">{edadInfo.anios} años{edadInfo.meses > 0 ? `, ${edadInfo.meses} meses` : ''}</span></div>}
             </div>
             <SelectField label="Sexo *" value={form.alumno_sexo} onChange={v => { set('alumno_sexo', v); clearError('alumno_sexo') }} error={errores.alumno_sexo} options={[{v:'',l:'Seleccionar...'},{v:'masculino',l:'Masculino'},{v:'femenino',l:'Femenino'}]}/>
-            <SelectField label="Curso solicitado *" value={form.curso_solicitado} onChange={v => { set('curso_solicitado', v); clearError('curso_solicitado') }} error={errores.curso_solicitado} options={[{v:'',l:'Seleccionar curso...'},...CURSOS.map(c=>({v:c,l:c}))]}/>
+            <SelectField label="Nivel / Ciclo *" value={form.curso_solicitado} onChange={v => { set('curso_solicitado', v); clearError('curso_solicitado') }} error={errores.curso_solicitado} options={[{v:'',l:'Seleccionar nivel...'},...CURSOS.map(c=>({v:c,l:c}))]}/>
             <div className="grid grid-cols-2 gap-3">
               <SelectField label="Sede" value={form.sede} onChange={v => set('sede', v)} options={SEDES.map(s=>({v:s.value,l:s.label}))}/>
               <SelectField label="Jornada" value={form.jornada} onChange={v => set('jornada', v)} options={[{v:'completa',l:'Jornada completa'},{v:'media',l:'Media jornada'}]}/>
@@ -171,6 +217,21 @@ export default function PreAdmisionForm() {
             </div>
             <Field label="Dirección del alumno" value={form.alumno_direccion} onChange={v => set('alumno_direccion', v)} placeholder="Calle, número, depto"/>
             <ComunaField label="Comuna" value={form.alumno_comuna} onChange={v => set('alumno_comuna', v)}/>
+
+            {/* Montos referenciales desde tabla de aportes */}
+            {montosRef && montosRef.mensual > 0 && (
+              <div className="bg-[#f0f4f8] rounded-xl p-3 mt-2">
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Aportes referenciales</div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-600">Aporte inicial:</span>
+                  <span className="font-semibold text-[#1B3A5C]">${montosRef.inicial.toLocaleString('es-CL')}</span>
+                </div>
+                <div className="flex justify-between text-xs mt-1">
+                  <span className="text-gray-600">Aporte mensual:</span>
+                  <span className="font-semibold text-[#1B3A5C]">${montosRef.mensual.toLocaleString('es-CL')}</span>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -252,10 +313,10 @@ export default function PreAdmisionForm() {
                 {DOCS_OBL.filter(d=>documentos[d.key]).length} / {DOCS_OBL.length}
               </span>
             </div>
-            <div className="space-y-2">{DOCS_OBL.map(doc => <DocRow key={doc.key} doc={doc} uploaded={!!documentos[doc.key]} onSelect={f => handleFile(doc.key, f)} onRemove={() => setDocumentos(d => { const n={...d}; delete n[doc.key]; return n })}/>)}</div>
+            <div className="space-y-2">{DOCS_OBL.map(doc => <DocRow key={doc.key} doc={doc} uploaded={!!documentos[doc.key]} onSelect={f => handleFile(doc.key, f)} onRemove={() => setDocumentosAndSave(d => { const n={...d}; delete n[doc.key]; return n })}/>)}</div>
             <details className="group mt-4">
               <summary className="text-xs font-semibold text-gray-500 cursor-pointer py-2 flex items-center gap-1"><svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>Documentos opcionales ({DOCS_OPT.length})</summary>
-              <div className="space-y-2 mt-2">{DOCS_OPT.map(doc => <DocRow key={doc.key} doc={doc} uploaded={!!documentos[doc.key]} onSelect={f => handleFile(doc.key, f)} onRemove={() => setDocumentos(d => { const n={...d}; delete n[doc.key]; return n })}/>)}</div>
+              <div className="space-y-2 mt-2">{DOCS_OPT.map(doc => <DocRow key={doc.key} doc={doc} uploaded={!!documentos[doc.key]} onSelect={f => handleFile(doc.key, f)} onRemove={() => setDocumentosAndSave(d => { const n={...d}; delete n[doc.key]; return n })}/>)}</div>
             </details>
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-2 mt-4">
               <span className="text-base">📱</span>
