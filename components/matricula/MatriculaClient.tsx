@@ -116,11 +116,29 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
 
   // Calcular montos al montar (con valores iniciales del form)
   useEffect(() => {
+    // Restaurar form desde localStorage si existe
+    const saved = localStorage.getItem('ar_matricula_form')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        setForm(parsed)
+        if (parsed.monto_matricula) setMontoMatDisplay(parsed.monto_matricula.toLocaleString('es-CL'))
+        if (parsed.monto_mensual) setMontoMensDisplay(parsed.monto_mensual.toLocaleString('es-CL'))
+        return // No calcular montos si restauramos
+      } catch { /* ignore */ }
+    }
     if (form.curso && aportes.length > 0) {
       calcularMontos(form.curso, form.jornada, form.sede)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Guardar form en localStorage al cambiar
+  useEffect(() => {
+    if (vista === 'nueva') {
+      localStorage.setItem('ar_matricula_form', JSON.stringify(form))
+    }
+  }, [form, vista])
 
   async function buscarApoderado(email: string) {
     if (!validarEmail(email)) { setApoderadoExiste(null); return }
@@ -189,6 +207,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
     const data = await res.json()
     if (res.ok) {
       toast.success('Matrícula completada exitosamente')
+      localStorage.removeItem('ar_matricula_form')
       // Abrir contrato en nueva pestaña
       if (data.matricula?.id) {
         window.open(`/api/contratos?matricula_id=${data.matricula.id}`, '_blank')
@@ -651,8 +670,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                 <div className="grid grid-cols-2 gap-x-8 gap-y-1">
                   <div>Aporte inicial:</div>
                   <div className="font-medium text-right">
-                    {form.porcentaje_beca > 0 && <span className="line-through text-[#9ca3af] mr-2">${form.monto_matricula.toLocaleString('es-CL')}</span>}
-                    <span className="text-[#1a2332]">${Math.round(form.monto_matricula * (1 - form.porcentaje_beca / 100)).toLocaleString('es-CL')}</span>
+                    <span className="text-[#1a2332]">${form.monto_matricula.toLocaleString('es-CL')}</span>
                   </div>
                   <div>Aporte mensual:</div>
                   <div className="font-medium text-right">
@@ -661,13 +679,37 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                   </div>
                   <div className="border-t border-[#e8eaed] pt-2 mt-1 font-semibold">Total año ({form.meses_cobro} meses):</div>
                   <div className="border-t border-[#e8eaed] pt-2 mt-1 font-bold text-[#1a2332] text-right">
-                    ${Math.round((form.monto_matricula + form.monto_mensual * form.meses_cobro) * (1 - form.porcentaje_beca / 100)).toLocaleString('es-CL')}
+                    ${Math.round(form.monto_matricula + form.monto_mensual * form.meses_cobro * (1 - form.porcentaje_beca / 100)).toLocaleString('es-CL')}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Observaciones */}
+            {/* Medio de pago y observaciones */}
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Medio de pago</label>
+                <select value={form.medio_pago_matricula} onChange={e => setForm(p => ({...p, medio_pago_matricula: e.target.value}))} className="select-base w-full">
+                  <option value="">Seleccionar...</option>
+                  <option value="transferencia">Transferencia</option>
+                  <option value="tarjeta">Tarjeta crédito/débito</option>
+                  <option value="cheque">Cheque</option>
+                  <option value="pagare">Pagaré</option>
+                </select>
+              </div>
+              {form.medio_pago_matricula === 'cheque' && (
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Banco del cheque</label>
+                  <input value={form.banco_cheque || ''} onChange={e => setForm(p => ({...p, banco_cheque: e.target.value}))} className="input-base" placeholder="Ej: Banco de Chile"/>
+                </div>
+              )}
+            </div>
+            {form.medio_pago_matricula === 'cheque' && (
+              <div className="mt-3">
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Número de cheque</label>
+                <input value={form.numero_cheque || ''} onChange={e => setForm(p => ({...p, numero_cheque: e.target.value}))} className="input-base" placeholder="Ej: 00012345"/>
+              </div>
+            )}
             <div className="mt-4">
               <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Observaciones</label>
               <textarea value={form.observaciones} onChange={e => setForm(p => ({...p, observaciones: e.target.value}))} rows={3} className="input-base resize-none" placeholder="Notas adicionales sobre el plan de aportes, descuentos especiales, acuerdos, etc."/>

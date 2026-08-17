@@ -68,6 +68,10 @@ export function botonImprimir(fecha: string) {
 }
 
 export function seccionFirmas(firmaApoderado: string | null, firmadoAt: string | null, nombreApoderado: string, rutApoderado: string) {
+  // Determinar si la firma es imagen (base64) o texto (FES remota)
+  const esImagen = firmaApoderado && firmaApoderado.startsWith('data:')
+  const esTextoFES = firmaApoderado && !firmaApoderado.startsWith('data:')
+
   return `
 <div class="firmas-section">
 <div class="firmas-grid">
@@ -80,7 +84,8 @@ export function seccionFirmas(firmaApoderado: string | null, firmadoAt: string |
 </div>
 <div class="firma-box">
 <div class="firma-espacio">
-${firmaApoderado ? `<img src="${firmaApoderado}" class="firma-img" alt="Firma del apoderado"/>` : ''}
+${esImagen ? `<img src="${firmaApoderado}" class="firma-img" alt="Firma del apoderado"/>` : ''}
+${esTextoFES ? `<div style="font-size:11px;color:#1a2332;font-weight:600;padding:8px 12px;background:#f0f4f8;border-radius:6px;border:1px solid #e2e8f0;text-align:center;">✓ Firmado electrónicamente</div>` : ''}
 </div>
 <div class="firma-linea"></div>
 <div class="firma-nombre">${nombreApoderado}</div>

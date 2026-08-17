@@ -303,7 +303,7 @@ export async function POST(request: NextRequest) {
 
     // Aplicar override manual si existe
     const montoMensualBase = body.monto_override || monto_mensual || 0
-    const montoMatFinal = Math.round((monto_matricula || 0) * factorBeca * (1 - descuentoMatriculaMultiHijo / 100))
+    const montoMatFinal = Math.round((monto_matricula || 0) * (1 - descuentoMatriculaMultiHijo / 100))
     const montoMensFinal = Math.round(montoMensualBase * factorBeca * factorDescuento)
 
     // Calcular fechas de contrato (Play/sala cuna = 12 meses desde ingreso)
