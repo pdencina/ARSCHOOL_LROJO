@@ -18,62 +18,95 @@ interface Props {
 }
 
 /**
- * Parser del código PDF417 de la cédula chilena.
- * El formato del barcode contiene campos separados por delimitadores.
- * Formato aproximado: RUN|APELLIDO1|APELLIDO2|NOMBRES|NACIONALIDAD|FECHA_NAC|SEXO|...
+ * Parser universal para códigos de la cédula chilena.
+ * Soporta: QR (nuevo formato), PDF417, y MRZ-like text.
+ * 
+ * Formato MRZ del CI chileno (3 líneas):
+ * INCHL5213860852S05<<<<<<<<<<<<<<<
+ * 8912237M2912235CHL17339278<8<3
+ * ENCINA<ACEVEDO<<PABLO<DAVID<<<
+ * 
+ * Línea 3: APELLIDO1<APELLIDO2<<NOMBRES (separados por <)
+ * Línea 2: FECHANAC(AAMMDD)SEXO...RUT...
  */
-function parsearPDF417Chileno(raw: string): DatosCedula | null {
+function parsearCodigoCedula(raw: string): DatosCedula | null {
   try {
-    // El PDF417 de la cédula chilena no tiene un formato 100% público documentado.
-    // Intentamos varios patrones conocidos:
+    // Intento 1: Formato QR de cédula nueva (JSON o URL con params)
+    if (raw.startsWith('{')) {
+      const json = JSON.parse(raw)
+      return {
+        rut: formatearRutSimple(json.RUN || json.rut || ''),
+        nombres: capitalizarPalabras(json.nombres || json.name || ''),
+        apellidoPaterno: capitalizarPalabras(json.apellidoPaterno || json.ap || ''),
+        apellidoMaterno: capitalizarPalabras(json.apellidoMaterno || json.am || ''),
+        fechaNacimiento: json.fechaNacimiento || '',
+        sexo: (json.sexo || '').toLowerCase().includes('m') ? 'masculino' : 'femenino',
+        nacionalidad: 'Chilena',
+      }
+    }
 
-    // Patrón 1: Campos separados por espacios/tabs con estructura fija
-    // Típicamente: 0|RUT|APELLIDO_P|APELLIDO_M|NOMBRES|NAC|SEXO|FECHA_NAC|...
-    const partes = raw.split(/[|\t]/).map(s => s.trim()).filter(Boolean)
-
-    if (partes.length >= 5) {
-      // Buscar el RUT (formato XX.XXX.XXX-X o sin puntos)
-      const rutIndex = partes.findIndex(p => /^\d{7,8}[-]?\d?[kK]?$/.test(p.replace(/\./g, '')))
-
-      if (rutIndex >= 0) {
-        const rut = partes[rutIndex].replace(/\./g, '')
-        const apellidoPaterno = partes[rutIndex + 1] || ''
-        const apellidoMaterno = partes[rutIndex + 2] || ''
-        const nombres = partes[rutIndex + 3] || ''
-
-        // Buscar fecha (formato DDMMYYYY o DD-MM-YYYY)
-        const fechaMatch = raw.match(/(\d{2})[-\/]?(\d{2})[-\/]?(\d{4})/)
-        let fechaNacimiento = ''
-        if (fechaMatch) {
-          fechaNacimiento = `${fechaMatch[3]}-${fechaMatch[2]}-${fechaMatch[1]}`
-        }
-
-        // Buscar sexo
-        const sexo = raw.includes('MASCULINO') || raw.includes(' M ') ? 'masculino' : raw.includes('FEMENINO') || raw.includes(' F ') ? 'femenino' : ''
-
+    // Intento 2: URL con parámetros (algunos QR de CI nuevas)
+    if (raw.startsWith('http')) {
+      const url = new URL(raw)
+      const run = url.searchParams.get('RUN') || url.searchParams.get('run') || ''
+      if (run) {
         return {
-          rut: formatearRutSimple(rut),
-          nombres: capitalizarPalabras(nombres),
-          apellidoPaterno: capitalizarPalabras(apellidoPaterno),
-          apellidoMaterno: capitalizarPalabras(apellidoMaterno),
-          fechaNacimiento,
-          sexo,
-          nacionalidad: raw.includes('CHILE') ? 'Chilena' : '',
+          rut: formatearRutSimple(run),
+          nombres: capitalizarPalabras(url.searchParams.get('nombres') || ''),
+          apellidoPaterno: capitalizarPalabras(url.searchParams.get('ap') || ''),
+          apellidoMaterno: capitalizarPalabras(url.searchParams.get('am') || ''),
+          fechaNacimiento: '',
+          sexo: '',
+          nacionalidad: 'Chilena',
         }
       }
     }
 
-    // Patrón 2: texto corrido — buscar RUT por regex
-    const rutMatch = raw.match(/(\d{1,2}\.?\d{3}\.?\d{3}[-]?[\dkK])/i)
-    if (rutMatch) {
+    // Intento 3: Texto MRZ-like (lo que se ve en la foto)
+    // Buscar patrón APELLIDO<APELLIDO<<NOMBRE<NOMBRE
+    const mrzMatch = raw.match(/([A-Z]+)<([A-Z]+)<<([A-Z<]+)/i)
+    if (mrzMatch) {
+      const apellido1 = mrzMatch[1]
+      const apellido2 = mrzMatch[2]
+      const nombres = mrzMatch[3].replace(/</g, ' ').trim()
+
+      // Buscar RUT en el texto (8 dígitos seguidos)
+      const rutMatch = raw.match(/(\d{7,8})\D*(\d|[kK])/i)
+      let rut = ''
+      if (rutMatch) {
+        rut = formatearRutSimple(rutMatch[1] + rutMatch[2])
+      }
+
+      // Buscar fecha nacimiento (formato AAMMDD en MRZ)
+      const fechaMatch = raw.match(/(\d{2})(\d{2})(\d{2})[MF]/i)
+      let fechaNacimiento = ''
+      if (fechaMatch) {
+        const anio = parseInt(fechaMatch[1]) > 50 ? `19${fechaMatch[1]}` : `20${fechaMatch[1]}`
+        fechaNacimiento = `${anio}-${fechaMatch[2]}-${fechaMatch[3]}`
+      }
+
+      // Sexo
+      const sexoMatch = raw.match(/\d{6}([MF])/i)
+      const sexo = sexoMatch ? (sexoMatch[1].toUpperCase() === 'M' ? 'masculino' : 'femenino') : ''
+
       return {
-        rut: formatearRutSimple(rutMatch[1]),
-        nombres: '',
-        apellidoPaterno: '',
-        apellidoMaterno: '',
-        fechaNacimiento: '',
-        sexo: '',
-        nacionalidad: '',
+        rut,
+        nombres: capitalizarPalabras(nombres),
+        apellidoPaterno: capitalizarPalabras(apellido1),
+        apellidoMaterno: capitalizarPalabras(apellido2),
+        fechaNacimiento,
+        sexo,
+        nacionalidad: 'Chilena',
+      }
+    }
+
+    // Intento 4: Buscar al menos el RUT
+    const rutSolo = raw.match(/(\d{1,2}\.?\d{3}\.?\d{3}[-]?[\dkK])/i)
+    if (rutSolo) {
+      return {
+        rut: formatearRutSimple(rutSolo[1]),
+        nombres: '', apellidoPaterno: '', apellidoMaterno: '',
+        fechaNacimiento: '', sexo: '', nacionalidad: '',
       }
     }
 
@@ -122,29 +155,18 @@ export default function EscanerCedula({ onDatosEscaneados, onCerrar }: Props) {
       await scanner.start(
         { facingMode: 'environment' }, // Cámara trasera
         {
-          fps: 10,
-          qrbox: { width: 350, height: 150 }, // Rectángulo horizontal para barcode
-          formatsToSupport: [0, 5, 8], // QR_CODE=0, PDF_417=5, CODE_128=8
+          fps: 15,
+          qrbox: { width: 300, height: 300 }, // Cuadrado para QR
+          aspectRatio: 1.0,
         },
         (decodedText) => {
           // Éxito — parsear datos
-          const datos = parsearPDF417Chileno(decodedText)
-          if (datos) {
-            toast.success('Cédula escaneada correctamente')
+          console.log('Código leído:', decodedText)
+          const datos = parsearCodigoCedula(decodedText)
+          if (datos && (datos.rut || datos.nombres)) {
+            toast.success(`Datos detectados: ${datos.rut || datos.nombres}`)
             scanner.stop()
             onDatosEscaneados(datos)
-          } else if (decodedText.length > 5) {
-            // Algo se leyó pero no se pudo parsear — intentar con RUT al menos
-            const rutMatch = decodedText.match(/(\d{1,2}\.?\d{3}\.?\d{3}[-]?[\dkK])/i)
-            if (rutMatch) {
-              toast.success('RUT detectado')
-              scanner.stop()
-              onDatosEscaneados({
-                rut: formatearRutSimple(rutMatch[1]),
-                nombres: '', apellidoPaterno: '', apellidoMaterno: '',
-                fechaNacimiento: '', sexo: '', nacionalidad: '',
-              })
-            }
           }
         },
         () => {} // Error silencioso por frame
@@ -206,9 +228,10 @@ export default function EscanerCedula({ onDatosEscaneados, onCerrar }: Props) {
         <div className="px-5 pb-5">
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-[10px] text-amber-700 space-y-1">
             <div><strong>Tips:</strong></div>
-            <div>• Use el reverso de la cédula (donde está el código de barras rectangular)</div>
-            <div>• Buena iluminación mejora la detección</div>
-            <div>• Si no funciona, ingrese los datos manualmente</div>
+            <div>• Apunte al <strong>código QR</strong> pequeño del reverso de la cédula (cuadrado, esquina izquierda)</div>
+            <div>• Si no detecta el QR, intente con el código de barras rectangular</div>
+            <div>• Buena iluminación y mantener estable mejora la detección</div>
+            <div>• Si no funciona, ingrese los datos manualmente — es igual de válido</div>
           </div>
         </div>
       </div>
