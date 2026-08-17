@@ -616,20 +616,15 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
             <div className="flex items-center gap-2 mb-4">
               <div className="w-7 h-7 rounded-full bg-[#1a2332] flex items-center justify-center text-white text-[11px] font-bold">3</div>
               <h2 className="text-[14px] font-semibold text-[#1a2332]" style={{ fontFamily: 'DM Sans' }}>Plan de aportes</h2>
-              {form.monto_matricula > 0 && <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md font-medium">Auto-calculado desde tabla de aportes</span>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Aporte inicial ($)</label>
-                <div className="w-full px-3.5 py-2.5 bg-[#f9fafb] border border-[var(--ar-border)] rounded-lg text-[13px] text-[#1B3A5C] font-medium">
-                  {form.monto_matricula > 0 ? `$${form.monto_matricula.toLocaleString('es-CL')}` : <span className="text-[#9ca3af]">Seleccione curso y sede</span>}
-                </div>
+                <input type="text" value={montoMatDisplay} onChange={e => { const v = e.target.value.replace(/\D/g, ''); setMontoMatDisplay(v ? parseInt(v).toLocaleString('es-CL') : ''); setForm(p => ({...p, monto_matricula: parseInt(v) || 0})) }} className="input-base" placeholder="130.000"/>
               </div>
               <div>
                 <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Aporte mensual ($)</label>
-                <div className="w-full px-3.5 py-2.5 bg-[#f9fafb] border border-[var(--ar-border)] rounded-lg text-[13px] text-[#1B3A5C] font-medium">
-                  {form.monto_mensual > 0 ? `$${form.monto_mensual.toLocaleString('es-CL')}` : <span className="text-[#9ca3af]">Seleccione curso y sede</span>}
-                </div>
+                <input type="text" value={montoMensDisplay} onChange={e => { const v = e.target.value.replace(/\D/g, ''); setMontoMensDisplay(v ? parseInt(v).toLocaleString('es-CL') : ''); setForm(p => ({...p, monto_mensual: parseInt(v) || 0})) }} className="input-base" placeholder="275.000"/>
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Meses</label><input type="number" min="1" max="12" value={form.meses_cobro} onChange={e => setForm(p => ({...p, meses_cobro: parseInt(e.target.value) || 10}))} className="input-base"/></div>
               <div>
@@ -638,13 +633,13 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                 {becasAprobadas.length > 0 && (
                   <p className="text-[10px] text-emerald-600 mt-1">
                     <i className="ti ti-info-circle text-[10px] mr-0.5" aria-hidden="true"/>
-                    {becasAprobadas.length} beca{becasAprobadas.length > 1 ? 's' : ''} aprobada{becasAprobadas.length > 1 ? 's' : ''} este año. Si el alumno tiene beca, ingrese el porcentaje asignado.
+                    {becasAprobadas.length} beca{becasAprobadas.length > 1 ? 's' : ''} aprobada{becasAprobadas.length > 1 ? 's' : ''} este año.
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Cálculo automático con beca */}
+            {/* Resumen con beca */}
             {form.monto_mensual > 0 && (
               <div className="mt-3 bg-[#f9fafb] rounded-lg p-4 text-[12px] text-[#4b5563] space-y-2">
                 {form.porcentaje_beca > 0 && (
@@ -671,6 +666,12 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                 </div>
               </div>
             )}
+
+            {/* Observaciones */}
+            <div className="mt-4">
+              <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Observaciones</label>
+              <textarea value={form.observaciones} onChange={e => setForm(p => ({...p, observaciones: e.target.value}))} rows={3} className="input-base resize-none" placeholder="Notas adicionales sobre el plan de aportes, descuentos especiales, acuerdos, etc."/>
+            </div>
           </div>
 
           {/* Paso 4: Documentos */}
