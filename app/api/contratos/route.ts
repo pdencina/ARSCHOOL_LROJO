@@ -91,17 +91,30 @@ export async function GET(request: NextRequest) {
 
   const mesesNombres = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
   let tablaAportes = ''
+
+  // Intentar leer datos de cheque desde la matrícula
+  const chequesMat = matricula?.cheques || null // array de números
+  const bancoMat = matricula?.banco_cheque || ''
+
   if (cobrosmensuales.length > 0) {
-    tablaAportes = (cobrosmensuales as any[]).map((c: any) => {
-      // Extraer datos de cheque de observaciones si existen
-      const chequeMatch = (c.observaciones || '').match(/Cheque N° ([^\s—]+)\s*—\s*(.*)$/)
-      const numCheque = chequeMatch ? chequeMatch[1] : ''
-      const banco = chequeMatch ? chequeMatch[2].trim() : ''
+    tablaAportes = (cobrosmensuales as any[]).map((c: any, idx: number) => {
+      // Usar datos de cheque del array si existen
+      const numCheque = chequesMat?.[idx] || ''
+      const banco = numCheque ? bancoMat : ''
+      // Fallback: intentar leer de observaciones del cobro
+      if (!numCheque) {
+        const chequeMatch = (c.observaciones || '').match(/Cheque N° ([^\s—]+)\s*—\s*(.*)$/)
+        if (chequeMatch) return `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td><td>${chequeMatch[1]}</td><td>${chequeMatch[2].trim()}</td></tr>`
+      }
       return `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
     }).join('')
   } else {
     const meses = ['marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-    tablaAportes = meses.map(m => `<tr><td>1 ${m} ${anio}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td><td></td><td></td></tr>`).join('')
+    tablaAportes = meses.map((m, idx) => {
+      const numCheque = chequesMat?.[idx] || ''
+      const banco = numCheque ? bancoMat : ''
+      return `<tr><td>1 ${m} ${anio}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
+    }).join('')
   }
 
   // Tabla para pagaré (solo 2 columnas: fecha + monto)

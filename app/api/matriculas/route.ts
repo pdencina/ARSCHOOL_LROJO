@@ -405,6 +405,9 @@ export async function POST(request: NextRequest) {
       // Override manual
       monto_override: body.monto_override || null,
       motivo_override: body.motivo_override || null,
+      // Datos de cheque (se guardan en matrícula para inyectar en contrato)
+      cheques: body.cheques || null,
+      banco_cheque: body.banco_cheque || null,
     }).select().single()
 
     // 6. Guardar documentos adjuntos
