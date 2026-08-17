@@ -85,7 +85,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
     // Cobros
     plan_cobro_id: '', monto_matricula: 0, monto_mensual: 0, meses_cobro: 10, porcentaje_beca: 0,
     medio_pago_matricula: '' as '' | 'transferencia' | 'tarjeta' | 'cheque' | 'pagare',
-    anio_escolar: new Date().getFullYear(),
+    anio_escolar: new Date().getFullYear() + 1,
     // Config
     crear_cuenta_apoderado: true, password_apoderado: '',
     observaciones: '', firma_apoderado: '',
@@ -210,7 +210,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="page-title">Matrícula {new Date().getFullYear()}</h1>
+          <h1 className="page-title">Matrícula {form.anio_escolar || new Date().getFullYear() + 1}</h1>
           <p className="page-subtitle">Ingreso de nuevos alumnos con trazabilidad completa</p>
         </div>
         {vista === 'lista' ? (
@@ -218,9 +218,14 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
             <i className="ti ti-user-plus text-sm" aria-hidden="true"/> Nueva matrícula
           </button>
         ) : (
-          <button onClick={() => setVista('lista')} className="btn-secondary">
-            <i className="ti ti-arrow-left text-sm" aria-hidden="true"/> Volver
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => { if(confirm('¿Limpiar todo el formulario?')) { localStorage.removeItem('ar_matricula_form'); window.location.reload() } }} className="btn-secondary text-xs px-3">
+              <i className="ti ti-eraser text-sm" aria-hidden="true"/> Limpiar
+            </button>
+            <button onClick={() => setVista('lista')} className="btn-secondary">
+              <i className="ti ti-arrow-left text-sm" aria-hidden="true"/> Volver
+            </button>
+          </div>
         )}
       </div>
 
