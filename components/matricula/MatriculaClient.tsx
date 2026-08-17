@@ -23,6 +23,8 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
   const [documentos, setDocumentos] = useState<Record<string, string>>({})
   const [rutDuplicado, setRutDuplicado] = useState<any>(null)
   const [camposError, setCamposError] = useState<string[]>([])
+  const [matriculaCompletada, setMatriculaCompletada] = useState<string | null>(null)
+  const [enviandoFirma, setEnviandoFirma] = useState(false)
 
   function esError(campo: string) {
     return camposError.includes(campo) ? 'border-red-400 ring-1 ring-red-200' : ''
@@ -181,12 +183,13 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
     if (res.ok) {
       toast.success('Matrícula completada exitosamente')
       localStorage.removeItem('ar_matricula_form')
-      // Abrir contrato en nueva pestaña
+      // Mostrar modal de acciones post-matrícula
       if (data.matricula?.id) {
-        window.open(`/api/contratos?matricula_id=${data.matricula.id}`, '_blank')
+        setMatriculaCompletada(data.matricula.id)
+      } else {
+        setVista('lista')
+        router.refresh()
       }
-      setVista('lista')
-      router.refresh()
     } else if (res.status === 409 && data.duplicado) {
       // Alumno ya existe con ese RUT
       const al = data.alumno_existente
@@ -201,6 +204,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
   }
 
   return (
+    <>
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -733,5 +737,71 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
         </div>
       )}
     </div>
+    {/* Modal post-matrícula: enviar a firma */}
+    {matriculaCompletada && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,36,0.4)', backdropFilter: 'blur(4px)' }}>
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-[fadeIn_0.2s_ease-out]">
+          <div className="text-center mb-5">
+            <div className="w-14 h-14 bg-[#EDF5F0] rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-7 h-7 text-[#2D5A3F]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <h2 className="text-lg font-bold text-[#1B3A5C]">Matrícula completada</h2>
+            <p className="text-sm text-gray-500 mt-1">¿Desea enviar el contrato al apoderado para firma digital?</p>
+          </div>
+
+          <div className="space-y-2.5">
+            {/* Enviar contrato a firma */}
+            <button
+              onClick={async () => {
+                setEnviandoFirma(true)
+                try {
+                  const res = await fetch('/api/contratos/enviar-firma', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matricula_id: matriculaCompletada, tipo: 'contrato' }) })
+                  const d = await res.json()
+                  if (!res.ok) throw new Error(d.error)
+                  toast.success(`Contrato enviado a ${d.email_enviado_a}`)
+                  // También enviar pagaré
+                  const res2 = await fetch('/api/contratos/enviar-firma', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matricula_id: matriculaCompletada, tipo: 'pagare' }) })
+                  const d2 = await res2.json()
+                  if (res2.ok) toast.success('Pagaré también enviado')
+                } catch (e: any) { toast.error(e.message) }
+                setEnviandoFirma(false)
+                setMatriculaCompletada(null)
+                setVista('lista')
+                router.refresh()
+              }}
+              disabled={enviandoFirma}
+              className="w-full py-3 bg-[#2D5A3F] text-white text-sm font-semibold rounded-xl hover:bg-[#245234] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {enviandoFirma ? 'Enviando...' : '📧 Enviar contrato y pagaré a firma'}
+            </button>
+
+            {/* Revisar contrato */}
+            <button
+              onClick={() => window.open(`/api/contratos?matricula_id=${matriculaCompletada}`, '_blank')}
+              className="w-full py-3 bg-white border border-[var(--ar-border)] text-[#1B3A5C] text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+            >
+              👁️ Revisar contrato antes de enviar
+            </button>
+
+            {/* Revisar pagaré */}
+            <button
+              onClick={() => window.open(`/api/contratos?matricula_id=${matriculaCompletada}&tipo=pagare`, '_blank')}
+              className="w-full py-2.5 text-[#3D7A94] text-xs font-medium hover:underline"
+            >
+              Ver pagaré
+            </button>
+
+            {/* Cerrar sin enviar */}
+            <button
+              onClick={() => { setMatriculaCompletada(null); setVista('lista'); router.refresh() }}
+              className="w-full py-2.5 text-gray-400 text-xs hover:text-gray-600"
+            >
+              Cerrar sin enviar (puedo hacerlo después)
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
