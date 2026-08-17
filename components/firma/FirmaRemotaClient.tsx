@@ -141,8 +141,15 @@ export default function FirmaRemotaClient({ token, tipo, nombreEsperado, contrat
                   <input
                     type="text"
                     value={rutFirma}
-                    onChange={e => setRutFirma(e.target.value)}
+                    onChange={e => {
+                      const v = e.target.value.replace(/[^0-9kK]/g, '').toUpperCase()
+                      if (v.length <= 1) { setRutFirma(v); return }
+                      const cuerpo = v.slice(0, -1)
+                      const dv = v.slice(-1)
+                      setRutFirma(cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + dv)
+                    }}
                     placeholder="12.345.678-9"
+                    maxLength={12}
                     className="w-full px-3.5 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1B3A5C]/20 focus:border-[#1B3A5C] outline-none"
                   />
                 </div>

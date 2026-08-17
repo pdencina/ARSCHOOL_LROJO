@@ -155,6 +155,13 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
     if (form.rut && !validarRut(form.rut)) errores.push('rut')
     if (form.rut_apoderado && !validarRut(form.rut_apoderado)) errores.push('rut_apoderado')
     if (form.email_apoderado && !validarEmail(form.email_apoderado)) errores.push('email_apoderado')
+    // Validar cheques si medio de pago es cheque
+    if (form.medio_pago_matricula === 'cheque') {
+      if (!form.banco_cheque) errores.push('banco_cheque')
+      const cheques = form.cheques || []
+      const chequesVacios = cheques.filter((c: string) => !c || !c.trim()).length
+      if (chequesVacios > 0 || cheques.length < form.meses_cobro) errores.push('cheques')
+    }
 
     if (errores.length > 0) {
       setCamposError(errores)
@@ -164,6 +171,8 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
       if (!form.email_apoderado) mensajes.push('Email del apoderado')
       if (errores.includes('rut')) mensajes.push('RUT del alumno inválido')
       if (errores.includes('rut_apoderado')) mensajes.push('RUT del apoderado inválido')
+      if (errores.includes('banco_cheque')) mensajes.push('Seleccione el banco del cheque')
+      if (errores.includes('cheques')) mensajes.push('Complete todos los números de cheque')
       toast.error(`Campos requeridos: ${mensajes.join(', ')}`)
       return
     }
@@ -706,7 +715,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
               {form.medio_pago_matricula === 'cheque' && (
                 <div>
                   <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Banco</label>
-                  <select value={form.banco_cheque || ''} onChange={e => setForm(p => ({...p, banco_cheque: e.target.value}))} className="select-base w-full">
+                  <select value={form.banco_cheque || ''} onChange={e => { setForm(p => ({...p, banco_cheque: e.target.value})); setCamposError(prev => prev.filter(c => c !== 'banco_cheque')) }} className={`select-base w-full ${esError('banco_cheque')}`}>
                     <option value="">Seleccionar banco...</option>
                     <option value="Banco de Chile">Banco de Chile</option>
                     <option value="BancoEstado">BancoEstado</option>
