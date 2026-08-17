@@ -686,17 +686,63 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
               </div>
               {form.medio_pago_matricula === 'cheque' && (
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Banco del cheque</label>
-                  <input value={form.banco_cheque || ''} onChange={e => setForm(p => ({...p, banco_cheque: e.target.value}))} className="input-base" placeholder="Ej: Banco de Chile"/>
+                  <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Banco</label>
+                  <select value={form.banco_cheque || ''} onChange={e => setForm(p => ({...p, banco_cheque: e.target.value}))} className="select-base w-full">
+                    <option value="">Seleccionar banco...</option>
+                    <option value="Banco de Chile">Banco de Chile</option>
+                    <option value="BancoEstado">BancoEstado</option>
+                    <option value="Santander">Santander</option>
+                    <option value="BCI">BCI</option>
+                    <option value="Itaú">Itaú</option>
+                    <option value="Scotiabank">Scotiabank</option>
+                    <option value="BICE">BICE</option>
+                    <option value="Security">Security</option>
+                    <option value="Falabella">Falabella</option>
+                    <option value="Ripley">Ripley</option>
+                    <option value="Consorcio">Consorcio</option>
+                    <option value="Internacional">Internacional</option>
+                  </select>
                 </div>
               )}
             </div>
+
+            {/* Cheques individuales por cuota */}
             {form.medio_pago_matricula === 'cheque' && (
-              <div className="mt-3">
-                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Número de cheque</label>
-                <input value={form.numero_cheque || ''} onChange={e => setForm(p => ({...p, numero_cheque: e.target.value}))} className="input-base" placeholder="Ej: 00012345"/>
+              <div className="mt-4">
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-2">
+                  Cheques por cuota ({form.meses_cobro} cheques)
+                </label>
+                <div className="bg-[#f9fafb] rounded-xl p-3 space-y-2 max-h-[300px] overflow-y-auto">
+                  {Array.from({ length: form.meses_cobro }, (_, i) => {
+                    const mesInicio = 3 // marzo
+                    const mes = ((mesInicio - 1 + i) % 12)
+                    const anio = form.anio_escolar || new Date().getFullYear()
+                    const anioC = mesInicio + i > 12 ? anio + 1 : anio
+                    const mesesNombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+                    const cheques = form.cheques || []
+                    const chequeActual = cheques[i] || ''
+                    return (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-[10px] text-gray-500 w-[90px] flex-shrink-0">{mesesNombres[mes]} {anioC}</span>
+                        <input
+                          type="text"
+                          value={chequeActual}
+                          onChange={e => {
+                            const nuevos = [...(form.cheques || Array(form.meses_cobro).fill(''))]
+                            nuevos[i] = e.target.value
+                            setForm(p => ({...p, cheques: nuevos}))
+                          }}
+                          className="flex-1 px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-[11px] outline-none focus:ring-1 focus:ring-[#1B3A5C]/20 focus:border-[#1B3A5C]"
+                          placeholder="N° cheque"
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="text-[9px] text-gray-400 mt-1">Ingrese el número de cada cheque. Estos datos quedarán registrados en el contrato.</p>
               </div>
             )}
+
             <div className="mt-4">
               <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Observaciones</label>
               <textarea value={form.observaciones} onChange={e => setForm(p => ({...p, observaciones: e.target.value}))} rows={3} className="input-base resize-none" placeholder="Notas adicionales sobre el plan de aportes, descuentos especiales, acuerdos, etc."/>
