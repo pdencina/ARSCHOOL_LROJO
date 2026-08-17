@@ -86,7 +86,7 @@ export function templateInvitacionApoderado(nombre: string, alumno: string, link
       </div>
       <h2 style="color: #1a2332; font-size: 18px; margin: 0 0 12px;">¡Bienvenido/a a AR School!</h2>
       <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">Estimado/a <strong>${nombre}</strong>,</p>
-      <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">Le informamos que <strong>${alumno}</strong> ha sido matriculado exitosamente en nuestro centro educacional.</p>
+      <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">Le informamos que <strong>${alumno}</strong> ha sido matriculado exitosamente en nuestro Centro Educativo.</p>
       <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">Se ha creado una cuenta en nuestra plataforma para que pueda hacer seguimiento del proceso educativo. Para activar su cuenta, haga click en el siguiente botón:</p>
       <div style="text-align: center; margin: 28px 0;">
         <a href="${linkAcceso}" style="background: #1a2332; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 14px; font-weight: 600; display: inline-block;">Crear mi contraseña</a>

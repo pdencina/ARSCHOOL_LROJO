@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
             <div style="background:white;padding:32px 24px;border:1px solid #e5e7eb;border-top:none;">
               <p style="color:#1B3A5C;font-size:15px;font-weight:600;margin:0 0 8px;">Hola ${nombreCompleto},</p>
               <p style="color:#4b5563;font-size:13px;line-height:1.7;margin:0 0 20px;">
-                Se ha creado tu cuenta en la plataforma AR School. Desde aquí podrás gestionar todos los procesos educacionales del Centro Educacional.
+                Se ha creado tu cuenta en la plataforma AR School. Desde aquí podrás gestionar todos los procesos educacionales del Centro Educativo.
               </p>
 
               <!-- Info card -->

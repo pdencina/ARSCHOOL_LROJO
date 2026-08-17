@@ -26,7 +26,7 @@ export default async function FirmarRemotoPage({ params }: { params: { token: st
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
           <div className="text-4xl mb-4">❌</div>
           <h1 className="text-xl font-bold text-[#1B3A5C] mb-2">Enlace no válido</h1>
-          <p className="text-sm text-gray-500">Este enlace de firma no existe o ya no está disponible. Contacte al Centro Educacional para solicitar uno nuevo.</p>
+          <p className="text-sm text-gray-500">Este enlace de firma no existe o ya no está disponible. Contacte al Centro Educativo para solicitar uno nuevo.</p>
         </div>
       </div>
     )
@@ -40,7 +40,7 @@ export default async function FirmarRemotoPage({ params }: { params: { token: st
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
           <div className="text-4xl mb-4">✅</div>
           <h1 className="text-xl font-bold text-[#2D5A3F] mb-2">Documento ya firmado</h1>
-          <p className="text-sm text-gray-500">Este documento ya fue firmado exitosamente. El Centro Educacional tiene registro de su firma.</p>
+          <p className="text-sm text-gray-500">Este documento ya fue firmado exitosamente. El Centro Educativo tiene registro de su firma.</p>
         </div>
       </div>
     )
@@ -52,7 +52,7 @@ export default async function FirmarRemotoPage({ params }: { params: { token: st
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
           <div className="text-4xl mb-4">⏰</div>
           <h1 className="text-xl font-bold text-[#9A5B00] mb-2">Enlace expirado</h1>
-          <p className="text-sm text-gray-500">Este enlace ha expirado. Contacte al Centro Educacional para que le envíen uno nuevo.</p>
+          <p className="text-sm text-gray-500">Este enlace ha expirado. Contacte al Centro Educativo para que le envíen uno nuevo.</p>
         </div>
       </div>
     )

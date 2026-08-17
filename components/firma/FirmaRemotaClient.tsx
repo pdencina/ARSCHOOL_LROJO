@@ -244,7 +244,7 @@ export default function FirmaRemotaClient({ token, tipo, nombreEsperado, contrat
 
               <h2 className="text-xl font-bold text-[#2D5A3F] mb-2">Documento firmado</h2>
               <p className="text-sm text-gray-500 mb-5">
-                Su {tipoLabel.toLowerCase()} ha sido firmado exitosamente. El Centro Educacional recibirá notificación de su firma.
+                Su {tipoLabel.toLowerCase()} ha sido firmado exitosamente. El Centro Educativo recibirá notificación de su firma.
               </p>
 
               {evidencia && (
