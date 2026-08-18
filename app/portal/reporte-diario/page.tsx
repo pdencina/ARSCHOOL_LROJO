@@ -62,7 +62,7 @@ export default async function PortalReporteDiarioPage() {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="page-title">Reporte del día</h1>
-        <p className="page-subtitle">Cómo estuvo tu hijo/a en el colegio</p>
+        <p className="page-subtitle">Cómo estuvo tu hijo/a en el SEDE</p>
       </div>
 
       {(!reportes || reportes.length === 0) ? (

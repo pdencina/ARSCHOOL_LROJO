@@ -50,7 +50,7 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
   }
 
   async function handleGuardar() {
-    if (!form.nombre || !form.email || !form.colegio_id) { toast.error('Nombre, email y colegio son requeridos'); return }
+    if (!form.nombre || !form.email || !form.colegio_id) { toast.error('Nombre, email y sede son requeridos'); return }
     setLoading(true)
     try {
       const url = editUsuario ? `/api/admin/usuarios/${editUsuario.id}` : '/api/admin/usuarios'
@@ -115,7 +115,7 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
           <input value={busqueda} onChange={e => setBusqueda(e.target.value)} className="input-base pl-9" placeholder="Buscar usuario..."/>
         </div>
         <select value={filtroColegio} onChange={e => setFiltroColegio(e.target.value)} className="select-base">
-          <option value="">Todos los colegios</option>
+          <option value="">Todas las sedes</option>
           {colegios.map((c: any) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
         </select>
         {filtroRol && (
@@ -131,7 +131,7 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
-              {['Usuario','Email','Colegio','Rol','Creado','Acciones'].map(h => (
+              {['Usuario','Email','Sede','Rol','Creado','Acciones'].map(h => (
                 <th key={h} className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3 text-left">{h}</th>
               ))}
             </tr>
@@ -213,7 +213,7 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Colegio *</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Sede *</label>
                   <select value={form.colegio_id} onChange={e => setForm(p => ({...p, colegio_id: e.target.value}))} className="select-base w-full">
                     {colegios.map((c: any) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                   </select>

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
-interface Props { colegio: any; usuarios: any[]; alumnos: any[] }
+interface Props { SEDE: any; usuarios: any[]; alumnos: any[] }
 
 const ROL_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   super_admin: { label: 'Super Admin', color: 'text-red-700',     bg: 'bg-red-50' },
@@ -16,7 +16,7 @@ const ROL_CONFIG: Record<string, { label: string; color: string; bg: string }> =
   alumno:      { label: 'alumno',      color: 'text-amber-700',   bg: 'bg-amber-50' },
 }
 
-export default function GestionarColegioClient({ colegio, usuarios, alumnos }: Props) {
+export default function GestionarSEDEClient({ SEDE, usuarios, alumnos }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<'resumen'|'usuarios'|'alumnos'>('resumen')
 
@@ -41,16 +41,16 @@ export default function GestionarColegioClient({ colegio, usuarios, alumnos }: P
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center font-display font-bold text-blue-700 text-lg">
-              {colegio.nombre?.[0]}
+              {SEDE.nombre?.[0]}
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 font-display">{colegio.nombre}</h1>
-              <p className="text-sm text-slate-500">{colegio.direccion ?? 'Sin dirección'} · {colegio.rut ?? 'Sin RUT'}</p>
+              <h1 className="text-2xl font-bold text-slate-900 font-display">{SEDE.nombre}</h1>
+              <p className="text-sm text-slate-500">{SEDE.direccion ?? 'Sin dirección'} · {SEDE.rut ?? 'Sin RUT'}</p>
             </div>
           </div>
         </div>
-        <span className={`tag ${colegio.plan === 'enterprise' ? 'tag-mora' : colegio.plan === 'profesional' ? 'tag-blue' : 'tag-gray'} text-sm px-3 py-1`}>
-          {colegio.plan}
+        <span className={`tag ${SEDE.plan === 'enterprise' ? 'tag-mora' : SEDE.plan === 'profesional' ? 'tag-blue' : 'tag-gray'} text-sm px-3 py-1`}>
+          {SEDE.plan}
         </span>
       </div>
 
@@ -92,15 +92,15 @@ export default function GestionarColegioClient({ colegio, usuarios, alumnos }: P
       {tab === 'resumen' && (
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white border border-slate-200 rounded-xl p-5">
-            <h3 className="font-display font-semibold text-slate-800 mb-4">Información del colegio</h3>
+            <h3 className="font-display font-semibold text-slate-800 mb-4">Información del SEDE</h3>
             <div className="space-y-3">
               {[
-                { label: 'Nombre',    val: colegio.nombre },
-                { label: 'RUT',       val: colegio.rut ?? '—' },
-                { label: 'Dirección', val: colegio.direccion ?? '—' },
-                { label: 'Teléfono', val: colegio.telefono ?? '—' },
-                { label: 'Plan',      val: colegio.plan },
-                { label: 'Creado',    val: new Date(colegio.created_at).toLocaleDateString('es-CL') },
+                { label: 'Nombre',    val: SEDE.nombre },
+                { label: 'RUT',       val: SEDE.rut ?? '—' },
+                { label: 'Dirección', val: SEDE.direccion ?? '—' },
+                { label: 'Teléfono', val: SEDE.telefono ?? '—' },
+                { label: 'Plan',      val: SEDE.plan },
+                { label: 'Creado',    val: new Date(SEDE.created_at).toLocaleDateString('es-CL') },
               ].map((f, i) => (
                 <div key={i} className="flex justify-between py-2 border-b border-slate-50 last:border-0">
                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{f.label}</span>
@@ -138,8 +138,8 @@ export default function GestionarColegioClient({ colegio, usuarios, alumnos }: P
       {tab === 'usuarios' && (
         <div>
           <div className="flex justify-between items-center mb-4">
-            <p className="text-sm text-slate-500">{usuarios.length} usuarios en este colegio</p>
-            <Link href={`/super-admin/usuarios?colegio=${colegio.id}`} className="btn-primary text-sm">
+            <p className="text-sm text-slate-500">{usuarios.length} usuarios en este SEDE</p>
+            <Link href={`/super-admin/usuarios?SEDE=${SEDE.id}`} className="btn-primary text-sm">
               <i className="ti ti-user-plus text-sm" aria-hidden="true"/> Nuevo usuario
             </Link>
           </div>
@@ -177,7 +177,7 @@ export default function GestionarColegioClient({ colegio, usuarios, alumnos }: P
                         </select>
                       </td>
                       <td className="px-4 py-3">
-                        <Link href={`/super-admin/usuarios?colegio=${colegio.id}`} className="text-xs text-blue-600 hover:underline">Editar</Link>
+                        <Link href={`/super-admin/usuarios?SEDE=${SEDE.id}`} className="text-xs text-blue-600 hover:underline">Editar</Link>
                       </td>
                     </tr>
                   )

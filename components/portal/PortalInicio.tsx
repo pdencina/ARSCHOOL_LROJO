@@ -35,7 +35,7 @@ export default function PortalInicio({ usuario, alumno, rol, stats, comunicados,
           {SALUDO}, {usuario?.nombre} 👋
         </h1>
         <p className="text-slate-500 mt-1">
-          {esApoderado ? 'Portal familiar' : 'Portal del alumno'} · {usuario?.colegio?.nombre}
+          {esApoderado ? 'Portal familiar' : 'Portal del alumno'} · {usuario?.SEDE?.nombre}
         </p>
       </div>
 

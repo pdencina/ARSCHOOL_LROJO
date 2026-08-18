@@ -93,7 +93,7 @@ export default function ReportesClient({ stats, cursos, meses, mesActual, resume
     <div className="p-6 max-w-5xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 font-display">Reportes</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Exporta datos del colegio en formato CSV</p>
+        <p className="text-sm text-slate-500 mt-0.5">Exporta datos del SEDE en formato CSV</p>
       </div>
 
       {/* KPIs globales */}

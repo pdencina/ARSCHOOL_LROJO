@@ -14,14 +14,14 @@ interface Props {
 export default function ConfiguracionClient({ usuario, stats, horariosJornada }: Props) {
   const router = useRouter()
   const supabase = createClient()
-  const colegio = usuario?.colegio
+  const SEDE = usuario?.SEDE
   const [editando, setEditando] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    nombre: colegio?.nombre ?? '',
-    rut: colegio?.rut ?? '',
-    direccion: colegio?.direccion ?? '',
-    telefono: colegio?.telefono ?? '',
+    nombre: SEDE?.nombre ?? '',
+    rut: SEDE?.rut ?? '',
+    direccion: SEDE?.direccion ?? '',
+    telefono: SEDE?.telefono ?? '',
   })
 
   // Cambiar contraseña
@@ -76,15 +76,15 @@ export default function ConfiguracionClient({ usuario, stats, horariosJornada }:
     }
   }
 
-  async function handleGuardarColegio() {
+  async function handleGuardarSEDE() {
     setSaving(true)
-    const res = await fetch('/api/colegios', {
+    const res = await fetch('/api/SEDEs', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     })
     if (res.ok) {
-      toast.success('Datos del colegio actualizados')
+      toast.success('Datos del SEDE actualizados')
       setEditando(false)
       router.refresh()
     } else {
@@ -121,15 +121,15 @@ export default function ConfiguracionClient({ usuario, stats, horariosJornada }:
     <div className="p-6 max-w-3xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 font-display">Configuración</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Datos del colegio y cuenta</p>
+        <p className="text-sm text-slate-500 mt-0.5">Datos del SEDE y cuenta</p>
       </div>
 
       <div className="space-y-5">
-        {/* Info colegio */}
-        {colegio && (
+        {/* Info SEDE */}
+        {SEDE && (
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-slate-800 font-display">Información del colegio</h2>
+              <h2 className="font-semibold text-slate-800 font-display">Información del SEDE</h2>
               {canEdit && !editando && (
                 <button onClick={() => setEditando(true)} className="btn-secondary text-xs">
                   <i className="ti ti-pencil text-xs" aria-hidden="true"/> Editar
@@ -158,7 +158,7 @@ export default function ConfiguracionClient({ usuario, stats, horariosJornada }:
                   </div>
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <button onClick={handleGuardarColegio} disabled={saving} className="btn-primary text-sm disabled:opacity-60">
+                  <button onClick={handleGuardarSEDE} disabled={saving} className="btn-primary text-sm disabled:opacity-60">
                     {saving ? 'Guardando...' : 'Guardar'}
                   </button>
                   <button onClick={() => setEditando(false)} className="btn-secondary text-sm">Cancelar</button>
@@ -167,12 +167,12 @@ export default function ConfiguracionClient({ usuario, stats, horariosJornada }:
             ) : (
               <div className="grid grid-cols-2 gap-4 text-sm">
                 {[
-                  { label: 'Nombre', val: colegio.nombre ?? '—' },
-                  { label: 'RUT', val: colegio.rut ?? '—' },
-                  { label: 'Dirección', val: colegio.direccion ?? '—' },
-                  { label: 'Teléfono', val: colegio.telefono ?? '—' },
-                  { label: 'Plan', val: colegio.plan ?? '—' },
-                  { label: 'Creado', val: new Date(colegio.created_at).toLocaleDateString('es-CL') },
+                  { label: 'Nombre', val: SEDE.nombre ?? '—' },
+                  { label: 'RUT', val: SEDE.rut ?? '—' },
+                  { label: 'Dirección', val: SEDE.direccion ?? '—' },
+                  { label: 'Teléfono', val: SEDE.telefono ?? '—' },
+                  { label: 'Plan', val: SEDE.plan ?? '—' },
+                  { label: 'Creado', val: new Date(SEDE.created_at).toLocaleDateString('es-CL') },
                 ].map((f, i) => (
                   <div key={i}>
                     <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{f.label}</div>

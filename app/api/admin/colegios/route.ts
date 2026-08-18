@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
   const admin = getAdminClient()
   const { data, error } = await admin
-    .from('colegios')
+    .from('SEDEs')
     .insert({ nombre, rut: rut || null, direccion: direccion || null, telefono: telefono || null, plan: plan ?? 'profesional' })
     .select()
     .single()
@@ -40,9 +40,9 @@ export async function GET() {
   const user = await checkSuperAdmin()
   if (!user) return NextResponse.json([], { status: 403 })
 
-  // Service role bypasea RLS — ve todos los colegios
+  // Service role bypasea RLS — ve todos los SEDEs
   const admin = getAdminClient()
-  const { data, error } = await admin.from('colegios').select('*').order('nombre')
+  const { data, error } = await admin.from('SEDEs').select('*').order('nombre')
   if (error) return NextResponse.json([], { status: 500 })
   return NextResponse.json(data ?? [])
 }

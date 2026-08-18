@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     template: '%s | AR School',
   },
   description: 'Sistema integral de gestión escolar: comunicados, asistencias, calificaciones y cobranzas.',
-  keywords: ['gestión escolar', 'AR School', 'plataforma educacional', 'colegio'],
+  keywords: ['gestión escolar', 'AR School', 'plataforma educacional', 'SEDE'],
 }
 
 export const viewport: Viewport = {

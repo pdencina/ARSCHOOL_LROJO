@@ -480,7 +480,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Sede</label>
                 <select value={form.sede} onChange={e => { setForm(p => ({...p, sede: e.target.value})); calcularMontos(form.curso, form.jornada, e.target.value) }} className="select-base w-full">
-                  <option value="">Según colegio asignado</option>
+                  <option value="">Según SEDE asignado</option>
                   <option value="santiago">Santiago (Victoria 52)</option>
                   <option value="puente_alto">Puente Alto (Irarrázaval 0565)</option>
                   <option value="punta_arenas">Punta Arenas (Chiloé 862)</option>
@@ -537,7 +537,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
               <h3 className="text-[13px] font-semibold text-[#1a2332]">Antecedentes educativos</h3>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">¿Ha estado en otro jardín/colegio?</label><input value={form.jardin_previo} onChange={e => setForm(p => ({...p, jardin_previo: e.target.value}))} className="input-base" placeholder="No / Nombre del establecimiento"/></div>
+              <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">¿Ha estado en otro jardín/SEDE?</label><input value={form.jardin_previo} onChange={e => setForm(p => ({...p, jardin_previo: e.target.value}))} className="input-base" placeholder="No / Nombre del establecimiento"/></div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Último año escolar aprobado</label><input value={form.ultimo_anio_aprobado} onChange={e => setForm(p => ({...p, ultimo_anio_aprobado: e.target.value}))} className="input-base" placeholder="Ej: 3° Básico"/></div>
               <div>
                 <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">¿Ha reprobado algún curso?</label>

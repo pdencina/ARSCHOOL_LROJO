@@ -68,7 +68,7 @@ export default function VincularPage() {
 
         <div className="bg-white border border-[#eceef1] rounded-xl p-6 shadow-sm">
           <h2 className="text-lg font-bold text-[#1a2332] mb-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>Vincular a mi hijo/a</h2>
-          <p className="text-[#6b7280] text-sm mb-6">Ingresa el código que te proporcionó el colegio para acceder a la información de tu hijo/a.</p>
+          <p className="text-[#6b7280] text-sm mb-6">Ingresa el código que te proporcionó el SEDE para acceder a la información de tu hijo/a.</p>
 
           <form onSubmit={handleVincular} className="space-y-4">
             <div>
@@ -89,7 +89,7 @@ export default function VincularPage() {
           </form>
 
           <div className="mt-5 pt-4 border-t border-[#f3f4f6] text-center">
-            <p className="text-[11px] text-[#9ca3af]">¿No tienes código? Solicítalo en la administración del colegio.</p>
+            <p className="text-[11px] text-[#9ca3af]">¿No tienes código? Solicítalo en la administración del SEDE.</p>
           </div>
         </div>
       </div>

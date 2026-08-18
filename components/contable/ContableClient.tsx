@@ -350,7 +350,7 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-display font-semibold text-slate-800">Planes de cobro</h3>
-                  <p className="text-sm text-slate-500">Montos y periodicidad configurados para el colegio</p>
+                  <p className="text-sm text-slate-500">Montos y periodicidad configurados para el SEDE</p>
                 </div>
                 <button onClick={() => setShowPlanModal(true)} className="btn-primary text-sm">
                   <i className="ti ti-plus" aria-hidden="true"/> Nuevo plan

@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   // Verificar expiración
   if (new Date(ft.expira_at) < new Date()) {
     await admin.from('firma_tokens').update({ estado: 'expirado' }).eq('id', ft.id)
-    return NextResponse.json({ error: 'Este enlace ha expirado. Solicite uno nuevo al colegio.' }, { status: 410 })
+    return NextResponse.json({ error: 'Este enlace ha expirado. Solicite uno nuevo al SEDE.' }, { status: 410 })
   }
 
   // Verificar que no esté ya firmado
