@@ -46,8 +46,8 @@ export default function LoginPage() {
         
         <div className="relative">
           <div className="flex items-center gap-4 mb-16">
-            <div className="bg-white rounded-xl p-2">
-              <Image src="/logo-arschool.png" alt="AR School" width={120} height={40} className="h-10 w-auto"/>
+            <div className="bg-white rounded-xl p-3">
+              <Image src="/logo-fundacion.png" alt="Fundación ARM Global" width={160} height={50} className="h-12 w-auto"/>
             </div>
           </div>
           <h1 className="text-4xl font-bold text-white leading-tight mb-5" style={{ fontFamily: 'DM Sans, sans-serif' }}>
