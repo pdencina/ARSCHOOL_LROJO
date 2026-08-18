@@ -341,6 +341,28 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                           </button>
                         )}
                       </div>
+                      <div className="flex gap-2 mt-1.5">
+                        <button
+                          onClick={() => { window.open(`/api/alumnos/${m.alumno_id}`, '_blank') }}
+                          className="text-[10px] text-gray-500 hover:text-[#1B3A5C] hover:underline"
+                        >
+                          Editar datos
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`¿Eliminar matrícula de ${m.alumno?.nombre} ${m.alumno?.apellido}? Esto eliminará también los cobros asociados.`)) return
+                            try {
+                              const res = await fetch(`/api/matriculas/${m.id}`, { method: 'DELETE' })
+                              if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
+                              toast.success('Matrícula eliminada')
+                              router.refresh()
+                            } catch (e: any) { toast.error(e.message) }
+                          }}
+                          className="text-[10px] text-red-400 hover:text-red-600 hover:underline"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
