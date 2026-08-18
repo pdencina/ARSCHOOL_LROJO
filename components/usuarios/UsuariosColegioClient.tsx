@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
-interface Props { usuarios: any[]; alumnos: any[]; colegioId: string }
+interface Props { usuarios: any[]; alumnos: any[]; colegioId: string; rolActual?: string }
 
 const ROL_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
   admin:     { label: 'admin',     color: 'text-blue-700',    bg: 'bg-blue-50',    icon: 'ti-briefcase' },
@@ -15,7 +15,7 @@ const ROL_CONFIG: Record<string, { label: string; color: string; bg: string; ico
   alumno:    { label: 'alumno',    color: 'text-amber-700',   bg: 'bg-amber-50',   icon: 'ti-backpack' },
 }
 
-export default function UsuariosColegioClient({ usuarios, alumnos, colegioId }: Props) {
+export default function UsuariosColegioClient({ usuarios, alumnos, colegioId, rolActual = 'pastor_campus' }: Props) {
   const router = useRouter()
   const [showModal, setShowModal] = useState(false)
   const [showVincular, setShowVincular] = useState<any>(null)
@@ -104,9 +104,11 @@ export default function UsuariosColegioClient({ usuarios, alumnos, colegioId }: 
           <h1 className="text-2xl font-bold text-slate-900 font-display">Usuarios del colegio</h1>
           <p className="text-sm text-slate-500 mt-0.5">{usuarios.length} usuarios · Gestiona profesores, apoderados y alumnos</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary">
-          <i className="ti ti-user-plus text-sm" aria-hidden="true"/> Nuevo usuario
-        </button>
+        {rolActual === 'super_admin' && (
+          <button onClick={() => setShowModal(true)} className="btn-primary">
+            <i className="ti ti-user-plus text-sm" aria-hidden="true"/> Nuevo usuario
+          </button>
+        )}
       </div>
 
       {/* Filtros por rol */}

@@ -44,6 +44,7 @@ export default async function UsuariosPage() {
       usuarios={(usuarios as any[]) ?? []}
       alumnos={(alumnos as any[]) ?? []}
       colegioId={usuario.colegio_id}
+      rolActual={usuario.rol}
     />
   )
 }
