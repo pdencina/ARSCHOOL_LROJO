@@ -35,7 +35,7 @@ const NAV_GESTION: NavItem[] = [
 ]
 
 const NAV_CUENTA: NavItem[] = [
-  { label: 'Campus',          href: '/super-admin',          icon: 'ti-building-school', roles: ['super_admin'] },
+  { label: 'Sedes',          href: '/super-admin',          icon: 'ti-building-school', roles: ['super_admin'] },
   { label: 'Usuarios',        href: '/usuarios',             icon: 'ti-user-cog',        roles: ['pastor_campus'] },
   { label: 'Usuarios',        href: '/super-admin/usuarios', icon: 'ti-user-cog',        roles: ['super_admin'] },
   { label: 'Tabla de aportes', href: '/super-admin/aportes', icon: 'ti-table',           roles: ['super_admin'] },
