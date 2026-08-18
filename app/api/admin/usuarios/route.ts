@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
   const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
   if ((ur as any)?.rol !== 'super_admin') return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
 
-  const { nombre, apellido, email, password, rol, colegio_id } = await request.json()
-  if (!email || !password || !nombre || !colegio_id) {
+  const { nombre, apellido, email, rol, colegio_id } = await request.json()
+  if (!email || !nombre || !colegio_id) {
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
   }
 

@@ -51,7 +51,6 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
 
   async function handleGuardar() {
     if (!form.nombre || !form.email || !form.colegio_id) { toast.error('Nombre, email y colegio son requeridos'); return }
-    if (!editUsuario && !form.password) { toast.error('La contraseña es requerida para nuevos usuarios'); return }
     setLoading(true)
     try {
       const url = editUsuario ? `/api/admin/usuarios/${editUsuario.id}` : '/api/admin/usuarios'
