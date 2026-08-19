@@ -445,26 +445,23 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                     if (esPlaygroup) {
                       return (
                         <>
-                          <option value="completa">Jornada Completa (Lun-Jue 08:30-18:00, Vie 08:30-17:00)</option>
-                          <option value="am">Media Jornada AM (Lun-Vie 08:30-13:00)</option>
-                          <option value="especial">Jornada Especial (1 a 4 días por semana)</option>
+                          <option value="completa">Jornada Completa (Lun-Jue 08:00-18:00, Vie 08:00-17:00)</option>
+                          <option value="am">Media Jornada AM (Lun-Vie 08:00-13:00)</option>
+                          <option value="pm">Media Jornada PM (Lun-Jue 13:00-18:00, Vie 13:00-17:00)</option>
                         </>
                       )
                     }
                     if (esPreschool) {
-                      return <option value="completa">Jornada Única (Lun-Vie 08:30-12:45)</option>
+                      return (
+                        <>
+                          <option value="completa">Jornada Completa (Lun-Jue 08:00-18:00, Vie 08:00-17:00)</option>
+                          <option value="am">Media Jornada AM (Lun-Vie 08:00-13:00)</option>
+                          <option value="pm">Media Jornada PM (Lun-Jue 13:00-18:00, Vie 13:00-17:00)</option>
+                        </>
+                      )
                     }
-                    if (soloCompleta) {
-                      return <option value="completa">Jornada Completa (Lun-Mar-Jue 08:30-16:00, Mié-Vie 08:30-13:40)</option>
-                    }
-                    // Elementary
-                    return (
-                      <>
-                        <option value="completa">Jornada Completa (Lun-Mar-Jue 08:30-16:00, Mié-Vie 08:30-13:40)</option>
-                        <option value="am">Media Jornada AM (Lun-Vie 08:30-13:00)</option>
-                        <option value="especial">Jornada Especial (1 a 4 días por semana)</option>
-                      </>
-                    )
+                    // AR School: Elementary, Middle, High — jornada única
+                    return <option value="completa">Jornada Completa (Lun-Mar-Jue 08:30-16:00, Mié-Vie 08:30-13:40)</option>
                   })()}
                 </select>
                 {(() => {
