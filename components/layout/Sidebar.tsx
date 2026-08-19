@@ -100,6 +100,8 @@ const HREF_TO_MODULO: Record<string, string> = {
   '/calendario': 'calendario',
   '/fichas': 'fichas',
   '/reportes': 'reportes',
+  '/lions': 'lions_soccer',
+  '/worship': 'ar_worship',
   '/portal': 'inicio',
   '/portal/reporte-diario': 'reporte_diario',
   '/portal/mensajes': 'mensajes',

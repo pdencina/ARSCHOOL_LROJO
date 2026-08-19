@@ -34,6 +34,8 @@ const MODULOS = [
   { key: 'reportes', label: 'Reportes', icon: 'ti-file-analytics', grupo: 'Gestión' },
   { key: 'pagos', label: 'Estado de pagos', icon: 'ti-cash', grupo: 'Portal' },
   { key: 'perfil', label: 'Mi perfil', icon: 'ti-user', grupo: 'Portal' },
+  { key: 'lions_soccer', label: 'Lions Soccer', icon: 'ti-ball-football', grupo: 'Programas' },
+  { key: 'ar_worship', label: 'AR Worship', icon: 'ti-music', grupo: 'Programas' },
 ]
 
 export default function PermisosClient({ permisos: initialPermisos }: Props) {
