@@ -10,9 +10,10 @@ interface Props {
 
 export default function SidebarWrapper({ rol, modulosHabilitadosInicial }: Props) {
   const [modulos, setModulos] = useState<string[] | null>(modulosHabilitadosInicial)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
-    if (rol === 'super_admin') return // Super admin ve todo, no necesita polling
+    if (rol === 'super_admin') return
 
     const fetchPermisos = async () => {
       try {
@@ -24,10 +25,7 @@ export default function SidebarWrapper({ rol, modulosHabilitadosInicial }: Props
       } catch {}
     }
 
-    // Polling cada 30 segundos
     const interval = setInterval(fetchPermisos, 30000)
-
-    // También al enfocar la ventana (cuando vuelve de otra tab)
     const handleFocus = () => fetchPermisos()
     window.addEventListener('focus', handleFocus)
 
@@ -37,5 +35,41 @@ export default function SidebarWrapper({ rol, modulosHabilitadosInicial }: Props
     }
   }, [rol])
 
-  return <Sidebar rol={rol} modulosHabilitados={modulos} />
+  // Listen for mobile menu toggle from Topbar
+  useEffect(() => {
+    const handler = () => setMobileOpen(prev => !prev)
+    window.addEventListener('toggle-sidebar', handler)
+    return () => window.removeEventListener('toggle-sidebar', handler)
+  }, [])
+
+  // Close on route change (clicking a nav link)
+  useEffect(() => {
+    const closeOnClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target.closest('a[href]') && mobileOpen) {
+        setMobileOpen(false)
+      }
+    }
+    document.addEventListener('click', closeOnClick)
+    return () => document.removeEventListener('click', closeOnClick)
+  }, [mobileOpen])
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <div className="hidden lg:block">
+        <Sidebar rol={rol} modulosHabilitados={modulos} />
+      </div>
+
+      {/* Mobile sidebar overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setMobileOpen(false)}/>
+          <div className="absolute left-0 top-0 bottom-0 w-[260px] animate-[slideIn_0.2s_ease-out]">
+            <Sidebar rol={rol} modulosHabilitados={modulos} />
+          </div>
+        </div>
+      )}
+    </>
+  )
 }

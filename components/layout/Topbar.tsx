@@ -33,9 +33,17 @@ export default function Topbar({ usuario }: Props) {
 
   return (
     <header className="bg-white/80 backdrop-blur-xl border-b border-[var(--ar-border)] sticky top-0 z-30">
-      <div className="flex items-center justify-between h-[56px] px-6">
-        {/* Logo */}
-        <Link href={rol === 'apoderado' || rol === 'alumno' ? '/portal' : '/inicio'} className="flex items-center gap-3 shrink-0 group">
+      <div className="flex items-center justify-between h-[56px] px-4 lg:px-6">
+        {/* Mobile menu button + Logo */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => window.dispatchEvent(new Event('toggle-sidebar'))}
+            className="lg:hidden p-2 -ml-1 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="Menú"
+          >
+            <svg className="w-5 h-5 text-[var(--ar-text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <Link href={rol === 'apoderado' || rol === 'alumno' ? '/portal' : '/inicio'} className="flex items-center gap-3 shrink-0 group">
           <Image src="/logo-arschool.png" alt="AR School" width={34} height={34} className="rounded-lg group-hover:scale-105 transition-transform duration-200"/>
           <div>
             <div className="font-semibold text-[var(--ar-text)] text-[13px] leading-none tracking-tight" style={{ fontFamily: 'DM Sans, sans-serif' }}>AR SCHOOL</div>
@@ -44,6 +52,7 @@ export default function Topbar({ usuario }: Props) {
             </div>
           </div>
         </Link>
+        </div>
 
         {/* Search trigger + User */}
         <div className="flex items-center gap-2 shrink-0 relative">

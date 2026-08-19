@@ -211,3 +211,24 @@
   @apply bg-white rounded-2xl w-full shadow-2xl overflow-hidden animate-fade-in-scale;
   box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0,0,0,0.03);
 }
+
+/* Mobile responsive utilities */
+@media (max-width: 1023px) {
+  .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .kpi-card { padding: 16px; }
+  .kpi-value { font-size: 20px; }
+  table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-head th { white-space: nowrap; }
+  .table-row td { white-space: nowrap; }
+}
+
+@media (max-width: 640px) {
+  main > div { padding-left: 16px !important; padding-right: 16px !important; }
+  .grid-cols-2 { grid-template-columns: 1fr !important; }
+  .grid-cols-3 { grid-template-columns: 1fr !important; }
+  .grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* Safe area for mobile devices with notch */
+.safe-area-pb { padding-bottom: env(safe-area-inset-bottom, 0); }
+.safe-area-pt { padding-top: env(safe-area-inset-top, 0); }

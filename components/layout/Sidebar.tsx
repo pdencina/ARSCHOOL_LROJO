@@ -182,7 +182,7 @@ export default function Sidebar({ rol = 'admin', modulosHabilitados = null }: Pr
   }
 
   return (
-    <aside className="w-[220px] bg-white border-r border-[var(--ar-border)] flex flex-col shrink-0 min-h-[calc(100vh-56px)] relative">
+    <aside className="w-[220px] lg:w-[220px] bg-white border-r border-[var(--ar-border)] flex flex-col shrink-0 h-full min-h-[calc(100vh-56px)] relative">
       {/* Role accent strip at top */}
       <div className="absolute top-0 left-0 right-0 h-[3px] rounded-b-sm" style={{ backgroundColor: badge?.accent || '#1B3A5C' }}/>
       <div className="px-4 pt-5 pb-3">
