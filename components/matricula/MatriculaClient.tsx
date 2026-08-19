@@ -179,13 +179,15 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
     setCamposError([])
     setSaving(true)
 
+    // Separar documentos del payload principal (evitar timeout por payload grande)
+    const docsParaSubir = { ...documentos }
+
     const res = await fetch('/api/matriculas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...form,
-        documentos,
-        // Medio de pago se selecciona post-firma, no en matrícula
+        documentos: {}, // Docs se suben después para evitar timeout
         descuento_contado: 0,
         monto_mensual_final: null,
         pagare_confirmado: false,
@@ -194,6 +196,24 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
 
     const data = await res.json()
     if (res.ok) {
+      // Subir documentos en segundo plano si hay (uno por uno para evitar límite de payload)
+      if (Object.keys(docsParaSubir).length > 0 && data.matricula?.id) {
+        for (const [tipo, dataUrl] of Object.entries(docsParaSubir)) {
+          if (!dataUrl) continue
+          try {
+            await fetch('/api/documentos', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                matricula_id: data.matricula.id,
+                alumno_id: data.alumno?.id,
+                documentos: { [tipo]: dataUrl },
+              }),
+            })
+          } catch { /* retry later */ }
+        }
+      }
+
       toast.success('Matrícula completada exitosamente')
       localStorage.removeItem('ar_matricula_form')
       // Mostrar modal de acciones post-matrícula

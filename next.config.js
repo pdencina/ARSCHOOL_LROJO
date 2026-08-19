@@ -9,6 +9,16 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.supabase.co' },
     ],
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '20mb',
+    },
+  },
+  api: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
+  },
 }
 
 module.exports = nextConfig
