@@ -681,6 +681,11 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Meses</label><input type="number" min="1" max="12" value={form.meses_cobro} onChange={e => setForm(p => ({...p, meses_cobro: parseInt(e.target.value) || 10}))} className="input-base"/></div>
               <div>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Proporcional 1er mes ($)</label>
+                <input type="text" value={form.proporcional_display || ''} onChange={e => { const v = e.target.value.replace(/\D/g, ''); setForm(p => ({...p, proporcional_primer_mes: parseInt(v) || 0, proporcional_display: v ? parseInt(v).toLocaleString('es-CL') : ''})) }} className="input-base" placeholder="Días proporcionales"/>
+                <p className="text-[9px] text-[var(--ar-muted)] mt-0.5">Si ingresa a mitad de mes. Dejar vacío si paga mes completo.</p>
+              </div>
+              <div>
                 <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Beca / Descuento (%)</label>
                 <input type="number" min="0" max="100" value={form.porcentaje_beca || ''} onChange={e => setForm(p => ({...p, porcentaje_beca: parseInt(e.target.value) || 0}))} className="input-base" placeholder="0"/>
                 {becasAprobadas.length > 0 && (
@@ -706,6 +711,12 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                   <div className="font-medium text-right">
                     <span className="text-[#1a2332]">${form.monto_matricula.toLocaleString('es-CL')}</span>
                   </div>
+                  {form.proporcional_primer_mes > 0 && (
+                    <>
+                      <div>Proporcional 1er mes:</div>
+                      <div className="font-medium text-right text-[#1a2332]">${form.proporcional_primer_mes.toLocaleString('es-CL')}</div>
+                    </>
+                  )}
                   <div>Aporte mensual:</div>
                   <div className="font-medium text-right">
                     {form.porcentaje_beca > 0 && <span className="line-through text-[#9ca3af] mr-2">${form.monto_mensual.toLocaleString('es-CL')}</span>}
@@ -713,7 +724,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                   </div>
                   <div className="border-t border-[#e8eaed] pt-2 mt-1 font-semibold">Total año ({form.meses_cobro} meses):</div>
                   <div className="border-t border-[#e8eaed] pt-2 mt-1 font-bold text-[#1a2332] text-right">
-                    ${Math.round(form.monto_matricula + form.monto_mensual * form.meses_cobro * (1 - form.porcentaje_beca / 100)).toLocaleString('es-CL')}
+                    ${Math.round(form.monto_matricula + (form.proporcional_primer_mes || 0) + form.monto_mensual * form.meses_cobro * (1 - form.porcentaje_beca / 100)).toLocaleString('es-CL')}
                   </div>
                 </div>
               </div>
