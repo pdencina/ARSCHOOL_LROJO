@@ -170,15 +170,15 @@ export default function DashboardInicio({ usuario, rol, stats, notificaciones, u
         {programaStats.length > 0 && ['super_admin', 'admin', 'pastor_campus'].includes(rol) && (
           <div className="mb-6">
             <h2 className="font-semibold text-[#1a2332] text-sm mb-3" style={{ fontFamily: 'DM Sans, sans-serif' }}>Programas</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {programaStats.map(p => (
                 <div key={p.codigo} className="bg-white border border-[var(--ar-border)] rounded-xl p-4 flex items-center gap-3" style={{ boxShadow: 'var(--shadow-sm)' }}>
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: p.color + '15' }}>
-                    <i className={`ti ${p.icono} text-base`} style={{ color: p.color }} aria-hidden="true"/>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: p.color + '15' }}>
+                    <i className={`ti ${p.icono} text-lg`} style={{ color: p.color }} aria-hidden="true"/>
                   </div>
-                  <div>
-                    <div className="text-lg font-bold text-[var(--ar-text)]">{p.inscritos}</div>
-                    <div className="text-[10px] text-[var(--ar-muted)]">{p.nombre}</div>
+                  <div className="min-w-0">
+                    <div className="text-xl font-bold text-[var(--ar-text)]">{p.inscritos}</div>
+                    <div className="text-[11px] text-[var(--ar-muted)] truncate">{p.nombre}</div>
                   </div>
                 </div>
               ))}
