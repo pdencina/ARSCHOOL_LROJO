@@ -103,6 +103,10 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
         setForm(parsed)
         if (parsed.monto_matricula) setMontoMatDisplay(parsed.monto_matricula.toLocaleString('es-CL'))
         if (parsed.monto_mensual) setMontoMensDisplay(parsed.monto_mensual.toLocaleString('es-CL'))
+        if (parsed.fecha_nacimiento) {
+          const d = parsed.fecha_nacimiento.split('-')
+          if (d.length === 3) setFechaDisplay(`${d[2]}-${d[1]}-${d[0]}`)
+        }
         return // No calcular montos si restauramos
       } catch { /* ignore */ }
     }
