@@ -46,7 +46,8 @@ export async function POST(request: NextRequest) {
     horario: horario || null,
     nivel: nivel || null,
     observaciones: observaciones || null,
-    estado: 'activa',
+    estado: body.estado || 'activa',
+    fecha_prueba: body.estado === 'prueba' ? new Date().toISOString().split('T')[0] : null,
   }, { onConflict: 'alumno_id,programa_id' }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
     .from('inscripciones_programa')
     .select('*, alumno:alumnos(id, nombre, apellido, rut, curso, fecha_nacimiento, sexo), programa:programas(nombre, codigo, color, icono)')
     .eq('colegio_id', usuario.colegio_id)
-    .eq('estado', 'activa')
+    .in('estado', ['activa', 'prueba'])
     .order('created_at', { ascending: false })
 
   if (programaId) {

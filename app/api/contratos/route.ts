@@ -132,6 +132,8 @@ export async function GET(request: NextRequest) {
   // Determinar tipo de contrato
   const cursoLower = (alumno.curso || '').toLowerCase()
   const esPreschool = cursoLower.includes('play') || cursoLower.includes('pre school')
+  const esLions = cursoLower.includes('lions') || cursoLower.includes('soccer')
+  const esWorship = cursoLower.includes('worship') || cursoLower.includes('música')
 
   const datosBase = {
     fecha: fechaFormateada,
@@ -161,6 +163,13 @@ export async function GET(request: NextRequest) {
     titulo = `Pagaré — ${alumno.nombre} ${alumno.apellido}`
     const montoAnual = montoMensualReal * mesesCobro
     contenido = generarPagare({ ...datosBase, montoAnual, montoMensual: montoMensualReal, tablaAportes: tablaPagare })
+  } else if (esLions) {
+    titulo = `Contrato Lions Soccer — ${alumno.nombre} ${alumno.apellido}`
+    const { generarContratoLions } = await import('@/lib/contratos/lions')
+    contenido = generarContratoLions({ ...datosBase, categoria: alumno.curso?.split(' - ')[1] || 'General', horario: '' })
+  } else if (esWorship) {
+    titulo = `Contrato AR Worship — ${alumno.nombre} ${alumno.apellido}`
+    contenido = generarContratoARSchool(datosBase) // Usa AR School por ahora, se puede personalizar después
   } else if (esPreschool) {
     titulo = `Contrato Preschool — ${alumno.nombre} ${alumno.apellido}`
     contenido = generarContratoPreschool(datosBase)

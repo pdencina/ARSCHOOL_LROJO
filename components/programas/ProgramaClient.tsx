@@ -15,6 +15,7 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
   const router = useRouter()
   const [vista, setVista] = useState<'lista' | 'nueva'>('lista')
   const [saving, setSaving] = useState(false)
+  const [esPrueba, setEsPrueba] = useState(false)
   const config = PROGRAMA_CONFIG[programa.codigo] || PROGRAMA_CONFIG.ar_school
 
   const [form, setForm] = useState({
@@ -63,11 +64,12 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
             horario: form.horario,
             nivel: form.nivel,
             observaciones: form.observaciones,
+            estado: esPrueba ? 'prueba' : 'activa',
           }),
         })
       }
 
-      toast.success('Inscripción completada')
+      toast.success(esPrueba ? 'Clase de prueba registrada' : 'Inscripción completada')
       setVista('lista')
       router.refresh()
     } catch (e: any) {
@@ -134,7 +136,11 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
                     <td className="px-4 py-3.5 text-[var(--ar-muted)] text-xs">{ins.horario || '—'}</td>
                     <td className="px-4 py-3.5 text-[var(--ar-muted)] text-xs">{new Date(ins.created_at).toLocaleDateString('es-CL')}</td>
                     <td className="px-4 py-3.5">
-                      <span className="tag tag-ok">Activo</span>
+                      {ins.estado === 'prueba' ? (
+                        <span className="tag tag-pend">Prueba</span>
+                      ) : (
+                        <span className="tag tag-ok">Activo</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -204,8 +210,19 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
             <textarea value={form.observaciones} onChange={e => setForm(p => ({...p, observaciones: e.target.value}))} rows={3} className="input-base resize-none" placeholder="Notas adicionales..."/>
           </div>
 
+          {/* Toggle clase de prueba */}
+          <div className="bg-white border border-[var(--ar-border)] rounded-xl p-4 flex items-center justify-between" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <div>
+              <div className="text-xs font-semibold text-[var(--ar-text)]">Clase de prueba</div>
+              <div className="text-[10px] text-[var(--ar-muted)]">Registrar como prueba (no genera cobro, puede convertirse después)</div>
+            </div>
+            <button onClick={() => setEsPrueba(!esPrueba)} className={`w-10 h-5 rounded-full transition-colors ${esPrueba ? 'bg-[#2D5A3F]' : 'bg-gray-300'}`}>
+              <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${esPrueba ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+            </button>
+          </div>
+
           <button onClick={handleInscribir} disabled={saving} className="btn-primary w-full py-3">
-            {saving ? 'Inscribiendo...' : `Inscribir en ${programa.nombre_corto}`}
+            {saving ? 'Procesando...' : esPrueba ? `Registrar clase de prueba` : `Inscribir en ${programa.nombre_corto}`}
           </button>
         </div>
       )}

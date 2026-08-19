@@ -41,7 +41,7 @@ export default async function LionsPage() {
     .select('*, alumno:alumnos(id, nombre, apellido, rut, curso, fecha_nacimiento, sexo)')
     .eq('programa_id', programaId)
     .eq('colegio_id', usuario.colegio_id)
-    .eq('estado', 'activa')
+    .in('estado', ['activa', 'prueba'])
     .order('created_at', { ascending: false })
 
   // Obtener matrículas del programa
