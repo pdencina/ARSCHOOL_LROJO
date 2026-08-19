@@ -65,12 +65,21 @@ export default async function PortalPage() {
 
   // Check for pending signatures
   let pendientesFirma = 0
+  let inscripcionesProgramas: any[] = []
   if (rol === 'apoderado') {
     const { data: vinculos } = await admin.from('tutor_alumnos').select('alumno_id').eq('tutor_id', user.id)
     const ids = (vinculos ?? []).map((v: any) => v.alumno_id)
     if (ids.length > 0) {
       const { data: mats } = await admin.from('matriculas').select('id, firma_apoderado').in('alumno_id', ids).is('firma_apoderado', null)
       pendientesFirma = (mats ?? []).length
+
+      // Obtener inscripciones a programas de todos los hijos
+      const { data: inscs } = await admin
+        .from('inscripciones_programa')
+        .select('*, alumno:alumnos(nombre, apellido), programa:programas(nombre, nombre_corto, codigo, color, icono)')
+        .in('alumno_id', ids)
+        .eq('estado', 'activa')
+      inscripcionesProgramas = (inscs as any[]) ?? []
     }
   }
 
@@ -82,6 +91,7 @@ export default async function PortalPage() {
       stats={{ pctAsist, promedio, totalNotas: notas.length, deuda, totalAsistencias: (asistencias ?? []).length }}
       comunicados={(comunicados as any[]) ?? []}
       pendientesFirma={pendientesFirma}
+      inscripcionesProgramas={inscripcionesProgramas}
     />
   )
 }

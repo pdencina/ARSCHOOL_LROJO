@@ -8,9 +8,10 @@ interface Props {
   stats: { pctAsist: number|null; promedio: string|null; totalNotas: number; deuda: number; totalAsistencias: number }
   comunicados: any[]
   pendientesFirma?: number
+  inscripcionesProgramas?: any[]
 }
 
-export default function PortalInicio({ usuario, alumno, rol, stats, comunicados, pendientesFirma = 0 }: Props) {
+export default function PortalInicio({ usuario, alumno, rol, stats, comunicados, pendientesFirma = 0, inscripcionesProgramas = [] }: Props) {
   const esApoderado = rol === 'apoderado'
   const HORA = new Date().getHours()
   const SALUDO = HORA < 12 ? 'Buenos días' : HORA < 19 ? 'Buenas tardes' : 'Buenas noches'
@@ -124,6 +125,27 @@ export default function PortalInicio({ usuario, alumno, rol, stats, comunicados,
             ))}
           </div>
         </div>
+
+        {/* Programas inscritos */}
+        {inscripcionesProgramas.length > 0 && (
+          <div className="mb-6">
+            <h2 className="font-display font-semibold text-slate-800 mb-3">Programas inscritos</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {inscripcionesProgramas.map((ins: any) => (
+                <div key={ins.id} className="bg-white border border-[var(--ar-border)] rounded-xl p-3 flex items-center gap-3" style={{ boxShadow: 'var(--shadow-sm)' }}>
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: (ins.programa?.color || '#1B3A5C') + '15' }}>
+                    <i className={`ti ${ins.programa?.icono || 'ti-school'} text-base`} style={{ color: ins.programa?.color || '#1B3A5C' }} aria-hidden="true"/>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-[var(--ar-text)] truncate">{ins.programa?.nombre_corto || ins.programa?.nombre}</div>
+                    <div className="text-[10px] text-[var(--ar-muted)]">{ins.alumno?.nombre} {ins.alumno?.apellido}{ins.nivel ? ` · ${ins.nivel}` : ''}</div>
+                  </div>
+                  <span className="tag tag-ok text-[8px]">Activo</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div>
           <h2 className="font-display font-semibold text-slate-800 mb-4">Últimos comunicados</h2>

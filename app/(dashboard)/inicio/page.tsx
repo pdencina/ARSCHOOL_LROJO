@@ -190,6 +190,21 @@ export default async function InicioPage() {
     ? Math.round((asistenciasHoy ?? []).filter((a: any) => a.estado === 'presente').length / (asistenciasHoy ?? []).length * 100)
     : null
 
+  // --- Programas: contar inscritos por programa ---
+  const { data: programas } = await admin.from('programas').select('id, codigo, nombre, nombre_corto, color, icono').eq('activo', true)
+  const programaStats: { codigo: string; nombre: string; color: string; icono: string; inscritos: number }[] = []
+  if (programas) {
+    for (const p of programas as any[]) {
+      const { count } = await admin
+        .from('inscripciones_programa')
+        .select('*', { count: 'exact', head: true })
+        .eq('programa_id', p.id)
+        .eq('colegio_id', colegioId)
+        .eq('estado', 'activa')
+      programaStats.push({ codigo: p.codigo, nombre: p.nombre_corto || p.nombre, color: p.color, icono: p.icono, inscritos: count ?? 0 })
+    }
+  }
+
   return (
     <DashboardInicio
       usuario={usuario}
@@ -206,6 +221,7 @@ export default async function InicioPage() {
       ultimosComunicados={(ultimosComunicados as any[]) ?? []}
       mesActual={`${getMesNombre(mes)} ${anio}`}
       pendientes={pendientes}
+      programaStats={programaStats}
     />
   )
 }

@@ -24,6 +24,11 @@ const NAV_PRINCIPAL: NavItem[] = [
   { label: 'Tareas',         href: '/tareas',         icon: 'ti-checklist',        roles: ['super_admin','admin','pastor_campus','tutor'] },
 ]
 
+const NAV_PROGRAMAS: NavItem[] = [
+  { label: 'Lions Soccer',    href: '/lions',    icon: 'ti-ball-football',  roles: ['super_admin','admin','pastor_campus'] },
+  { label: 'AR Worship',      href: '/worship',  icon: 'ti-music',          roles: ['super_admin','admin','pastor_campus'] },
+]
+
 const NAV_GESTION: NavItem[] = [
   { label: 'Aportes',             href: '/contable',     icon: 'ti-cash',             roles: ['super_admin','admin','pastor_campus','gestor_admision'] },
   { label: 'Cobranza',           href: '/cobranza',     icon: 'ti-report-money',     roles: ['super_admin','admin','pastor_campus'] },
@@ -198,6 +203,7 @@ export default function Sidebar({ rol = 'admin', modulosHabilitados = null }: Pr
         {!isPortal && (
           <>
             {renderGroup(NAV_PRINCIPAL, 'Principal')}
+            {renderGroup(NAV_PROGRAMAS, 'Programas')}
             {renderGroup(NAV_GESTION,   'Gestión')}
             {renderGroup(NAV_CUENTA,    'Cuenta')}
           </>

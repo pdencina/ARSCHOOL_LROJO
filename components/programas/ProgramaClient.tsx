@@ -1,0 +1,214 @@
+'use client'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
+import { PROGRAMA_CONFIG } from '@/lib/programas'
+
+interface Props {
+  programa: any
+  inscripciones: any[]
+  matriculas: any[]
+  colegioId: string
+}
+
+export default function ProgramaClient({ programa, inscripciones, matriculas, colegioId }: Props) {
+  const router = useRouter()
+  const [vista, setVista] = useState<'lista' | 'nueva'>('lista')
+  const [saving, setSaving] = useState(false)
+  const config = PROGRAMA_CONFIG[programa.codigo] || PROGRAMA_CONFIG.ar_school
+
+  const [form, setForm] = useState({
+    nombre: '', apellido: '', rut: '', fecha_nacimiento: '', sexo: '',
+    nombre_apoderado: '', apellido_apoderado: '', email_apoderado: '', telefono_apoderado: '',
+    horario: '', nivel: '', observaciones: '',
+  })
+
+  async function handleInscribir() {
+    if (!form.nombre || !form.apellido || !form.email_apoderado) {
+      toast.error('Nombre, apellido y email del apoderado son requeridos')
+      return
+    }
+    setSaving(true)
+    try {
+      // Crear alumno + familia + inscripción
+      const res = await fetch('/api/matriculas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          curso: `${programa.nombre_corto} - ${form.nivel || 'General'}`,
+          jornada: 'completa',
+          sede: '',
+          tipo_ingreso: 'nuevo',
+          nacionalidad: 'Chilena',
+          pais_natal: 'Chile',
+          crear_cuenta_apoderado: true,
+          monto_matricula: 0,
+          monto_mensual: 0,
+          meses_cobro: programa.meses_cobro_default || 10,
+          programa_id: programa.id,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+
+      // Inscribir en el programa
+      if (data.alumno?.id) {
+        await fetch('/api/programas/inscripciones', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            alumno_id: data.alumno.id,
+            programa_id: programa.id,
+            horario: form.horario,
+            nivel: form.nivel,
+            observaciones: form.observaciones,
+          }),
+        })
+      }
+
+      toast.success('Inscripción completada')
+      setVista('lista')
+      router.refresh()
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="p-4 lg:p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl ${config.bg} flex items-center justify-center`}>
+            <i className={`ti ${config.icon} text-lg ${config.color}`} aria-hidden="true"/>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-[var(--ar-text)]" style={{ fontFamily: 'DM Sans' }}>{programa.nombre}</h1>
+            <p className="text-xs text-[var(--ar-muted)]">{programa.descripcion}</p>
+          </div>
+        </div>
+        {vista === 'lista' ? (
+          <button onClick={() => setVista('nueva')} className="btn-primary">
+            <i className="ti ti-user-plus text-sm" aria-hidden="true"/> Nueva inscripción
+          </button>
+        ) : (
+          <button onClick={() => setVista('lista')} className="btn-secondary">
+            <i className="ti ti-arrow-left text-sm" aria-hidden="true"/> Volver
+          </button>
+        )}
+      </div>
+
+      {/* KPIs */}
+      {vista === 'lista' && (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="kpi-card"><div className="kpi-label">Inscritos activos</div><div className="kpi-value">{inscripciones.length}</div></div>
+            <div className="kpi-card"><div className="kpi-label">Matrículas</div><div className="kpi-value">{matriculas.length}</div></div>
+            <div className="kpi-card"><div className="kpi-label">Contratos firmados</div><div className="kpi-value text-[#2D5A3F]">{matriculas.filter(m => m.firma_apoderado).length}</div></div>
+            <div className="kpi-card"><div className="kpi-label">Pendientes firma</div><div className="kpi-value text-amber-600">{matriculas.filter(m => !m.firma_apoderado).length}</div></div>
+          </div>
+
+          {/* Tabla de inscritos */}
+          <div className="bg-white border border-[var(--ar-border)] rounded-xl overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="bg-[#f9fafb] border-b border-[var(--ar-border)]">
+                  {['Alumno', 'Nivel', 'Horario', 'Inscrito', 'Acciones'].map(h => (
+                    <th key={h} className="text-[10px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider px-4 py-3 text-left">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {inscripciones.length === 0 ? (
+                  <tr><td colSpan={5} className="px-4 py-12 text-center">
+                    <i className={`ti ${config.icon} text-3xl text-[#d1d5db] block mb-3`} aria-hidden="true"/>
+                    <p className="text-[var(--ar-muted)] text-sm">No hay inscritos en {programa.nombre_corto}. Registra el primero.</p>
+                  </td></tr>
+                ) : inscripciones.map((ins: any) => (
+                  <tr key={ins.id} className="border-b border-[#f5f6f7] hover:bg-[#fafbfc]">
+                    <td className="px-4 py-3.5 font-medium text-[var(--ar-text)]">{ins.alumno?.nombre} {ins.alumno?.apellido}</td>
+                    <td className="px-4 py-3.5 text-[var(--ar-muted)]">{ins.nivel || '—'}</td>
+                    <td className="px-4 py-3.5 text-[var(--ar-muted)] text-xs">{ins.horario || '—'}</td>
+                    <td className="px-4 py-3.5 text-[var(--ar-muted)] text-xs">{new Date(ins.created_at).toLocaleDateString('es-CL')}</td>
+                    <td className="px-4 py-3.5">
+                      <span className="tag tag-ok">Activo</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {/* Formulario nueva inscripción */}
+      {vista === 'nueva' && (
+        <div className="max-w-2xl space-y-5">
+          <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <h2 className="text-sm font-bold text-[var(--ar-text)] mb-4">Datos del alumno</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre} onChange={e => setForm(p => ({...p, nombre: e.target.value}))} className="input-base" placeholder="Nombres completos"/></div>
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Apellido *</label><input value={form.apellido} onChange={e => setForm(p => ({...p, apellido: e.target.value}))} className="input-base" placeholder="Apellidos completos"/></div>
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">RUT</label><input value={form.rut} onChange={e => setForm(p => ({...p, rut: e.target.value}))} className="input-base" placeholder="12.345.678-9"/></div>
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Fecha nacimiento</label><input type="date" value={form.fecha_nacimiento} onChange={e => setForm(p => ({...p, fecha_nacimiento: e.target.value}))} className="input-base"/></div>
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Sexo</label>
+                <select value={form.sexo} onChange={e => setForm(p => ({...p, sexo: e.target.value}))} className="select-base w-full">
+                  <option value="">Seleccionar</option><option value="masculino">Masculino</option><option value="femenino">Femenino</option>
+                </select>
+              </div>
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Nivel / Categoría</label>
+                <select value={form.nivel} onChange={e => setForm(p => ({...p, nivel: e.target.value}))} className="select-base w-full">
+                  <option value="">Seleccionar...</option>
+                  {programa.codigo === 'lions_soccer' ? (
+                    <>
+                      <option value="Sub-6">Sub-6 (5-6 años)</option>
+                      <option value="Sub-8">Sub-8 (7-8 años)</option>
+                      <option value="Sub-10">Sub-10 (9-10 años)</option>
+                      <option value="Sub-12">Sub-12 (11-12 años)</option>
+                      <option value="Sub-14">Sub-14 (13-14 años)</option>
+                      <option value="Sub-16">Sub-16 (15-16 años)</option>
+                      <option value="Juvenil">Juvenil (17+)</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Iniciación">Iniciación (5-7 años)</option>
+                      <option value="Básico">Básico (8-10 años)</option>
+                      <option value="Intermedio">Intermedio (11-13 años)</option>
+                      <option value="Avanzado">Avanzado (14-17 años)</option>
+                    </>
+                  )}
+                </select>
+              </div>
+            </div>
+            <div className="mt-3">
+              <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Horario preferido</label>
+              <input value={form.horario} onChange={e => setForm(p => ({...p, horario: e.target.value}))} className="input-base" placeholder="Ej: Martes y Jueves 16:00-17:30"/>
+            </div>
+          </div>
+
+          <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <h2 className="text-sm font-bold text-[var(--ar-text)] mb-4">Datos del apoderado</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre_apoderado} onChange={e => setForm(p => ({...p, nombre_apoderado: e.target.value}))} className="input-base"/></div>
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Apellido</label><input value={form.apellido_apoderado} onChange={e => setForm(p => ({...p, apellido_apoderado: e.target.value}))} className="input-base"/></div>
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Email *</label><input type="email" value={form.email_apoderado} onChange={e => setForm(p => ({...p, email_apoderado: e.target.value}))} className="input-base" placeholder="correo@email.com"/></div>
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Teléfono</label><input value={form.telefono_apoderado} onChange={e => setForm(p => ({...p, telefono_apoderado: e.target.value}))} className="input-base" placeholder="+56 9..."/></div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Observaciones</label>
+            <textarea value={form.observaciones} onChange={e => setForm(p => ({...p, observaciones: e.target.value}))} rows={3} className="input-base resize-none" placeholder="Notas adicionales..."/>
+          </div>
+
+          <button onClick={handleInscribir} disabled={saving} className="btn-primary w-full py-3">
+            {saving ? 'Inscribiendo...' : `Inscribir en ${programa.nombre_corto}`}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
