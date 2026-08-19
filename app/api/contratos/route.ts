@@ -169,7 +169,8 @@ export async function GET(request: NextRequest) {
     contenido = generarContratoLions({ ...datosBase, categoria: alumno.curso?.split(' - ')[1] || 'General', horario: '' })
   } else if (esWorship) {
     titulo = `Contrato AR Worship — ${alumno.nombre} ${alumno.apellido}`
-    contenido = generarContratoARSchool(datosBase) // Usa AR School por ahora, se puede personalizar después
+    const { generarContratoWorship } = await import('@/lib/contratos/worship')
+    contenido = generarContratoWorship({ ...datosBase, instrumento: alumno.curso?.split(' - ')[1] || 'Por asignar', ciclo: alumno.curso?.includes('Ciclo 2') ? 'Ciclo 2' : 'Ciclo 1', horario: alumno.curso?.includes('Ciclo 2') ? 'Sábados 11:20-12:40' : 'Sábados 09:30-10:50' })
   } else if (esPreschool) {
     titulo = `Contrato Preschool — ${alumno.nombre} ${alumno.apellido}`
     contenido = generarContratoPreschool(datosBase)

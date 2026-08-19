@@ -178,6 +178,34 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
                       <option value="Sub-16">Sub-16 (15-16 años)</option>
                       <option value="Juvenil">Juvenil (17+)</option>
                     </>
+                  ) : programa.codigo === 'ar_worship' ? (
+                    <>
+                      <optgroup label="Instrumentos">
+                        <option value="Guitarra">Guitarra</option>
+                        <option value="Bajo">Bajo</option>
+                        <option value="Teclado">Teclado</option>
+                        <option value="Batería">Batería</option>
+                        <option value="Canto">Canto</option>
+                        <option value="Saxophone">Saxophone</option>
+                        <option value="Violín">Violín</option>
+                      </optgroup>
+                      <optgroup label="Ciclo">
+                        <option value="Ciclo 1 - Guitarra">Ciclo 1 — Guitarra (Sáb 09:30)</option>
+                        <option value="Ciclo 1 - Bajo">Ciclo 1 — Bajo (Sáb 09:30)</option>
+                        <option value="Ciclo 1 - Teclado">Ciclo 1 — Teclado (Sáb 09:30)</option>
+                        <option value="Ciclo 1 - Batería">Ciclo 1 — Batería (Sáb 09:30)</option>
+                        <option value="Ciclo 1 - Canto">Ciclo 1 — Canto (Sáb 09:30)</option>
+                        <option value="Ciclo 1 - Saxophone">Ciclo 1 — Saxophone (Sáb 09:30)</option>
+                        <option value="Ciclo 1 - Violín">Ciclo 1 — Violín (Sáb 09:30)</option>
+                        <option value="Ciclo 2 - Guitarra">Ciclo 2 — Guitarra (Sáb 11:20)</option>
+                        <option value="Ciclo 2 - Bajo">Ciclo 2 — Bajo (Sáb 11:20)</option>
+                        <option value="Ciclo 2 - Teclado">Ciclo 2 — Teclado (Sáb 11:20)</option>
+                        <option value="Ciclo 2 - Batería">Ciclo 2 — Batería (Sáb 11:20)</option>
+                        <option value="Ciclo 2 - Canto">Ciclo 2 — Canto (Sáb 11:20)</option>
+                        <option value="Ciclo 2 - Saxophone">Ciclo 2 — Saxophone (Sáb 11:20)</option>
+                        <option value="Ciclo 2 - Violín">Ciclo 2 — Violín (Sáb 11:20)</option>
+                      </optgroup>
+                    </>
                   ) : (
                     <>
                       <option value="Iniciación">Iniciación (5-7 años)</option>
