@@ -25,8 +25,8 @@ const NAV_PRINCIPAL: NavItem[] = [
 ]
 
 const NAV_PROGRAMAS: NavItem[] = [
-  { label: 'Lions Soccer',    href: '/lions',    icon: 'ti-ball-football',  roles: ['super_admin','admin','pastor_campus'] },
-  { label: 'AR Worship',      href: '/worship',  icon: 'ti-music',          roles: ['super_admin','admin','pastor_campus'] },
+  { label: 'Lions Soccer',    href: '/lions',    icon: 'ti-ball-football',  roles: ['super_admin','admin','pastor_campus','coordinador'] },
+  { label: 'AR Worship',      href: '/worship',  icon: 'ti-music',          roles: ['super_admin','admin','pastor_campus','coordinador'] },
 ]
 
 const NAV_GESTION: NavItem[] = [
@@ -73,6 +73,7 @@ const ROL_BADGE: Record<string, { label: string; color: string; icon: string; ac
   admin:           { label: 'Administrador',   color: 'bg-[#FEF3EC] text-[#C45A1A] border border-[#C45A1A]/20', icon: 'ti-briefcase',         accent: '#C45A1A', activeBg: 'bg-[#C45A1A]', activeIndicator: '#C45A1A' },
   pastor_campus:   { label: 'Pastor Campus',   color: 'bg-[#F0EDF8] text-[#4A3080] border border-[#4A3080]/15', icon: 'ti-building-church',   accent: '#4A3080', activeBg: 'bg-[#4A3080]', activeIndicator: '#4A3080' },
   gestor_admision: { label: 'Gestión Admisión', color: 'bg-[#EDF6FA] text-[#1B3A5C] border border-[#1B3A5C]/15', icon: 'ti-user-plus',        accent: '#1B3A5C', activeBg: 'bg-[#1B3A5C]', activeIndicator: '#1B3A5C' },
+  coordinador:     { label: 'Coordinador',     color: 'bg-[#FEF3EC] text-[#C45A1A] border border-[#C45A1A]/20', icon: 'ti-star',              accent: '#C45A1A', activeBg: 'bg-[#C45A1A]', activeIndicator: '#C45A1A' },
   tutor:           { label: 'Tutor',           color: 'bg-[#EDF5F0] text-[#2D5A3F] border border-[#2D5A3F]/20', icon: 'ti-school',            accent: '#2D5A3F', activeBg: 'bg-[#2D5A3F]', activeIndicator: '#2D5A3F' },
   apoderado:       { label: 'Apoderado',       color: 'bg-[#EDF6FA] text-[#3D7A94] border border-[#3D7A94]/15', icon: 'ti-heart-handshake',   accent: '#3D7A94', activeBg: 'bg-[#3D7A94]', activeIndicator: '#3D7A94' },
   alumno:          { label: 'Alumno',          color: 'bg-[#F3EFFE] text-[#6B4C9A] border border-[#6B4C9A]/20', icon: 'ti-backpack',          accent: '#6B4C9A', activeBg: 'bg-[#6B4C9A]', activeIndicator: '#6B4C9A' },
