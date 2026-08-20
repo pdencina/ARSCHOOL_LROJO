@@ -42,12 +42,12 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro, prog
 
   function openNuevo() {
     setEditUsuario(null)
-    setForm({ nombre:'', apellido:'', email:'', password:'', rol:'tutor', colegio_id: colegioFiltro ?? colegios[0]?.id ?? '', programa_ids: [] as string[] })
+    setForm({ nombre:'', apellido:'', email:'', password:'', rol:'tutor', colegio_id: colegioFiltro ?? colegios[0]?.id ?? '', programa_ids: [] as string[], sedes_ids: [] as string[] })
     setShowModal(true)
   }
   function openEditar(u: any) {
     setEditUsuario(u)
-    setForm({ nombre:u.nombre, apellido:u.apellido, email:u.email, password:'', rol:u.rol, colegio_id:u.colegio_id, programa_ids: u.programa_ids || [] })
+    setForm({ nombre:u.nombre, apellido:u.apellido, email:u.email, password:'', rol:u.rol, colegio_id:u.colegio_id, programa_ids: u.programa_ids || [], sedes_ids: u.sedes_ids || [] })
     setShowModal(true)
   }
 
@@ -253,6 +253,31 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro, prog
                     ))}
                   </div>
                   <p className="text-[9px] text-slate-400 mt-1">El coordinador solo verá los programas seleccionados.</p>
+                </div>
+              )}
+              {/* Selector de sedes adicionales para coordinadores */}
+              {form.rol === 'coordinador' && (
+                <div className="mt-3">
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Sedes donde opera</label>
+                  <div className="space-y-1.5">
+                    {colegios.map((c: any) => (
+                      <label key={c.id} className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.colegio_id === c.id || (form.sedes_ids || []).includes(c.id)}
+                          onChange={e => {
+                            const ids = form.sedes_ids || []
+                            if (e.target.checked) setForm(f => ({...f, sedes_ids: [...ids, c.id]}))
+                            else setForm(f => ({...f, sedes_ids: ids.filter((id: string) => id !== c.id)}))
+                          }}
+                          className="w-4 h-4 rounded border-slate-300 text-[#1B3A5C] focus:ring-[#1B3A5C]"
+                        />
+                        <i className="ti ti-building text-sm text-slate-500" aria-hidden="true"/>
+                        <span className="text-xs font-medium text-slate-700">{c.nombre}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-[9px] text-slate-400 mt-1">El coordinador verá los inscritos de todas las sedes seleccionadas.</p>
                 </div>
               )}
               {form.rol && ROL_CONFIG[form.rol] && (

@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
     rol,
     colegio_id,
     programa_ids: body.programa_ids || null,
+    sedes_ids: body.sedes_ids || null,
     activo: true,
   }, { onConflict: 'id' }).select().single()
 
