@@ -12,9 +12,10 @@ interface Props {
   matriculas: any[]
   colegioId: string
   asistencias4w?: any[]
+  cobrosPendientes?: any[]
 }
 
-export default function ProgramaClient({ programa, inscripciones, matriculas, colegioId, asistencias4w = [] }: Props) {
+export default function ProgramaClient({ programa, inscripciones, matriculas, colegioId, asistencias4w = [], cobrosPendientes = [] }: Props) {
   const router = useRouter()
   const [vista, setVista] = useState<'lista' | 'nueva' | 'asistencia'>('lista')
   const [saving, setSaving] = useState(false)
@@ -81,6 +82,18 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
     const niveles = inscripciones.map(i => i.nivel).filter(Boolean)
     return Array.from(new Set(niveles)).sort()
   }, [inscripciones])
+
+  // ─── Alumnos con mora (cobros pendientes) ───
+  const alumnosConMora = useMemo(() => {
+    const moraPorAlumno: Record<string, number> = {}
+    cobrosPendientes.forEach(c => {
+      if (!moraPorAlumno[c.alumno_id]) moraPorAlumno[c.alumno_id] = 0
+      moraPorAlumno[c.alumno_id] += c.monto
+    })
+    return moraPorAlumno
+  }, [cobrosPendientes])
+
+  const alumnosAlDia = inscripciones.filter(i => !alumnosConMora[i.alumno?.id]).length
 
   // ─── Inscripciones filtradas ───
   const inscripcionesFiltradas = useMemo(() => {
@@ -207,11 +220,12 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
       {/* KPIs + Chart + Alertas */}
       {vista === 'lista' && (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <div className="kpi-card"><div className="kpi-label">Inscritos activos</div><div className="kpi-value">{inscripciones.length}</div></div>
             <div className="kpi-card"><div className="kpi-label">Matrículas</div><div className="kpi-value">{matriculas.length}</div></div>
             <div className="kpi-card"><div className="kpi-label">Contratos firmados</div><div className="kpi-value text-[#2D5A3F]">{matriculas.filter(m => m.firma_apoderado).length}</div></div>
             <div className="kpi-card"><div className="kpi-label">Pendientes firma</div><div className="kpi-value text-amber-600">{matriculas.filter(m => !m.firma_apoderado).length}</div></div>
+            <div className="kpi-card"><div className="kpi-label">Al día en pagos</div><div className="kpi-value text-[#2D5A3F]">{alumnosAlDia}<span className="text-xs text-[var(--ar-muted)] font-normal">/{inscripciones.length}</span></div></div>
           </div>
 
           {/* ─── Gráfico Asistencia últimas 4 semanas ─── */}
@@ -340,6 +354,9 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
                           <span className="tag tag-pend">Prueba</span>
                         ) : (
                           <span className="tag tag-ok">Activo</span>
+                        )}
+                        {alumnosConMora[ins.alumno?.id] && (
+                          <span className="ml-1 text-[9px] text-red-600 font-semibold" title={`Debe $${alumnosConMora[ins.alumno?.id].toLocaleString('es-CL')}`}>💰 Mora</span>
                         )}
                       </td>
                       <td className="px-4 py-3.5">

@@ -63,6 +63,17 @@ export default async function WorshipPage() {
     .gte('fecha', hace4Semanas.toISOString().split('T')[0])
     .order('fecha', { ascending: true })
 
+  // Obtener cobros pendientes (para indicador de mora)
+  const mesActual = new Date().getMonth() + 1
+  const anioActual = new Date().getFullYear()
+  const { data: cobrosPendientes } = await admin
+    .from('cobros')
+    .select('alumno_id, monto, mes, anio, pagado')
+    .eq('colegio_id', usuario.colegio_id)
+    .eq('pagado', false)
+    .lte('mes', mesActual)
+    .lte('anio', anioActual)
+
   return (
     <ProgramaClient
       programa={programa as any}
@@ -70,6 +81,7 @@ export default async function WorshipPage() {
       matriculas={(matriculas as any[]) ?? []}
       colegioId={usuario.colegio_id}
       asistencias4w={(asistencias4w as any[]) ?? []}
+      cobrosPendientes={(cobrosPendientes as any[]) ?? []}
     />
   )
 }

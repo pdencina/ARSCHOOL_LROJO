@@ -31,13 +31,13 @@ const NAV_PROGRAMAS: NavItem[] = [
 ]
 
 const NAV_GESTION: NavItem[] = [
-  { label: 'Aportes',             href: '/contable',     icon: 'ti-cash',             roles: ['super_admin','admin','pastor_campus','gestor_admision'] },
-  { label: 'Cobranza',           href: '/cobranza',     icon: 'ti-report-money',     roles: ['super_admin','admin','pastor_campus'] },
+  { label: 'Aportes',             href: '/contable',     icon: 'ti-cash',             roles: ['super_admin','admin','pastor_campus','gestor_admision','coordinador'] },
+  { label: 'Cobranza',           href: '/cobranza',     icon: 'ti-report-money',     roles: ['super_admin','admin','pastor_campus','coordinador'] },
   { label: 'Becas',              href: '/becas',        icon: 'ti-school',           roles: ['super_admin','admin','pastor_campus','gestor_admision'] },
   { label: 'Documentos',         href: '/documentos',   icon: 'ti-folder',           roles: ['super_admin','admin','pastor_campus','gestor_admision','tutor','coordinador'] },
   { label: 'Calendario',         href: '/calendario',   icon: 'ti-calendar',         roles: ['super_admin','admin','pastor_campus','gestor_admision','tutor','coordinador'] },
   { label: 'Fichas pedagógicas', href: '/fichas',       icon: 'ti-books',            roles: ['super_admin','admin','pastor_campus','tutor','coordinador'] },
-  { label: 'Reportes',           href: '/reportes',     icon: 'ti-file-analytics',   roles: ['super_admin','admin','pastor_campus'] },
+  { label: 'Reportes',           href: '/reportes',     icon: 'ti-file-analytics',   roles: ['super_admin','admin','pastor_campus','coordinador'] },
 ]
 
 const NAV_CUENTA: NavItem[] = [
