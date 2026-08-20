@@ -11,6 +11,7 @@ const ROL_CONFIG: Record<string, { label: string; desc: string; color: string; b
   pastor_campus:   { label: 'pastor_campus',            desc: 'Acceso total a su sede',              color: 'text-purple-700',  bg: 'bg-purple-50',  icon: 'ti-building-church' },
   gestor_admision: { label: 'gestor_admision',          desc: 'Matrícula, familias y cobranzas',     color: 'text-sky-700',     bg: 'bg-sky-50',     icon: 'ti-user-plus' },
   coordinador:     { label: 'coordinador',              desc: 'Coordina un programa específico',     color: 'text-orange-700',  bg: 'bg-orange-50',  icon: 'ti-star' },
+  tutor_supervisor:{ label: 'tutor_supervisor',          desc: 'Control ingreso/retiro alumnos',      color: 'text-teal-700',    bg: 'bg-teal-50',    icon: 'ti-door-enter' },
   tutor:           { label: 'tutor',                    desc: 'Gestiona cursos y clases',            color: 'text-violet-700',  bg: 'bg-violet-50',  icon: 'ti-school' },
   apoderado:       { label: 'apoderado',                desc: 'Portal familiar del alumno',          color: 'text-emerald-700', bg: 'bg-emerald-50', icon: 'ti-heart-handshake' },
   alumno:          { label: 'alumno',                   desc: 'Portal personal del estudiante',      color: 'text-amber-700',   bg: 'bg-amber-50',   icon: 'ti-backpack' },

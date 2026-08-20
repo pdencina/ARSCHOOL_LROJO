@@ -11,6 +11,7 @@ const ROLES = [
   { key: 'pastor_campus', label: 'pastor_campus', icon: 'ti-building-church', color: 'text-purple-700' },
   { key: 'gestor_admision', label: 'gestor_admision', icon: 'ti-user-plus', color: 'text-sky-700' },
   { key: 'coordinador', label: 'coordinador', icon: 'ti-star', color: 'text-orange-700' },
+  { key: 'tutor_supervisor', label: 'tutor_supervisor', icon: 'ti-door-enter', color: 'text-teal-700' },
   { key: 'tutor', label: 'tutor', icon: 'ti-school', color: 'text-violet-700' },
   { key: 'apoderado', label: 'apoderado', icon: 'ti-heart-handshake', color: 'text-emerald-700' },
   { key: 'alumno', label: 'Alumno', icon: 'ti-backpack', color: 'text-amber-700' },
@@ -18,6 +19,7 @@ const ROLES = [
 
 const MODULOS = [
   { key: 'inicio', label: 'Inicio', icon: 'ti-home', grupo: 'Principal' },
+  { key: 'control', label: 'Control ingreso/retiro', icon: 'ti-door-enter', grupo: 'Principal' },
   { key: 'matricula', label: 'Matrícula', icon: 'ti-user-plus', grupo: 'Principal' },
   { key: 'alumnos', label: 'Alumnos', icon: 'ti-users', grupo: 'Principal' },
   { key: 'planificacion', label: 'Planificación', icon: 'ti-layout-board', grupo: 'Principal' },
