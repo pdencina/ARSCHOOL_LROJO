@@ -20,8 +20,21 @@ export default async function ContablePage({ searchParams }: { searchParams: { m
   if (!user) redirect('/login')
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('colegio_id').eq('id', user.id).single()
-  const colegioId = (ur as any)?.colegio_id ?? ''
+  const { data: ur } = await admin.from('usuarios').select('colegio_id, rol, programa_ids').eq('id', user.id).single()
+  const usuario = ur as any
+  const colegioId = usuario?.colegio_id ?? ''
+
+  // Si es coordinador, obtener alumno_ids de sus programas
+  let alumnoIdsFilter: string[] | null = null
+  if (usuario.rol === 'coordinador' && usuario.programa_ids?.length > 0) {
+    const { data: inscripciones } = await admin
+      .from('inscripciones_programa')
+      .select('alumno_id')
+      .in('programa_id', usuario.programa_ids)
+      .eq('colegio_id', colegioId)
+      .in('estado', ['activa', 'prueba'])
+    alumnoIdsFilter = (inscripciones ?? []).map((i: any) => i.alumno_id)
+  }
 
   // Auto-detectar mes más reciente con datos
   let mes: number, anio: number
@@ -36,15 +49,25 @@ export default async function ContablePage({ searchParams }: { searchParams: { m
     anio = ultimo ? (ultimo as any).anio : new Date().getFullYear()
   }
 
-  const [{ data: cobros }, { data: planes }, { data: ultimosPagos }] = await Promise.all([
-    admin.from('cobros')
-      .select('*, familia:familias(*, alumno:alumnos(*)), concepto:conceptos_cobro(*)')
-      .eq('colegio_id', colegioId).eq('mes', mes).eq('anio', anio)
-      .order('estado'),
+  const [{ data: planes }, { data: ultimosPagos }] = await Promise.all([
     admin.from('planes_cobro').select('*').eq('colegio_id', colegioId).eq('activo', true),
     admin.from('pagos').select('*, cobro:cobros(*, familia:familias(nombre_apoderado, apellido_apoderado))')
       .order('created_at', { ascending: false }).limit(8),
   ])
+
+  // Cobros filtrados por programa si es coordinador
+  let cobrosQuery = admin.from('cobros')
+    .select('*, familia:familias(*, alumno:alumnos(*)), concepto:conceptos_cobro(*)')
+    .eq('colegio_id', colegioId).eq('mes', mes).eq('anio', anio)
+    .order('estado')
+
+  if (alumnoIdsFilter && alumnoIdsFilter.length > 0) {
+    cobrosQuery = cobrosQuery.in('alumno_id', alumnoIdsFilter)
+  }
+
+  const { data: cobros } = alumnoIdsFilter && alumnoIdsFilter.length === 0
+    ? { data: [] }
+    : await cobrosQuery
 
   const kpis: KpiContable = { recaudado: 0, enMora: 0, moraCritica: 0, familiasAlDia: 0, totalFamilias: cobros?.length ?? 0, proyectado: 0 }
   cobros?.forEach((c: any) => {

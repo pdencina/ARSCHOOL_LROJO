@@ -20,19 +20,41 @@ export default async function CobranzaPage() {
   if (!user) redirect('/login')
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
-  if (!['super_admin', 'admin', 'pastor_campus'].includes((ur as any)?.rol)) redirect('/inicio')
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids').eq('id', user.id).single()
+  const usuario = ur as any
+  if (!['super_admin', 'admin', 'pastor_campus', 'coordinador'].includes(usuario?.rol)) redirect('/inicio')
 
-  const colegioId = (ur as any)?.colegio_id
+  const colegioId = usuario?.colegio_id
   const anio = new Date().getFullYear()
 
+  // Si es coordinador, filtrar solo alumnos de sus programas
+  let alumnoIdsFilter: string[] | null = null
+  if (usuario.rol === 'coordinador' && usuario.programa_ids?.length > 0) {
+    const { data: inscripciones } = await admin
+      .from('inscripciones_programa')
+      .select('alumno_id')
+      .in('programa_id', usuario.programa_ids)
+      .eq('colegio_id', colegioId)
+      .in('estado', ['activa', 'prueba'])
+    alumnoIdsFilter = (inscripciones ?? []).map((i: any) => i.alumno_id)
+  }
+
   // Cargar cobros con alumno y familia
-  const { data: cobros } = await admin
+  let query = admin
     .from('cobros')
     .select('*, alumno:alumnos(nombre, apellido, curso), familia:familias(nombre_apoderado, apellido_apoderado, email, telefono)')
     .eq('colegio_id', colegioId)
     .eq('anio', anio)
     .order('fecha_vencimiento', { ascending: true })
+
+  if (alumnoIdsFilter && alumnoIdsFilter.length > 0) {
+    query = query.in('alumno_id', alumnoIdsFilter)
+  } else if (alumnoIdsFilter && alumnoIdsFilter.length === 0) {
+    // Coordinador sin alumnos inscritos — no mostrar nada
+    return <CobranzaClient cobros={[]} logReciente={[]} anio={anio} />
+  }
+
+  const { data: cobros } = await query
 
   // Log reciente de cobranza
   const { data: logReciente } = await admin
