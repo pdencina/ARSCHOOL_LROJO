@@ -169,6 +169,15 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
                   <td className="px-4 py-3 text-xs text-slate-500">{new Date(u.created_at).toLocaleDateString('es-CL')}</td>
                   <td className="px-4 py-3">
                     <button onClick={() => openEditar(u)} className="text-xs text-blue-600 hover:underline">Editar</button>
+                    <button onClick={async () => {
+                      if (!confirm(`¿Eliminar usuario ${u.nombre} ${u.apellido}? Esta acción no se puede deshacer.`)) return
+                      try {
+                        const res = await fetch(`/api/admin/usuarios/${u.id}`, { method: 'DELETE' })
+                        if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
+                        toast.success('Usuario eliminado')
+                        router.refresh()
+                      } catch (e: any) { toast.error(e.message) }
+                    }} className="text-xs text-red-500 hover:underline ml-2">Eliminar</button>
                   </td>
                 </tr>
               )

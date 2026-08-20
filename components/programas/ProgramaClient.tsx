@@ -180,16 +180,11 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
                     </>
                   ) : programa.codigo === 'ar_worship' ? (
                     <>
-                      <optgroup label="Instrumentos">
-                        <option value="Guitarra">Guitarra</option>
-                        <option value="Bajo">Bajo</option>
-                        <option value="Teclado">Teclado</option>
-                        <option value="Batería">Batería</option>
-                        <option value="Canto">Canto</option>
-                        <option value="Saxophone">Saxophone</option>
-                        <option value="Violín">Violín</option>
+                      <optgroup label="Music and Play">
+                        <option value="Music and Play (0-4 años)">Music and Play (0-4 años)</option>
+                        <option value="Music and Play (4-7 años)">Music and Play (4-7 años)</option>
                       </optgroup>
-                      <optgroup label="Ciclo">
+                      <optgroup label="AR Worship School">
                         <option value="Ciclo 1 - Guitarra">Ciclo 1 — Guitarra (Sáb 09:30)</option>
                         <option value="Ciclo 1 - Bajo">Ciclo 1 — Bajo (Sáb 09:30)</option>
                         <option value="Ciclo 1 - Teclado">Ciclo 1 — Teclado (Sáb 09:30)</option>

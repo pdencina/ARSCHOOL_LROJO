@@ -50,7 +50,15 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
   if ((ur as any)?.rol !== 'super_admin') return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
 
-  const { error } = await admin.from('usuarios').update({ activo: false }).eq('id', params.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // No permitir eliminarse a sí mismo
+  if (params.id === user.id) return NextResponse.json({ error: 'No puedes eliminarte a ti mismo' }, { status: 400 })
+
+  // Eliminar de tabla usuarios
+  await admin.from('tutor_alumnos').delete().eq('tutor_id', params.id)
+  await admin.from('usuarios').delete().eq('id', params.id)
+
+  // Eliminar de Supabase Auth
+  await admin.auth.admin.deleteUser(params.id)
+
   return NextResponse.json({ ok: true })
 }
