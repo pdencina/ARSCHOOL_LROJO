@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { PROGRAMA_CONFIG } from '@/lib/programas'
+import { formatearRut, validarRut } from '@/lib/validaciones'
 import FichaAlumnoModal from './FichaAlumnoModal'
 
 interface Props {
@@ -188,9 +189,19 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
           <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
             <h2 className="text-sm font-bold text-[var(--ar-text)] mb-4">Datos del alumno</h2>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre} onChange={e => setForm(p => ({...p, nombre: e.target.value}))} className="input-base" placeholder="Nombres completos"/></div>
-              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Apellido *</label><input value={form.apellido} onChange={e => setForm(p => ({...p, apellido: e.target.value}))} className="input-base" placeholder="Apellidos completos"/></div>
-              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">RUT</label><input value={form.rut} onChange={e => setForm(p => ({...p, rut: e.target.value}))} className="input-base" placeholder="12.345.678-9"/></div>
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre} onChange={e => setForm(p => ({...p, nombre: e.target.value.replace(/\b\w/g, c => c.toUpperCase())}))} className="input-base" placeholder="Nombres completos"/></div>
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Apellido *</label><input value={form.apellido} onChange={e => setForm(p => ({...p, apellido: e.target.value.replace(/\b\w/g, c => c.toUpperCase())}))} className="input-base" placeholder="Apellidos completos"/></div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">RUT</label>
+                <div className="relative">
+                  <input value={form.rut} onChange={e => setForm(p => ({...p, rut: formatearRut(e.target.value)}))} className="input-base pr-8" placeholder="12.345.678-9" maxLength={12}/>
+                  {form.rut && form.rut.length > 3 && (
+                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs ${validarRut(form.rut) ? 'text-[#2D5A3F]' : 'text-red-500'}`}>
+                      {validarRut(form.rut) ? '✓' : '✗'}
+                    </span>
+                  )}
+                </div>
+              </div>
               <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Fecha nacimiento</label><input type="date" value={form.fecha_nacimiento} onChange={e => setForm(p => ({...p, fecha_nacimiento: e.target.value}))} className="input-base"/></div>
               <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Sexo</label>
                 <select value={form.sexo} onChange={e => setForm(p => ({...p, sexo: e.target.value}))} className="select-base w-full">
@@ -261,8 +272,8 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
           <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
             <h2 className="text-sm font-bold text-[var(--ar-text)] mb-4">Datos del apoderado</h2>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre_apoderado} onChange={e => setForm(p => ({...p, nombre_apoderado: e.target.value}))} className="input-base"/></div>
-              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Apellido</label><input value={form.apellido_apoderado} onChange={e => setForm(p => ({...p, apellido_apoderado: e.target.value}))} className="input-base"/></div>
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Nombre *</label><input value={form.nombre_apoderado} onChange={e => setForm(p => ({...p, nombre_apoderado: e.target.value.replace(/\b\w/g, c => c.toUpperCase())}))} className="input-base"/></div>
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Apellido</label><input value={form.apellido_apoderado} onChange={e => setForm(p => ({...p, apellido_apoderado: e.target.value.replace(/\b\w/g, c => c.toUpperCase())}))} className="input-base"/></div>
               <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Email *</label><input type="email" value={form.email_apoderado} onChange={e => setForm(p => ({...p, email_apoderado: e.target.value}))} className="input-base" placeholder="correo@email.com"/></div>
               <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Teléfono</label><input value={form.telefono_apoderado} onChange={e => setForm(p => ({...p, telefono_apoderado: e.target.value}))} className="input-base" placeholder="+56 9..."/></div>
             </div>
