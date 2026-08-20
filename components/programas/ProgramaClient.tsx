@@ -21,7 +21,7 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
   const [form, setForm] = useState({
     nombre: '', apellido: '', rut: '', fecha_nacimiento: '', sexo: '',
     nombre_apoderado: '', apellido_apoderado: '', email_apoderado: '', telefono_apoderado: '',
-    horario: '', nivel: '', observaciones: '',
+    horario: '', nivel: '', observaciones: '', sede: 'santiago',
   })
 
   async function handleInscribir() {
@@ -39,7 +39,7 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
           ...form,
           curso: `${programa.nombre_corto} - ${form.nivel || 'General'}`,
           jornada: 'completa',
-          sede: '',
+          sede: form.sede,
           tipo_ingreso: 'nuevo',
           nacionalidad: 'Chilena',
           pais_natal: 'Chile',
@@ -118,14 +118,14 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="bg-[#f9fafb] border-b border-[var(--ar-border)]">
-                  {['Alumno', 'Nivel', 'Horario', 'Inscrito', 'Acciones'].map(h => (
+                  {['Alumno', 'Nivel', 'Horario', 'Inscrito', 'Estado', 'Acciones'].map(h => (
                     <th key={h} className="text-[10px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider px-4 py-3 text-left">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {inscripciones.length === 0 ? (
-                  <tr><td colSpan={5} className="px-4 py-12 text-center">
+                  <tr><td colSpan={6} className="px-4 py-12 text-center">
                     <i className={`ti ${config.icon} text-3xl text-[#d1d5db] block mb-3`} aria-hidden="true"/>
                     <p className="text-[var(--ar-muted)] text-sm">No hay inscritos en {programa.nombre_corto}. Registra el primero.</p>
                   </td></tr>
@@ -141,6 +141,29 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
                       ) : (
                         <span className="tag tag-ok">Activo</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex gap-2 flex-wrap">
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch('/api/asistencias-sesion', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ alumno_id: ins.alumno?.id, programa_id: programa.id, estado: 'presente' }),
+                              })
+                              if (res.ok) toast.success(`Asistencia registrada: ${ins.alumno?.nombre}`)
+                              else toast.error('Error al registrar')
+                            } catch { toast.error('Error') }
+                          }}
+                          className="text-[10px] text-emerald-600 hover:underline font-medium"
+                        >✓ Presente</button>
+                        {matriculas.find((m: any) => m.alumno_id === ins.alumno?.id) ? (
+                          <a href={`/api/contratos?alumno_id=${ins.alumno?.id}`} target="_blank" className="text-[10px] text-[var(--ar-accent)] hover:underline font-medium">Contrato</a>
+                        ) : (
+                          <span className="text-[10px] text-gray-400">Sin contrato</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -215,6 +238,14 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
             <div className="mt-3">
               <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Horario preferido</label>
               <input value={form.horario} onChange={e => setForm(p => ({...p, horario: e.target.value}))} className="input-base" placeholder="Ej: Martes y Jueves 16:00-17:30"/>
+            </div>
+            <div className="mt-3">
+              <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Sede *</label>
+              <select value={form.sede} onChange={e => setForm(p => ({...p, sede: e.target.value}))} className="select-base w-full">
+                <option value="santiago">Sede Santiago</option>
+                <option value="puente_alto">Sede Puente Alto</option>
+                <option value="punta_arenas">Sede Punta Arenas</option>
+              </select>
             </div>
           </div>
 
