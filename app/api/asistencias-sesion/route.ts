@@ -31,11 +31,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'alumno_id y programa_id requeridos' }, { status: 400 })
   }
 
+  const hoy = new Date().toISOString().split('T')[0]
+
+  // Verificar si ya se registró asistencia hoy para este alumno en este programa
+  const { data: existente } = await admin
+    .from('asistencias_sesion')
+    .select('id, estado')
+    .eq('alumno_id', alumno_id)
+    .eq('programa_id', programa_id)
+    .eq('fecha', hoy)
+    .limit(1)
+    .maybeSingle()
+
+  if (existente) {
+    return NextResponse.json({
+      error: 'Asistencia ya registrada hoy',
+      duplicado: true,
+      estado_actual: existente.estado,
+    }, { status: 409 })
+  }
+
   const { data, error } = await admin.from('asistencias_sesion').insert({
     alumno_id,
     programa_id,
     colegio_id: usuario.colegio_id,
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: hoy,
     estado,
     sesion_tipo: sesion_tipo || 'clase',
     observacion: observacion || null,

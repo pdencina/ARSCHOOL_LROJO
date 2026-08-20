@@ -55,6 +55,30 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   // No permitir eliminarse a sí mismo
   if (params.id === user.id) return NextResponse.json({ error: 'No puedes eliminarte a ti mismo' }, { status: 400 })
 
+  // Obtener datos del usuario a eliminar
+  const { data: usuarioEliminar } = await admin.from('usuarios').select('rol').eq('id', params.id).single()
+  const rolEliminar = (usuarioEliminar as any)?.rol
+
+  // Si es apoderado, desactivar alumnos asociados y limpiar inscripciones
+  if (rolEliminar === 'apoderado') {
+    // Buscar alumnos vinculados a este apoderado
+    const { data: vinculaciones } = await admin
+      .from('tutor_alumnos')
+      .select('alumno_id')
+      .eq('tutor_id', params.id)
+
+    const alumnoIds = (vinculaciones ?? []).map((v: any) => v.alumno_id)
+
+    if (alumnoIds.length > 0) {
+      // Desactivar alumnos
+      await admin.from('alumnos').update({ activo: false }).in('id', alumnoIds)
+      // Finalizar inscripciones en programas
+      await admin.from('inscripciones_programa').update({ estado: 'finalizada' }).in('alumno_id', alumnoIds)
+      // Eliminar familias asociadas
+      await admin.from('familias').delete().in('alumno_id', alumnoIds)
+    }
+  }
+
   // Eliminar de tabla usuarios
   await admin.from('tutor_alumnos').delete().eq('tutor_id', params.id)
   await admin.from('usuarios').delete().eq('id', params.id)
@@ -62,5 +86,5 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   // Eliminar de Supabase Auth
   await admin.auth.admin.deleteUser(params.id)
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, alumnos_desactivados: rolEliminar === 'apoderado' })
 }

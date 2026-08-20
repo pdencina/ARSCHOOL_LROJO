@@ -353,6 +353,7 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
                                   body: JSON.stringify({ alumno_id: ins.alumno?.id, programa_id: programa.id, estado: 'presente' }),
                                 })
                                 if (res.ok) toast.success(`Asistencia registrada: ${ins.alumno?.nombre}`)
+                                else if (res.status === 409) toast('Asistencia ya registrada hoy', { icon: '⚠️' })
                                 else toast.error('Error al registrar')
                               } catch { toast.error('Error') }
                             }}
@@ -373,6 +374,17 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
                           ) : (
                             <span className="text-[10px] text-gray-400">Sin matrícula</span>
                           )}
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`¿Dar de baja a ${ins.alumno?.nombre} ${ins.alumno?.apellido}? Se finalizará su inscripción.`)) return
+                              try {
+                                const res = await fetch(`/api/programas/inscripciones?alumno_id=${ins.alumno?.id}&programa_id=${programa.id}`, { method: 'DELETE' })
+                                if (res.ok) { toast.success('Inscripción finalizada'); router.refresh() }
+                                else { const d = await res.json(); toast.error(d.error || 'Error') }
+                              } catch { toast.error('Error') }
+                            }}
+                            className="text-[10px] text-red-500 hover:underline font-medium"
+                          >✗ Baja</button>
                         </div>
                       </td>
                     </tr>
@@ -522,6 +534,7 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
                         try {
                           const res = await fetch('/api/asistencias-sesion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alumno_id: ins.alumno?.id, programa_id: programa.id, estado }) })
                           if (res.ok) toast.success(`${ins.alumno?.nombre}: ${estado}`)
+                          else if (res.status === 409) toast(`${ins.alumno?.nombre}: ya registrada hoy`, { icon: '⚠️' })
                           else toast.error('Error')
                         } catch { toast.error('Error') }
                       }} className={`px-2 py-1 rounded text-[9px] font-semibold transition-colors ${estado === 'presente' ? 'bg-[#EDF5F0] text-[#2D5A3F] hover:bg-[#d4edda]' : estado === 'ausente' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-amber-50 text-amber-600 hover:bg-amber-100'}`}>
