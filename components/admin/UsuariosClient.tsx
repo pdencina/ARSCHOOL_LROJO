@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
-interface Props { usuarios: any[]; colegios: any[]; colegioFiltro?: string }
+interface Props { usuarios: any[]; colegios: any[]; colegioFiltro?: string; programas?: any[] }
 
 const ROL_CONFIG: Record<string, { label: string; desc: string; color: string; bg: string; icon: string }> = {
   super_admin:     { label: 'super_admin',              desc: 'Acceso total fundación',              color: 'text-red-700',     bg: 'bg-red-50',     icon: 'ti-shield-check' },
@@ -16,7 +16,7 @@ const ROL_CONFIG: Record<string, { label: string; desc: string; color: string; b
   alumno:          { label: 'alumno',                   desc: 'Portal personal del estudiante',      color: 'text-amber-700',   bg: 'bg-amber-50',   icon: 'ti-backpack' },
 }
 
-export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Props) {
+export default function UsuariosClient({ usuarios, colegios, colegioFiltro, programas = [] }: Props) {
   const router = useRouter()
   const [showModal, setShowModal] = useState(false)
   const [editUsuario, setEditUsuario] = useState<any>(null)
@@ -41,12 +41,12 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
 
   function openNuevo() {
     setEditUsuario(null)
-    setForm({ nombre:'', apellido:'', email:'', password:'', rol:'tutor', colegio_id: colegioFiltro ?? colegios[0]?.id ?? '' })
+    setForm({ nombre:'', apellido:'', email:'', password:'', rol:'tutor', colegio_id: colegioFiltro ?? colegios[0]?.id ?? '', programa_ids: [] as string[] })
     setShowModal(true)
   }
   function openEditar(u: any) {
     setEditUsuario(u)
-    setForm({ nombre:u.nombre, apellido:u.apellido, email:u.email, password:'', rol:u.rol, colegio_id:u.colegio_id })
+    setForm({ nombre:u.nombre, apellido:u.apellido, email:u.email, password:'', rol:u.rol, colegio_id:u.colegio_id, programa_ids: u.programa_ids || [] })
     setShowModal(true)
   }
 
@@ -229,6 +229,31 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro }: Pr
                   </select>
                 </div>
               </div>
+              {/* Selector de programas para coordinadores */}
+              {form.rol === 'coordinador' && programas.length > 0 && (
+                <div className="mt-3">
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Programas asignados *</label>
+                  <div className="space-y-1.5">
+                    {programas.map((p: any) => (
+                      <label key={p.id} className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={(form.programa_ids || []).includes(p.id)}
+                          onChange={e => {
+                            const ids = form.programa_ids || []
+                            if (e.target.checked) setForm(f => ({...f, programa_ids: [...ids, p.id]}))
+                            else setForm(f => ({...f, programa_ids: ids.filter((id: string) => id !== p.id)}))
+                          }}
+                          className="w-4 h-4 rounded border-slate-300 text-[#1B3A5C] focus:ring-[#1B3A5C]"
+                        />
+                        <i className={`ti ${p.icono} text-sm`} style={{ color: p.color }} aria-hidden="true"/>
+                        <span className="text-xs font-medium text-slate-700">{p.nombre}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-[9px] text-slate-400 mt-1">El coordinador solo verá los programas seleccionados.</p>
+                </div>
+              )}
               {form.rol && ROL_CONFIG[form.rol] && (
                 <div className={`p-3 rounded-xl ${ROL_CONFIG[form.rol].bg}`}>
                   <div className={`flex items-center gap-2 ${ROL_CONFIG[form.rol].color} font-semibold text-sm`}>

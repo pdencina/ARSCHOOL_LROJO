@@ -29,9 +29,10 @@ export default async function UsuariosPage({
   const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
   if ((ur as any)?.rol !== 'super_admin') redirect('/inicio')
 
-  const [{ data: colegios }, { data: usuarios }] = await Promise.all([
+  const [{ data: colegios }, { data: usuarios }, { data: programas }] = await Promise.all([
     admin.from('colegios').select('id, nombre').order('nombre'),
     admin.from('usuarios').select('*, colegio:colegios(nombre)').order('created_at', { ascending: false }),
+    admin.from('programas').select('id, nombre, codigo, color, icono').eq('activo', true).order('nombre'),
   ])
 
   const usuariosFiltrados = searchParams.colegio
@@ -43,6 +44,7 @@ export default async function UsuariosPage({
       usuarios={usuariosFiltrados as any[]}
       colegios={(colegios as any[]) ?? []}
       colegioFiltro={searchParams.colegio}
+      programas={(programas as any[]) ?? []}
     />
   )
 }

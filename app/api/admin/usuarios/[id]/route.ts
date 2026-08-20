@@ -29,6 +29,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (body.rol) updates.rol = body.rol
   if (body.colegio_id && miRol === 'super_admin') updates.colegio_id = body.colegio_id
   if (body.activo !== undefined) updates.activo = body.activo
+  if (body.programa_ids !== undefined) updates.programa_ids = body.programa_ids
 
   const { data, error } = await admin
     .from('usuarios')
