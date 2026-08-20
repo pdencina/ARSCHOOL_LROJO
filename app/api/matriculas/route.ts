@@ -202,10 +202,14 @@ export async function POST(request: NextRequest) {
           const { enviarEmail, templateInvitacionApoderado } = await import('@/lib/email')
           const nombreCompleto = `${nombre_apoderado.trim()} ${(apellido_apoderado || '').trim()}`.trim()
           const alumnoNombre = `${nombre.trim()} ${apellido.trim()}`
+          // Determinar nombre del programa para subject del email
+          const esLions = curso?.toLowerCase().includes('lions') || curso?.toLowerCase().includes('soccer')
+          const esWorship = curso?.toLowerCase().includes('worship') || curso?.toLowerCase().includes('music')
+          const subjectPrograma = esLions ? 'Lions Soccer School' : esWorship ? 'AR Worship School' : 'AR School'
           const emailResult = await enviarEmail({
             to: email_apoderado.trim(),
-            subject: `Bienvenido/a a AR School - Cuenta creada para ${alumnoNombre}`,
-            html: templateInvitacionApoderado(nombreCompleto, alumnoNombre, linkAcceso),
+            subject: `${subjectPrograma} — Bienvenido/a, cuenta creada para ${alumnoNombre}`,
+            html: templateInvitacionApoderado(nombreCompleto, alumnoNombre, linkAcceso, curso),
           })
           console.log('Email enviado:', emailResult)
         } else {
@@ -249,10 +253,13 @@ export async function POST(request: NextRequest) {
             const { enviarEmail, templateInvitacionApoderado } = await import('@/lib/email')
             const nombreCompleto = `${nombre_apoderado.trim()} ${(apellido_apoderado || '').trim()}`.trim()
             const alumnoNombre = `${nombre.trim()} ${apellido.trim()}`
+            const esLions2 = curso?.toLowerCase().includes('lions') || curso?.toLowerCase().includes('soccer')
+            const esWorship2 = curso?.toLowerCase().includes('worship') || curso?.toLowerCase().includes('music')
+            const subjectPrograma2 = esLions2 ? 'Lions Soccer School' : esWorship2 ? 'AR Worship School' : 'AR School'
             const emailResult = await enviarEmail({
               to: email_apoderado.trim(),
-              subject: `Bienvenido/a a AR School - Cuenta creada para ${alumnoNombre}`,
-              html: templateInvitacionApoderado(nombreCompleto, alumnoNombre, linkAcceso2),
+              subject: `${subjectPrograma2} — Bienvenido/a, cuenta creada para ${alumnoNombre}`,
+              html: templateInvitacionApoderado(nombreCompleto, alumnoNombre, linkAcceso2, curso),
             })
             console.log('Email enviado (usuario existente):', emailResult)
           } else {

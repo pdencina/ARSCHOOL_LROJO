@@ -77,35 +77,61 @@ export function templateReporteDiario(alumno: string, curso: string, fecha: stri
   `
 }
 
-export function templateInvitacionApoderado(nombre: string, alumno: string, linkAcceso: string) {
+export function templateInvitacionApoderado(nombre: string, alumno: string, linkAcceso: string, programa?: string) {
+  // Determinar branding según programa
+  const esLions = programa?.toLowerCase().includes('lions') || programa?.toLowerCase().includes('soccer')
+  const esWorship = programa?.toLowerCase().includes('worship') || programa?.toLowerCase().includes('música') || programa?.toLowerCase().includes('music')
+
+  const brandName = esLions ? 'LIONS SOCCER SCHOOL' : esWorship ? 'AR WORSHIP SCHOOL' : 'AR SCHOOL GLOBAL'
+  const brandColor = esLions ? '#2D5A3F' : esWorship ? '#6B4C9A' : '#1a2332'
+  const welcomeMsg = esLions ? '¡Bienvenido/a a Lions Soccer School!' : esWorship ? '¡Bienvenido/a a AR Worship School!' : '¡Bienvenido/a a AR School!'
+  const inscripcionMsg = esLions ? 'ha sido inscrito exitosamente en nuestra escuela de fútbol' : esWorship ? 'ha sido inscrito exitosamente en nuestra escuela de música' : 'ha sido matriculado exitosamente en nuestro Centro Educativo'
+
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://app.arschoolglobal.com'
+  const logoUrl = esLions ? `${baseUrl}/logo-lions.png` : esWorship ? `${baseUrl}/logo-worship.png` : `${baseUrl}/logo-arschool.png`
+
+  const features = esLions ? [
+    'Ver horarios de entrenamiento',
+    'Revisar asistencia a sesiones',
+    'Consultar estado de pagos',
+    'Recibir comunicados del equipo',
+  ] : esWorship ? [
+    'Ver horarios de clases de música',
+    'Revisar asistencia y progreso',
+    'Consultar estado de pagos',
+    'Acceder a recursos y materiales',
+  ] : [
+    'Ver reportes diarios de su hijo/a',
+    'Revisar calificaciones y asistencia',
+    'Comunicarse con los tutores',
+    'Consultar estado de pagos',
+    'Acceder a documentos y comunicados',
+  ]
+
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="border-bottom: 2px solid #1a2332; padding-bottom: 16px; margin-bottom: 24px;">
-        <strong style="font-size: 16px; color: #1a2332;">AR SCHOOL GLOBAL</strong>
-        <span style="color: #9ca3af; font-size: 12px; margin-left: 8px;">Bienvenido/a</span>
+      <div style="border-bottom: 2px solid ${brandColor}; padding-bottom: 16px; margin-bottom: 24px; text-align: center;">
+        <img src="${logoUrl}" alt="${brandName}" style="height: 48px; max-width: 200px; object-fit: contain; margin-bottom: 8px;" />
+        <div style="font-size: 10px; color: #9ca3af; letter-spacing: 1px;">Fundación ARM Global</div>
       </div>
-      <h2 style="color: #1a2332; font-size: 18px; margin: 0 0 12px;">¡Bienvenido/a a AR School!</h2>
+      <h2 style="color: ${brandColor}; font-size: 18px; margin: 0 0 12px;">${welcomeMsg}</h2>
       <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">Estimado/a <strong>${nombre}</strong>,</p>
-      <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">Le informamos que <strong>${alumno}</strong> ha sido matriculado exitosamente en nuestro Centro Educativo.</p>
-      <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">Se ha creado una cuenta en nuestra plataforma para que pueda hacer seguimiento del proceso educativo. Para activar su cuenta, haga click en el siguiente botón:</p>
+      <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">Le informamos que <strong>${alumno}</strong> ${inscripcionMsg}.</p>
+      <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">Se ha creado una cuenta en nuestra plataforma para que pueda hacer seguimiento. Para activar su cuenta, haga click en el siguiente botón:</p>
       <div style="text-align: center; margin: 28px 0;">
-        <a href="${linkAcceso}" style="background: #1a2332; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 14px; font-weight: 600; display: inline-block;">Crear mi contraseña</a>
+        <a href="${linkAcceso}" style="background: ${brandColor}; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 14px; font-weight: 600; display: inline-block;">Crear mi contraseña</a>
       </div>
       <p style="color: #9ca3af; font-size: 12px; line-height: 1.5;">Si el botón no funciona, copie y pegue este enlace en su navegador:</p>
       <p style="color: #6b7280; font-size: 12px; word-break: break-all;">${linkAcceso}</p>
       <div style="background: #f8f9fb; border-radius: 8px; padding: 16px; margin-top: 24px;">
         <p style="color: #4b5563; font-size: 13px; margin: 0 0 8px;"><strong>¿Qué puede hacer en la plataforma?</strong></p>
         <ul style="color: #6b7280; font-size: 13px; line-height: 1.8; margin: 0; padding-left: 16px;">
-          <li>Ver reportes diarios de su hijo/a</li>
-          <li>Revisar calificaciones y asistencia</li>
-          <li>Comunicarse con los tutores</li>
-          <li>Consultar estado de pagos</li>
-          <li>Acceder a documentos y comunicados</li>
+          ${features.map(f => `<li>${f}</li>`).join('')}
         </ul>
       </div>
       <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e8eaed; color: #9ca3af; font-size: 11px;">
-        Este enlace expira en 24 horas. Si tiene problemas para acceder, contacte a la administración del colegio.<br/>
-        AR School Global · Fundación Educacional AR Ministries
+        Este enlace expira en 24 horas. Si tiene problemas para acceder, contacte a la administración.<br/>
+        Fundación ARM Global · www.arschoolglobal.com
       </div>
     </div>
   `

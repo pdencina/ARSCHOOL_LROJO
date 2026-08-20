@@ -52,12 +52,24 @@ export default async function WorshipPage() {
     .eq('colegio_id', usuario.colegio_id)
     .order('created_at', { ascending: false })
 
+  // Obtener asistencias últimas 4 semanas para gráfico + alertas
+  const hace4Semanas = new Date()
+  hace4Semanas.setDate(hace4Semanas.getDate() - 28)
+  const { data: asistencias4w } = await admin
+    .from('asistencias_sesion')
+    .select('alumno_id, fecha, estado')
+    .eq('programa_id', programaId)
+    .eq('colegio_id', usuario.colegio_id)
+    .gte('fecha', hace4Semanas.toISOString().split('T')[0])
+    .order('fecha', { ascending: true })
+
   return (
     <ProgramaClient
       programa={programa as any}
       inscripciones={(inscripciones as any[]) ?? []}
       matriculas={(matriculas as any[]) ?? []}
       colegioId={usuario.colegio_id}
+      asistencias4w={(asistencias4w as any[]) ?? []}
     />
   )
 }

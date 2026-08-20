@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { PROGRAMA_CONFIG } from '@/lib/programas'
@@ -11,14 +11,17 @@ interface Props {
   inscripciones: any[]
   matriculas: any[]
   colegioId: string
+  asistencias4w?: any[]
 }
 
-export default function ProgramaClient({ programa, inscripciones, matriculas, colegioId }: Props) {
+export default function ProgramaClient({ programa, inscripciones, matriculas, colegioId, asistencias4w = [] }: Props) {
   const router = useRouter()
   const [vista, setVista] = useState<'lista' | 'nueva' | 'asistencia'>('lista')
   const [saving, setSaving] = useState(false)
   const [esPrueba, setEsPrueba] = useState(false)
   const [fichaAbierta, setFichaAbierta] = useState<any>(null)
+  const [filtroNivel, setFiltroNivel] = useState<string>('')
+  const [enviandoContrato, setEnviandoContrato] = useState<string | null>(null)
   const config = PROGRAMA_CONFIG[programa.codigo] || PROGRAMA_CONFIG.ar_school
 
   const [form, setForm] = useState({
@@ -26,6 +29,96 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
     nombre_apoderado: '', apellido_apoderado: '', email_apoderado: '', telefono_apoderado: '',
     horario: '', nivel: '', observaciones: '', sede: 'santiago',
   })
+
+  // ─── Datos para gráfico de asistencia semanal ───
+  const datosGrafico = useMemo(() => {
+    const semanas: { label: string; presentes: number; ausentes: number; total: number }[] = []
+    const hoy = new Date()
+    for (let i = 3; i >= 0; i--) {
+      const inicioSemana = new Date(hoy)
+      inicioSemana.setDate(hoy.getDate() - (i * 7 + hoy.getDay()))
+      const finSemana = new Date(inicioSemana)
+      finSemana.setDate(inicioSemana.getDate() + 6)
+
+      const inicioStr = inicioSemana.toISOString().split('T')[0]
+      const finStr = finSemana.toISOString().split('T')[0]
+
+      const semanaDatos = asistencias4w.filter(a => a.fecha >= inicioStr && a.fecha <= finStr)
+      const presentes = semanaDatos.filter(a => a.estado === 'presente' || a.estado === 'tardanza').length
+      const ausentes = semanaDatos.filter(a => a.estado === 'ausente').length
+
+      semanas.push({
+        label: `${inicioSemana.getDate()}/${inicioSemana.getMonth() + 1}`,
+        presentes,
+        ausentes,
+        total: presentes + ausentes,
+      })
+    }
+    return semanas
+  }, [asistencias4w])
+
+  const maxTotal = Math.max(...datosGrafico.map(s => s.total), 1)
+
+  // ─── Alertas de baja asistencia (<70%) ───
+  const alertasBajaAsistencia = useMemo(() => {
+    const porAlumno: Record<string, { presente: number; total: number; nombre: string }> = {}
+    asistencias4w.forEach(a => {
+      if (!porAlumno[a.alumno_id]) {
+        const ins = inscripciones.find(i => i.alumno?.id === a.alumno_id)
+        porAlumno[a.alumno_id] = { presente: 0, total: 0, nombre: ins ? `${ins.alumno?.nombre} ${ins.alumno?.apellido}` : 'Alumno' }
+      }
+      porAlumno[a.alumno_id].total++
+      if (a.estado === 'presente' || a.estado === 'tardanza') porAlumno[a.alumno_id].presente++
+    })
+    return Object.entries(porAlumno)
+      .map(([id, d]) => ({ alumno_id: id, nombre: d.nombre, pct: d.total > 0 ? Math.round((d.presente / d.total) * 100) : 100 }))
+      .filter(x => x.pct < 70 && x.pct > 0)
+      .sort((a, b) => a.pct - b.pct)
+  }, [asistencias4w, inscripciones])
+
+  // ─── Niveles únicos para filtro ───
+  const nivelesUnicos = useMemo(() => {
+    const niveles = inscripciones.map(i => i.nivel).filter(Boolean)
+    return Array.from(new Set(niveles)).sort()
+  }, [inscripciones])
+
+  // ─── Inscripciones filtradas ───
+  const inscripcionesFiltradas = useMemo(() => {
+    if (!filtroNivel) return inscripciones
+    return inscripciones.filter(i => i.nivel === filtroNivel)
+  }, [inscripciones, filtroNivel])
+
+  // ─── Enviar contrato ───
+  async function handleEnviarContrato(alumnoId: string) {
+    const mat = matriculas.find((m: any) => m.alumno_id === alumnoId)
+    if (!mat) {
+      toast.error('Este alumno no tiene matrícula asociada. Debe matricularlo primero.')
+      return
+    }
+    setEnviandoContrato(alumnoId)
+    try {
+      const res = await fetch('/api/contratos/enviar-firma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricula_id: mat.id, tipo: 'contrato' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success(`Contrato enviado a ${data.email_enviado_a}`)
+      // También enviar pagaré
+      await fetch('/api/contratos/enviar-firma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricula_id: mat.id, tipo: 'pagare' }),
+      })
+      toast.success('Pagaré también enviado')
+      router.refresh()
+    } catch (e: any) {
+      toast.error(e.message || 'Error al enviar contrato')
+    } finally {
+      setEnviandoContrato(null)
+    }
+  }
 
   async function handleInscribir() {
     if (!form.nombre || !form.apellido || !form.email_apoderado) {
@@ -111,7 +204,7 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
         )}
       </div>
 
-      {/* KPIs */}
+      {/* KPIs + Chart + Alertas */}
       {vista === 'lista' && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -121,7 +214,99 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
             <div className="kpi-card"><div className="kpi-label">Pendientes firma</div><div className="kpi-value text-amber-600">{matriculas.filter(m => !m.firma_apoderado).length}</div></div>
           </div>
 
-          {/* Tabla de inscritos */}
+          {/* ─── Gráfico Asistencia últimas 4 semanas ─── */}
+          {asistencias4w.length > 0 && (
+            <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5 mb-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xs font-bold text-[var(--ar-text)]">
+                  <i className="ti ti-chart-bar text-sm mr-1.5" aria-hidden="true"/>Asistencia — últimas 4 semanas
+                </h3>
+                <span className="text-[10px] text-[var(--ar-muted)]">{asistencias4w.length} registros</span>
+              </div>
+              <div className="flex items-end gap-3 h-32">
+                {datosGrafico.map((semana, idx) => (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full flex flex-col items-center justify-end h-24">
+                      {semana.total > 0 ? (
+                        <div className="w-full max-w-[40px] flex flex-col gap-0.5">
+                          <div
+                            className="w-full bg-[#2D5A3F] rounded-t-md transition-all"
+                            style={{ height: `${(semana.presentes / maxTotal) * 96}px` }}
+                            title={`Presentes: ${semana.presentes}`}
+                          />
+                          {semana.ausentes > 0 && (
+                            <div
+                              className="w-full bg-red-300 rounded-b-md transition-all"
+                              style={{ height: `${(semana.ausentes / maxTotal) * 96}px` }}
+                              title={`Ausentes: ${semana.ausentes}`}
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-full max-w-[40px] h-2 bg-gray-100 rounded"/>
+                      )}
+                    </div>
+                    <span className="text-[9px] text-[var(--ar-muted)] font-medium">Sem {semana.label}</span>
+                    {semana.total > 0 && (
+                      <span className="text-[9px] font-bold text-[#2D5A3F]">
+                        {Math.round((semana.presentes / semana.total) * 100)}%
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 bg-[#2D5A3F] rounded-sm"/><span className="text-[9px] text-[var(--ar-muted)]">Presentes/Tardanza</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 bg-red-300 rounded-sm"/><span className="text-[9px] text-[var(--ar-muted)]">Ausentes</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── Alertas baja asistencia (<70%) ─── */}
+          {alertasBajaAsistencia.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <i className="ti ti-alert-triangle text-amber-600 text-sm" aria-hidden="true"/>
+                <h3 className="text-xs font-bold text-amber-800">Alumnos con baja asistencia (&lt;70%)</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {alertasBajaAsistencia.map(a => (
+                  <div key={a.alumno_id} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-amber-100">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-semibold text-gray-800 truncate">{a.nombre}</p>
+                    </div>
+                    <span className="text-[11px] font-bold text-red-600 flex-shrink-0">{a.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ─── Filtro por nivel ─── */}
+          {nivelesUnicos.length > 1 && (
+            <div className="flex items-center gap-3 mb-4">
+              <label className="text-[10px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider">Filtrar por nivel:</label>
+              <select
+                value={filtroNivel}
+                onChange={e => setFiltroNivel(e.target.value)}
+                className="px-3 py-1.5 bg-white border border-[var(--ar-border)] rounded-lg text-xs outline-none focus:border-[#1B3A5C] min-w-[180px]"
+              >
+                <option value="">Todos los niveles ({inscripciones.length})</option>
+                {nivelesUnicos.map(n => (
+                  <option key={n} value={n}>{n} ({inscripciones.filter(i => i.nivel === n).length})</option>
+                ))}
+              </select>
+              {filtroNivel && (
+                <button onClick={() => setFiltroNivel('')} className="text-[10px] text-[var(--ar-accent)] hover:underline">Limpiar</button>
+              )}
+            </div>
+          )}
+
+          {/* ─── Tabla de inscritos ─── */}
           <div className="bg-white border border-[var(--ar-border)] rounded-xl overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
             <table className="w-full text-[13px]">
               <thead>
@@ -132,51 +317,67 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
                 </tr>
               </thead>
               <tbody>
-                {inscripciones.length === 0 ? (
+                {inscripcionesFiltradas.length === 0 ? (
                   <tr><td colSpan={6} className="px-4 py-12 text-center">
                     <i className={`ti ${config.icon} text-3xl text-[#d1d5db] block mb-3`} aria-hidden="true"/>
-                    <p className="text-[var(--ar-muted)] text-sm">No hay inscritos en {programa.nombre_corto}. Registra el primero.</p>
+                    <p className="text-[var(--ar-muted)] text-sm">
+                      {filtroNivel ? `No hay inscritos en nivel "${filtroNivel}".` : `No hay inscritos en ${programa.nombre_corto}. Registra el primero.`}
+                    </p>
                   </td></tr>
-                ) : inscripciones.map((ins: any) => (
-                  <tr key={ins.id} className="border-b border-[#f5f6f7] hover:bg-[#fafbfc]">
-                    <td className="px-4 py-3.5 font-medium text-[var(--ar-text)]">
-                      <button onClick={() => setFichaAbierta(ins.alumno)} className="hover:text-[#1B3A5C] hover:underline text-left">{ins.alumno?.nombre} {ins.alumno?.apellido}</button>
-                    </td>
-                    <td className="px-4 py-3.5 text-[var(--ar-muted)]">{ins.nivel || '—'}</td>
-                    <td className="px-4 py-3.5 text-[var(--ar-muted)] text-xs">{ins.horario || '—'}</td>
-                    <td className="px-4 py-3.5 text-[var(--ar-muted)] text-xs">{new Date(ins.created_at).toLocaleDateString('es-CL')}</td>
-                    <td className="px-4 py-3.5">
-                      {ins.estado === 'prueba' ? (
-                        <span className="tag tag-pend">Prueba</span>
-                      ) : (
-                        <span className="tag tag-ok">Activo</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex gap-2 flex-wrap">
-                        <button
-                          onClick={async () => {
-                            try {
-                              const res = await fetch('/api/asistencias-sesion', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ alumno_id: ins.alumno?.id, programa_id: programa.id, estado: 'presente' }),
-                              })
-                              if (res.ok) toast.success(`Asistencia registrada: ${ins.alumno?.nombre}`)
-                              else toast.error('Error al registrar')
-                            } catch { toast.error('Error') }
-                          }}
-                          className="text-[10px] text-emerald-600 hover:underline font-medium"
-                        >✓ Presente</button>
-                        {matriculas.find((m: any) => m.alumno_id === ins.alumno?.id) ? (
-                          <a href={`/api/contratos?alumno_id=${ins.alumno?.id}`} target="_blank" className="text-[10px] text-[var(--ar-accent)] hover:underline font-medium">Contrato</a>
+                ) : inscripcionesFiltradas.map((ins: any) => {
+                  const tieneMatricula = matriculas.find((m: any) => m.alumno_id === ins.alumno?.id)
+                  const contratoFirmado = tieneMatricula?.firma_apoderado
+                  return (
+                    <tr key={ins.id} className="border-b border-[#f5f6f7] hover:bg-[#fafbfc]">
+                      <td className="px-4 py-3.5 font-medium text-[var(--ar-text)]">
+                        <button onClick={() => setFichaAbierta(ins.alumno)} className="hover:text-[#1B3A5C] hover:underline text-left">{ins.alumno?.nombre} {ins.alumno?.apellido}</button>
+                      </td>
+                      <td className="px-4 py-3.5 text-[var(--ar-muted)]">{ins.nivel || '—'}</td>
+                      <td className="px-4 py-3.5 text-[var(--ar-muted)] text-xs">{ins.horario || '—'}</td>
+                      <td className="px-4 py-3.5 text-[var(--ar-muted)] text-xs">{new Date(ins.created_at).toLocaleDateString('es-CL')}</td>
+                      <td className="px-4 py-3.5">
+                        {ins.estado === 'prueba' ? (
+                          <span className="tag tag-pend">Prueba</span>
                         ) : (
-                          <span className="text-[10px] text-gray-400">Sin contrato</span>
+                          <span className="tag tag-ok">Activo</span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex gap-2 flex-wrap">
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch('/api/asistencias-sesion', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ alumno_id: ins.alumno?.id, programa_id: programa.id, estado: 'presente' }),
+                                })
+                                if (res.ok) toast.success(`Asistencia registrada: ${ins.alumno?.nombre}`)
+                                else toast.error('Error al registrar')
+                              } catch { toast.error('Error') }
+                            }}
+                            className="text-[10px] text-emerald-600 hover:underline font-medium"
+                          >✓ Presente</button>
+                          {tieneMatricula ? (
+                            contratoFirmado ? (
+                              <span className="text-[10px] text-[#2D5A3F] font-medium">✓ Firmado</span>
+                            ) : (
+                              <button
+                                onClick={() => handleEnviarContrato(ins.alumno?.id)}
+                                disabled={enviandoContrato === ins.alumno?.id}
+                                className="text-[10px] text-[var(--ar-accent)] hover:underline font-medium disabled:opacity-50"
+                              >
+                                {enviandoContrato === ins.alumno?.id ? '⏳ Enviando...' : '📧 Enviar contrato'}
+                              </button>
+                            )
+                          ) : (
+                            <span className="text-[10px] text-gray-400">Sin matrícula</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -300,6 +501,7 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
           </button>
         </div>
       )}
+
       {/* Vista: Asistencia masiva */}
       {vista === 'asistencia' && (
         <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
