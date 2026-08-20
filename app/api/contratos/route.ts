@@ -70,9 +70,21 @@ export async function GET(request: NextRequest) {
 
   // Datos comunes
   const anio = matricula?.anio_escolar ?? new Date().getFullYear()
-  const montoInicial = matricula?.monto_matricula ?? 130000
-  const montoMensual = matricula?.monto_mensual ?? 275000
-  const mesesCobro = 10
+
+  // Detectar programa para defaults
+  const cursoLower = (alumno.curso || '').toLowerCase()
+  const esPreschool = cursoLower.includes('play') || cursoLower.includes('pre school')
+  const esLions = cursoLower.includes('lions') || cursoLower.includes('soccer')
+  const esWorship = cursoLower.includes('worship') || cursoLower.includes('música') || cursoLower.includes('music')
+
+  // Defaults por programa: Lions=45k/40k/12m, Worship=0/variable/9m, ARSchool=130k/275k/10m
+  const defaultInicial = esLions ? 45000 : esWorship ? 0 : 130000
+  const defaultMensual = esLions ? 40000 : esWorship ? 0 : 275000
+  const defaultMeses = esLions ? 12 : esWorship ? 9 : 10
+
+  const montoInicial = matricula?.monto_matricula ?? defaultInicial
+  const montoMensual = matricula?.monto_mensual ?? defaultMensual
+  const mesesCobro = defaultMeses
   const porcentajeBeca = matricula?.porcentaje_beca ?? 0
   const fechaMat = matricula?.fecha_matricula ?? new Date().toISOString().split('T')[0]
   const sede = SEDES[colegio?.id] ?? 'Victoria 52, Comuna de Santiago'
@@ -109,7 +121,12 @@ export async function GET(request: NextRequest) {
       return `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
     }).join('')
   } else {
-    const meses = ['marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+    // Meses default según programa
+    const meses = esLions
+      ? ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+      : esWorship
+        ? ['abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+        : ['marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
     tablaAportes = meses.map((m, idx) => {
       const numCheque = chequesMat?.[idx] || ''
       const banco = numCheque ? bancoMat : ''
@@ -122,18 +139,16 @@ export async function GET(request: NextRequest) {
   if (cobrosmensuales.length > 0) {
     tablaPagare = (cobrosmensuales as any[]).map((c: any) => `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td></tr>`).join('')
   } else {
-    const meses = ['marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-    tablaPagare = meses.map(m => `<tr><td>1 ${m} ${anio}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td></tr>`).join('')
+    const mesesPagare = esLions
+      ? ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+      : esWorship
+        ? ['abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+        : ['marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+    tablaPagare = mesesPagare.map(m => `<tr><td>1 ${m} ${anio}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td></tr>`).join('')
   }
 
   const fechaFormateada = `${new Date(fechaMat).getDate()} de ${mesesNombres[new Date(fechaMat).getMonth()]} de ${anio}`
   const fechaNacDisplay = alumno.fecha_nacimiento ? new Date(alumno.fecha_nacimiento + 'T12:00').toLocaleDateString('es-CL') : '___'
-
-  // Determinar tipo de contrato
-  const cursoLower = (alumno.curso || '').toLowerCase()
-  const esPreschool = cursoLower.includes('play') || cursoLower.includes('pre school')
-  const esLions = cursoLower.includes('lions') || cursoLower.includes('soccer')
-  const esWorship = cursoLower.includes('worship') || cursoLower.includes('música')
 
   const datosBase = {
     fecha: fechaFormateada,

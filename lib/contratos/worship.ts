@@ -10,7 +10,7 @@ interface DatosContratoWorship {
   rutAlumno: string
   fechaNacimiento: string
   instrumento: string
-  ciclo: string // "Ciclo 1", "Ciclo 2"
+  ciclo: string // "Ciclo 1", "Ciclo 2", "Music and Play"
   horario: string
   sede: string
   anio: number
@@ -18,81 +18,69 @@ interface DatosContratoWorship {
   montoMensual: number
   mesesCobro: number
   tablaAportes: string
+  porcentajeBeca?: number
+  nombreBeca?: string
 }
 
 export function generarContratoWorship(d: DatosContratoWorship): string {
+  const montoInicialTexto = d.montoInicial > 0
+    ? `$${d.montoInicial.toLocaleString('es-CL')} CLP`
+    : `$0 CLP`
+  const montoAnual = d.montoMensual * d.mesesCobro
+  const montoMensualTexto = d.montoMensual > 0
+    ? `$${d.montoMensual.toLocaleString('es-CL')} CLP`
+    : `$0 CLP`
+
+  const becaClausula = d.porcentajeBeca && d.porcentajeBeca > 0
+    ? `<li>Al valor del aporte mensual se aplicó un ${d.porcentajeBeca}% de descuento correspondiente a una Beca${d.nombreBeca ? ` (${d.nombreBeca})` : ''}. La duración de la beca es para este año ${d.anio} y debe evaluarse y renovarse en el próximo contrato a través de una nueva postulación.</li>`
+    : ''
+
   return `
 ${HEADER_FUNDACION}
 
-<h1>CONTRATO DE PRESTACIÓN DE SERVICIOS — AR WORSHIP SCHOOL</h1>
+<h1>CONTRATO DE PRESTACIÓN DE SERVICIOS</h1>
 
-<p>En Santiago, a ${d.fecha}, se celebra el presente Contrato de Prestación de Servicios de Formación Musical entre la <strong>FUNDACIÓN EDUCACIONAL AR MINISTRIES</strong>, RUT 65.168.392-0, a través de su programa <strong>AR WORSHIP SCHOOL</strong>, representada por <strong>PATRICIO FERNANDO BURGOS PÉREZ</strong>, RUT 12.274.490-6, en adelante "LA ESCUELA", y don/doña <strong class="highlight">${d.nombreApoderado}</strong>, RUT <strong class="highlight">${d.rutApoderado}</strong>, domiciliado/a en <strong class="highlight">${d.direccionApoderado}, ${d.comunaApoderado}</strong>, en adelante "EL ALUMNO/APODERADO", quienes convienen lo siguiente:</p>
+<p>En Santiago, a ${d.fecha}, se celebra el siguiente Contrato de Prestación de Servicios, entre la <strong>FUNDACIÓN EDUCACIONAL AR MINISTRIES</strong>, RUT 65.168.392-0, debidamente representada por <strong>PATRICIO FERNANDO BURGOS PEREZ</strong>, RUT Nº 12.274.490-6, ambos domiciliados en Avenida Victoria 52, Comuna de Santiago, Ciudad Santiago, RM de Chile que en adelante se denominará <strong>"EL ESTABLECIMIENTO"</strong>; y don(ña) <strong class="highlight">${d.nombreApoderado}</strong>, RUT Nº <strong class="highlight">${d.rutApoderado}</strong>, con domicilio en <strong class="highlight">${d.direccionApoderado}</strong>, comuna de <strong class="highlight">${d.comunaApoderado}</strong>, que en adelante se denominará <strong>"APODERADO"</strong>, y en conjunto como <strong>"LAS PARTES"</strong>, acuerdan lo siguiente:</p>
 
 <div class="clausula">
-<p><span class="clausula-title">PRIMERO: OBJETO DEL CONTRATO</span></p>
-<p>LA ESCUELA se compromete a prestar servicios de formación musical al alumno/a <strong class="highlight">${d.nombreAlumno}</strong>, RUT <strong class="highlight">${d.rutAlumno}</strong>, nacido/a el <strong class="highlight">${d.fechaNacimiento}</strong>, en el instrumento <strong class="highlight">${d.instrumento}</strong>, dentro del <strong class="highlight">${d.ciclo}</strong> del plan de estudios de AR Worship School.</p>
+<p><span class="clausula-title">PRIMERO:</span> La Fundación Educacional AR Ministries, se encuentra reconocida oficialmente como tal y es sostenedora del Establecimiento denominado <strong>"ARW SCHOOL"</strong>.</p>
 </div>
 
 <div class="clausula">
-<p><span class="clausula-title">SEGUNDO: PROGRAMA Y PLAN DE ESTUDIOS</span></p>
-<p>El programa AR Worship School se organiza en 2 ciclos de 2 semestres cada uno (4 semestres totales), con las siguientes áreas de formación por semestre:</p>
+<p><span class="clausula-title">SEGUNDO:</span> Para todos los efectos de este contrato, se entiende por APODERADO a la persona que, como responsable del(los) hijo(s), suscribe el presente instrumento, quien asume la totalidad de las obligaciones, deberes y compromisos que en él se consignan.</p>
+<p>El APODERADO ha solicitado al ESTABLECIMIENTO, inscribir y prestar servicios para el año ${d.anio}, en calidad de alumno(s) "EL ALUMNO":</p>
+<table>
+<tbody>
+<tr><td><strong>Nombre completo:</strong></td><td class="highlight">${d.nombreAlumno}</td></tr>
+<tr><td><strong>RUT/NIE/Pasaporte:</strong></td><td class="highlight">${d.rutAlumno}</td></tr>
+<tr><td><strong>Fecha de nacimiento:</strong></td><td class="highlight">${d.fechaNacimiento}</td></tr>
+<tr><td><strong>Programa:</strong></td><td class="highlight">${d.ciclo}${d.instrumento ? ` — ${d.instrumento}` : ''}</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="clausula">
+<p><span class="clausula-title">TERCERO:</span> El ESTABLECIMIENTO como entidad formativa, se compromete a:</p>
 <ol>
-<li><strong>Instrumento</strong> — Clases prácticas del instrumento elegido</li>
-<li><strong>Teoría Musical</strong> — Fundamentos de lectura, armonía y composición</li>
-<li><strong>Ministerial</strong> — Formación en liderazgo de adoración y servicio</li>
-<li><strong>Ensamble</strong> — Práctica grupal e integración musical (desde semestre 2)</li>
-</ol>
-<p>Adicionalmente, el alumno tendrá acceso a:</p>
-<ul>
-<li>Masterclass con músicos invitados</li>
-<li>Plataforma online de recursos y materiales</li>
-<li>Clases ministeriales complementarias</li>
-</ul>
-</div>
-
-<div class="clausula">
-<p><span class="clausula-title">TERCERO: HORARIO Y LUGAR</span></p>
-<p>Las clases se realizarán según el siguiente horario:</p>
-<ul>
-<li><strong>Ciclo 1:</strong> Sábados de 09:30 a 10:50 hrs.</li>
-<li><strong>Ciclo 2:</strong> Sábados de 11:20 a 12:40 hrs.</li>
-</ul>
-<p>El alumno asistirá en el horario correspondiente a su ciclo: <strong class="highlight">${d.horario || 'Según ciclo asignado'}</strong>.</p>
-<p>El lugar de clases será en la sede <strong class="highlight">${d.sede}</strong>. LA ESCUELA se reserva el derecho de modificar horarios por razones de fuerza mayor, comunicando con anticipación.</p>
-</div>
-
-<div class="clausula">
-<p><span class="clausula-title">CUARTO: OBLIGACIONES DE LA ESCUELA</span></p>
-<ol>
-<li>Proporcionar enseñanza musical de calidad a cargo de profesores capacitados.</li>
-<li>Facilitar los instrumentos y equipos necesarios durante las clases (excepto instrumentos personales).</li>
-<li>Realizar evaluaciones semestrales de progreso.</li>
-<li>Otorgar certificado de completación al finalizar cada ciclo.</li>
-<li>Proveer acceso a la plataforma online de recursos.</li>
+<li>Entregar, durante la vigencia del presente Contrato, la atención necesaria para que los niños y niñas desarrollen habilidades y aprendizaje, colocando énfasis en su formación musical.</li>
+<li>Aplicar y velar que se cumplan las normas de convivencia, de acuerdo con los valores y principios del ESTABLECIMIENTO.</li>
+<li>Proporcionar a los niños y niñas, la infraestructura necesaria para que logren desarrollar las habilidades, competencias y capacidades, que se establecen, de acuerdo con el proyecto de AR WORSHIP SCHOOL.</li>
+<li>Brindar formación y capacitación a los niños y niñas como parte fundamental en su proceso formativo, así como brindar asesoría espiritual a la familia, en concordancia con los valores centrales declarados en la organización.</li>
 </ol>
 </div>
 
 <div class="clausula">
-<p><span class="clausula-title">QUINTO: OBLIGACIONES DEL ALUMNO/APODERADO</span></p>
+<p><span class="clausula-title">CUARTO:</span> ARW SCHOOL presta servicios los días sábados en una Jornada de mañana, (los horarios podrán sufrir ligeras modificaciones por ajustes realizados por Coordinación, los cuales serán informados oportunamente a los apoderados). La actividad se llevará a cabo en el Campus de Santiago en Victoria 52 en la comuna de Santiago Centro, en caso de sufrir ligeras modificaciones de ubicación, les será notificado a los apoderados.</p>
+${d.horario ? `<p><strong>Horario asignado:</strong> <span class="highlight">${d.horario}</span></p>` : ''}
+</div>
+
+<div class="clausula">
+<p><span class="clausula-title">QUINTO:</span> EL APODERADO se compromete a realizar el aporte del arancel anual al ESTABLECIMIENTO por la prestación de los servicios de ARW SCHOOL.</p>
 <ol>
-<li>Asistir regularmente a las clases programadas.</li>
-<li>Pagar oportunamente los aportes según la cláusula SÉPTIMA.</li>
-<li>Mantener un comportamiento respetuoso con profesores y compañeros.</li>
-<li>Dedicar tiempo de práctica personal fuera de las clases.</li>
-<li>Informar con anticipación sobre inasistencias.</li>
+<li>Por concepto de matrícula, la suma de ${montoInicialTexto}, que se pagarán en la forma y plazo establecidos por el ESTABLECIMIENTO.</li>
+<li>Por concepto de aporte mensual, el monto de ${montoMensualTexto} durante el año, de Abril a Diciembre, pagándose el 1° día hábil de cada mes facturado. Las partes contratantes convienen que el pago mensual antes referido constituye una obligación única e indivisible.</li>
+${becaClausula}
 </ol>
-</div>
-
-<div class="clausula">
-<p><span class="clausula-title">SEXTO: PERÍODO DE VIGENCIA</span></p>
-<p>El presente contrato tiene vigencia por un período de <strong>1 año académico</strong> (2 semestres), desde la fecha de firma hasta completar el ciclo correspondiente. La renovación para el siguiente ciclo será voluntaria.</p>
-</div>
-
-<div class="clausula">
-<p><span class="clausula-title">SÉPTIMO: APORTES</span></p>
-<p>EL ALUMNO/APODERADO se compromete a entregar los siguientes aportes:</p>
-${d.montoInicial > 0 ? `<p><strong>Aporte inicial (inscripción):</strong> $${d.montoInicial.toLocaleString('es-CL')} CLP — pago único anual.</p>` : ''}
-<p><strong>Aporte anual:</strong> $${(d.montoMensual * d.mesesCobro).toLocaleString('es-CL')} CLP, dividido en ${d.mesesCobro} cuotas de $${d.montoMensual.toLocaleString('es-CL')} CLP cada una.</p>
 
 <table>
 <thead><tr><th>FECHA</th><th>MONTO</th><th>N° CHEQUE</th><th>BANCO</th></tr></thead>
@@ -103,27 +91,20 @@ ${DATOS_BANCARIOS}
 </div>
 
 <div class="clausula">
-<p><span class="clausula-title">OCTAVO: BENEFICIOS FAMILIA</span></p>
-<p>En caso de inscribir a un segundo hermano/a:</p>
-<ul>
-<li>2×1 en matrícula (inscripción del segundo es gratuita)</li>
-<li>50% de descuento en el aporte anual del segundo alumno</li>
-</ul>
-<p>Estos beneficios se aplican previa verificación del parentesco.</p>
+<p><span class="clausula-title">SEXTO:</span> EL APODERADO podrá hacer el aporte presencial en las oficinas de finanzas del establecimiento, por transferencia o depósito bancario.</p>
+<p><strong>NOTA:</strong> Es de suma importancia que el APODERADO cumpla con los compromisos económicos asumidos en el presente contrato con la FUNDACIÓN a fin de garantizar el funcionamiento adecuado de ARW SCHOOL.</p>
 </div>
 
 <div class="clausula">
-<p><span class="clausula-title">NOVENO: SUSPENSIÓN Y TÉRMINO</span></p>
-<ol>
-<li>LA ESCUELA podrá suspender la participación en caso de mora de 2 o más cuotas.</li>
-<li>EL ALUMNO/APODERADO podrá dar término con 30 días de anticipación, sin devolución de aportes pagados.</li>
-<li>La inasistencia por más de 4 clases consecutivas sin justificación se considerará abandono.</li>
-</ol>
+<p><span class="clausula-title">SÉPTIMO:</span> El Apoderado autoriza que la Escuela de música y el Establecimiento hagan uso de datos personales propios o de los menores a su cargo, en virtud de la Ley 19.628, para fines educacionales o sociales. El Apoderado, en uso de sus facultades legales, autoriza que el ESTABLECIMIENTO o sus dependientes puedan registrar imágenes del desempeño de los niños y niñas, en situaciones propias de la Escuela, para ser difundidas en la página web, internet, medios de comunicación audiovisuales u otros espacios de promoción de los valores o actividades de la Escuela. Los derechos de autor de los datos o información, en cualquier soporte, que se generen en el Establecimiento.</p>
 </div>
 
 <div class="clausula">
-<p><span class="clausula-title">DÉCIMO: USO DE IMAGEN</span></p>
-<p>EL ALUMNO/APODERADO autoriza a LA ESCUELA a utilizar fotografías y videos de las actividades con fines promocionales e informativos de AR Worship School y la Fundación ARM Global.</p>
+<p><span class="clausula-title">OCTAVO:</span> Para todos los efectos del presente contrato, las partes firmantes fijan su domicilio en <strong class="highlight">${d.direccionApoderado}, ${d.comunaApoderado}</strong>, comuna de Santiago, sometiéndose a la jurisdicción de sus Tribunales Ordinarios de Justicia.</p>
+</div>
+
+<div class="clausula">
+<p><span class="clausula-title">NOVENO:</span> El presente contrato empieza a regir a partir de la fecha de firma hasta el 31 de diciembre de ${d.anio}; se firma en dos ejemplares, quedando cada uno en poder de las partes.</p>
 </div>
 
 ${FOOTER_SEDES}
