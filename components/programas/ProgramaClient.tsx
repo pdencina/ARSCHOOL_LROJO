@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { PROGRAMA_CONFIG } from '@/lib/programas'
+import FichaAlumnoModal from './FichaAlumnoModal'
 
 interface Props {
   programa: any
@@ -13,9 +14,10 @@ interface Props {
 
 export default function ProgramaClient({ programa, inscripciones, matriculas, colegioId }: Props) {
   const router = useRouter()
-  const [vista, setVista] = useState<'lista' | 'nueva'>('lista')
+  const [vista, setVista] = useState<'lista' | 'nueva' | 'asistencia'>('lista')
   const [saving, setSaving] = useState(false)
   const [esPrueba, setEsPrueba] = useState(false)
+  const [fichaAbierta, setFichaAbierta] = useState<any>(null)
   const config = PROGRAMA_CONFIG[programa.codigo] || PROGRAMA_CONFIG.ar_school
 
   const [form, setForm] = useState({
@@ -93,9 +95,14 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
           </div>
         </div>
         {vista === 'lista' ? (
-          <button onClick={() => setVista('nueva')} className="btn-primary">
-            <i className="ti ti-user-plus text-sm" aria-hidden="true"/> Nueva inscripción
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setVista('asistencia')} className="btn-secondary text-xs">
+              <i className="ti ti-clipboard-check text-sm" aria-hidden="true"/> Asistencia
+            </button>
+            <button onClick={() => setVista('nueva')} className="btn-primary">
+              <i className="ti ti-user-plus text-sm" aria-hidden="true"/> Nueva inscripción
+            </button>
+          </div>
         ) : (
           <button onClick={() => setVista('lista')} className="btn-secondary">
             <i className="ti ti-arrow-left text-sm" aria-hidden="true"/> Volver
@@ -131,7 +138,9 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
                   </td></tr>
                 ) : inscripciones.map((ins: any) => (
                   <tr key={ins.id} className="border-b border-[#f5f6f7] hover:bg-[#fafbfc]">
-                    <td className="px-4 py-3.5 font-medium text-[var(--ar-text)]">{ins.alumno?.nombre} {ins.alumno?.apellido}</td>
+                    <td className="px-4 py-3.5 font-medium text-[var(--ar-text)]">
+                      <button onClick={() => setFichaAbierta(ins.alumno)} className="hover:text-[#1B3A5C] hover:underline text-left">{ins.alumno?.nombre} {ins.alumno?.apellido}</button>
+                    </td>
                     <td className="px-4 py-3.5 text-[var(--ar-muted)]">{ins.nivel || '—'}</td>
                     <td className="px-4 py-3.5 text-[var(--ar-muted)] text-xs">{ins.horario || '—'}</td>
                     <td className="px-4 py-3.5 text-[var(--ar-muted)] text-xs">{new Date(ins.created_at).toLocaleDateString('es-CL')}</td>
@@ -279,6 +288,48 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
             {saving ? 'Procesando...' : esPrueba ? `Registrar clase de prueba` : `Inscribir en ${programa.nombre_corto}`}
           </button>
         </div>
+      )}
+      {/* Vista: Asistencia masiva */}
+      {vista === 'asistencia' && (
+        <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
+          <h2 className="text-sm font-bold text-[var(--ar-text)] mb-4">Asistencia de hoy — {new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
+          {inscripciones.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-6">No hay inscritos para tomar asistencia</p>
+          ) : (
+            <div className="space-y-2">
+              {inscripciones.map((ins: any) => (
+                <div key={ins.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-gray-100">
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-[var(--ar-text)]">{ins.alumno?.nombre} {ins.alumno?.apellido}</div>
+                    <div className="text-[9px] text-[var(--ar-muted)]">{ins.nivel || ins.horario || ''}</div>
+                  </div>
+                  <div className="flex gap-1">
+                    {['presente', 'ausente', 'tardanza'].map(estado => (
+                      <button key={estado} onClick={async () => {
+                        try {
+                          const res = await fetch('/api/asistencias-sesion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alumno_id: ins.alumno?.id, programa_id: programa.id, estado }) })
+                          if (res.ok) toast.success(`${ins.alumno?.nombre}: ${estado}`)
+                          else toast.error('Error')
+                        } catch { toast.error('Error') }
+                      }} className={`px-2 py-1 rounded text-[9px] font-semibold transition-colors ${estado === 'presente' ? 'bg-[#EDF5F0] text-[#2D5A3F] hover:bg-[#d4edda]' : estado === 'ausente' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-amber-50 text-amber-600 hover:bg-amber-100'}`}>
+                        {estado === 'presente' ? '✓' : estado === 'ausente' ? '✗' : '⏱'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal Ficha Alumno */}
+      {fichaAbierta && (
+        <FichaAlumnoModal
+          alumno={fichaAbierta}
+          programaId={programa.id}
+          onClose={() => setFichaAbierta(null)}
+        />
       )}
     </div>
   )
