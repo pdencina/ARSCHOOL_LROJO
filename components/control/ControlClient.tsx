@@ -250,10 +250,16 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
               <div className="text-[10px] text-[var(--ar-muted)]">Hora de salida esperada: {getHoraEsperada(alumnoSeleccionado, 'retiro')}</div>
             </div>
 
+            {/* Personas autorizadas */}
+            <div className="mb-4">
+              <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-2">Personas autorizadas para retiro</label>
+              <AutorizadosList alumnoId={alumnoSeleccionado.id} onSelect={(persona) => setRetiroForm(p => ({...p, persona_nombre: persona.nombre, persona_rut: persona.rut || '', persona_parentesco: persona.parentesco || '', firma: persona.nombre}))} />
+            </div>
+
             <div className="space-y-3">
               <div>
                 <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Persona que retira *</label>
-                <input value={retiroForm.persona_nombre} onChange={e => setRetiroForm(p => ({...p, persona_nombre: e.target.value}))} className="input-base" placeholder="Nombre completo" autoFocus/>
+                <input value={retiroForm.persona_nombre} onChange={e => setRetiroForm(p => ({...p, persona_nombre: e.target.value}))} className="input-base" placeholder="Nombre completo"/>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -301,6 +307,60 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+
+// Sub-componente: Lista de personas autorizadas
+function AutorizadosList({ alumnoId, onSelect }: { alumnoId: string; onSelect: (persona: { nombre: string; rut?: string; parentesco?: string }) => void }) {
+  const [autorizados, setAutorizados] = useState<any[]>([])
+  const [cargando, setCargando] = useState(true)
+
+  useState(() => {
+    async function cargar() {
+      try {
+        const res = await fetch(`/api/control/autorizados?alumno_id=${alumnoId}`)
+        if (res.ok) {
+          const data = await res.json()
+          setAutorizados(data)
+        }
+      } catch {}
+      setCargando(false)
+    }
+    cargar()
+  })
+
+  if (cargando) return <div className="text-[10px] text-[var(--ar-muted)] py-2">Cargando autorizados...</div>
+
+  if (autorizados.length === 0) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-[10px] text-red-700">
+        <i className="ti ti-alert-triangle text-xs mr-1" aria-hidden="true"/>
+        No hay personas autorizadas registradas para este alumno. Ingrese manualmente.
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {autorizados.map((p: any, i: number) => (
+        <button
+          key={i}
+          onClick={() => onSelect(p)}
+          className="w-full flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:bg-[#EDF5F0] hover:border-[#2D5A3F]/30 transition-colors text-left"
+        >
+          <div className="w-7 h-7 bg-[#EDF5F0] rounded-full flex items-center justify-center flex-shrink-0">
+            <i className="ti ti-user-check text-[#2D5A3F] text-xs" aria-hidden="true"/>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-semibold text-[var(--ar-text)] truncate">{p.nombre}</div>
+            <div className="text-[9px] text-[var(--ar-muted)]">{p.parentesco || 'Apoderado'}{p.rut ? ` · ${p.rut}` : ''}</div>
+          </div>
+          <span className="text-[9px] text-[#2D5A3F] font-medium">Seleccionar</span>
+        </button>
+      ))}
+      <p className="text-[9px] text-[var(--ar-muted)] mt-1">Seleccione quién retira, o ingrese manualmente si no aparece en la lista.</p>
     </div>
   )
 }
