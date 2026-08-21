@@ -365,24 +365,27 @@ export async function POST(request: NextRequest) {
 
       // Cobros mensuales
       const mesesGenerar = esPlayOSalaCuna ? 12 : meses_cobro
+      const proporcionalPrimerMes = body.proporcional_primer_mes || 0
       for (let i = 0; i < mesesGenerar; i++) {
         const mes = ((mesInicio - 1 + i) % 12) + 1
         const anioC = mesInicio + i > 12 ? anio + 1 : anio
         const vencimiento = `${anioC}-${String(mes).padStart(2, '0')}-05`
+        // Primer mes puede ser proporcional
+        const montoCobro = (i === 0 && proporcionalPrimerMes > 0) ? proporcionalPrimerMes : montoMensFinal
 
         const { data: cobro } = await admin.from('cobros').insert({
           colegio_id: colegioId,
           familia_id: familiaId,
           alumno_id: (alumno as any).id,
           concepto_id: plan_cobro_id || null,
-          monto: montoMensFinal,
+          monto: montoCobro,
           mes,
           anio: anioC,
           fecha_vencimiento: vencimiento,
           estado: 'pendiente',
           tipo_concepto: 'aporte_mensual',
           medio_pago: body.medio_pago_matricula === 'cheque' ? 'cheque' : null,
-          observaciones: `Aporte mensual ${mes}/${anioC}${porcentaje_beca > 0 ? ` (beca ${porcentaje_beca}%)` : ''}${descuentoContado > 0 ? ` (dcto. contado ${descuentoContado}%)` : ''}${body.medio_pago_matricula === 'cheque' && body.cheques?.[i] ? ` | Cheque N° ${body.cheques[i]} — ${body.banco_cheque || ''}` : ''}`,
+          observaciones: `${i === 0 && proporcionalPrimerMes > 0 ? 'Proporcional — ' : ''}Aporte mensual ${mes}/${anioC}${porcentaje_beca > 0 ? ` (beca ${porcentaje_beca}%)` : ''}${descuentoContado > 0 ? ` (dcto. contado ${descuentoContado}%)` : ''}${body.medio_pago_matricula === 'cheque' && body.cheques?.[i] ? ` | Cheque N° ${body.cheques[i]} — ${body.banco_cheque || ''}` : ''}`,
         }).select().single()
         if (cobro) cobrosGenerados.push(cobro)
       }
