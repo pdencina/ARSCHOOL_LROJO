@@ -26,13 +26,18 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json()
   const {
-    alumno_id, tipo, hora_esperada,
+    alumno_id, alumno_ids, tipo, hora_esperada,
     persona_retiro_nombre, persona_retiro_rut, persona_retiro_parentesco,
     firma_retiro, motivo, observaciones,
   } = body
 
-  if (!alumno_id || !tipo) {
-    return NextResponse.json({ error: 'alumno_id y tipo son requeridos' }, { status: 400 })
+  // Soportar single alumno_id o array alumno_ids
+  const idsToProcess: string[] = alumno_ids && alumno_ids.length > 0
+    ? alumno_ids
+    : alumno_id ? [alumno_id] : []
+
+  if (idsToProcess.length === 0 || !tipo) {
+    return NextResponse.json({ error: 'alumno_id(s) y tipo son requeridos' }, { status: 400 })
   }
 
   // Calcular atraso/anticipado
@@ -48,27 +53,27 @@ export async function POST(request: NextRequest) {
     minutosDiferencia = (hAct * 60 + mAct) - (hEsp * 60 + mEsp)
 
     if (tipo === 'ingreso' && minutosDiferencia > 5) {
-      esAtraso = true // Más de 5 min tarde
+      esAtraso = true
     }
     if (tipo === 'retiro' && minutosDiferencia < -5) {
-      esAnticipado = true // Más de 5 min antes
+      esAnticipado = true
     }
   }
 
-  // Verificar persona autorizada (para retiros)
+  // Verificar persona autorizada (para retiros) — check against first alumno
   let esAutorizada = true
   if (tipo === 'retiro' && persona_retiro_nombre) {
+    const primerAlumnoId = idsToProcess[0]
     const { data: autorizados } = await admin
       .from('personas_retiro')
       .select('nombre')
-      .eq('alumno_id', alumno_id)
+      .eq('alumno_id', primerAlumnoId)
       .eq('activo', true)
 
-    // También verificar familia
     const { data: familia } = await admin
       .from('familias')
       .select('nombre_apoderado, apellido_apoderado')
-      .eq('alumno_id', alumno_id)
+      .eq('alumno_id', primerAlumnoId)
 
     const nombresAutorizados = [
       ...(autorizados ?? []).map((a: any) => a.nombre?.toLowerCase()),
@@ -79,9 +84,10 @@ export async function POST(request: NextRequest) {
     esAutorizada = nombresAutorizados.some(n => n && nombreRetiroLower.includes(n.split(' ')[0]))
   }
 
-  const { data, error } = await admin.from('registros_control').insert({
+  // Crear registros para todos los alumnos
+  const registros = idsToProcess.map(id => ({
     colegio_id: usuario.colegio_id,
-    alumno_id,
+    alumno_id: id,
     tipo,
     hora_registro: horaActual,
     hora_esperada: hora_esperada || null,
@@ -98,12 +104,15 @@ export async function POST(request: NextRequest) {
     firma_retiro_at: firma_retiro ? new Date().toISOString() : null,
     registrado_por: user.id,
     observaciones: observaciones || null,
-  }).select().single()
+  }))
+
+  const { data, error } = await admin.from('registros_control').insert(registros).select()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({
-    ...data,
+    registros: data,
+    count: data?.length ?? 0,
     alerta: !esAutorizada ? 'PERSONA NO AUTORIZADA — Verificar identidad' : null,
   }, { status: 201 })
 }
