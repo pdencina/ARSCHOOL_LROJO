@@ -10,11 +10,13 @@ interface Props {
 
 export default function EditarMatriculaModal({ matricula, onClose, onSave }: Props) {
   const [saving, setSaving] = useState(false)
+  const [recalculando, setRecalculando] = useState(false)
   const [form, setForm] = useState({
     monto_matricula: matricula.monto_matricula ?? 0,
     monto_mensual: matricula.monto_mensual ?? 0,
     fecha_inicio_contrato: matricula.fecha_inicio_contrato || matricula.fecha_matricula || '',
     porcentaje_beca: matricula.porcentaje_beca ?? 0,
+    proporcional_primer_mes: 0,
     observaciones: matricula.observaciones || '',
   })
 
@@ -44,11 +46,37 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
     finally { setSaving(false) }
   }
 
+  async function recalcularCobros() {
+    if (!confirm('¿Recalcular cobros? Se eliminarán los cobros PENDIENTES y se generarán nuevos con los montos actuales. Los cobros ya pagados no se tocan.')) return
+    setRecalculando(true)
+    try {
+      const res = await fetch(`/api/matriculas/${matricula.id}/recalcular-cobros`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          monto_mensual: form.monto_mensual,
+          monto_matricula: form.monto_matricula,
+          fecha_inicio_contrato: form.fecha_inicio_contrato,
+          porcentaje_beca: form.porcentaje_beca,
+          proporcional_primer_mes: form.proporcional_primer_mes || 0,
+        }),
+      })
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text ? JSON.parse(text).error || 'Error' : 'Error al recalcular')
+      }
+      const data = await res.json()
+      toast.success(`Cobros recalculados: ${data.eliminados} eliminados, ${data.generados} generados`)
+      onSave()
+    } catch (e: any) { toast.error(e.message || 'Error al recalcular') }
+    finally { setRecalculando(false) }
+  }
+
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" onClick={onClose}/>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-sm font-bold text-[var(--ar-text)]">Editar matrícula</h2>
@@ -92,16 +120,30 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
               <p className="text-[9px] text-[var(--ar-muted)] mt-0.5">Desde cuándo rigen los cobros. Afecta la tabla del contrato.</p>
             </div>
 
-            <div>
-              <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Beca / Descuento (%)</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={form.porcentaje_beca}
-                onChange={e => setForm(p => ({...p, porcentaje_beca: parseInt(e.target.value) || 0}))}
-                className="input-base"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Proporcional 1er mes ($)</label>
+                <input
+                  type="number"
+                  value={form.proporcional_primer_mes || ''}
+                  onChange={e => setForm(p => ({...p, proporcional_primer_mes: parseInt(e.target.value) || 0}))}
+                  className="input-base"
+                  placeholder="0"
+                />
+                <p className="text-[9px] text-[var(--ar-muted)] mt-0.5">Días fraccionados del primer mes</p>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Beca (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={form.porcentaje_beca || ''}
+                  onChange={e => setForm(p => ({...p, porcentaje_beca: parseInt(e.target.value) || 0}))}
+                  className="input-base"
+                  placeholder="0"
+                />
+              </div>
             </div>
 
             <div>
@@ -123,9 +165,19 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
             </button>
           </div>
 
-          <p className="text-[9px] text-[var(--ar-muted)] text-center mt-3">
-            Al guardar, el contrato y pagaré se regenerarán con los nuevos datos.
-          </p>
+          {/* Recalcular cobros */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <button
+              onClick={recalcularCobros}
+              disabled={recalculando}
+              className="w-full py-2.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold rounded-xl hover:bg-amber-100 disabled:opacity-50 transition-colors"
+            >
+              {recalculando ? 'Recalculando...' : '⟳ Recalcular cobros pendientes'}
+            </button>
+            <p className="text-[9px] text-[var(--ar-muted)] text-center mt-1.5">
+              Elimina cobros pendientes y los regenera con los montos actuales. Los pagados no se tocan.
+            </p>
+          </div>
         </div>
       </div>
     </>
