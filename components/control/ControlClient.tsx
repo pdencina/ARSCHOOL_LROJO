@@ -333,8 +333,8 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
 
             {/* Stepper */}
             <div className="flex items-center gap-2 mb-5">
-              {[{ key: 'datos', label: '1. Datos' }, { key: 'codigo', label: '2. Código' }, { key: 'firma', label: '3. Firma' }].map((s, i) => (
-                <div key={s.key} className={`flex-1 text-center py-1.5 rounded-lg text-[10px] font-semibold ${retiroStep === s.key ? 'bg-[#1B3A5C] text-white' : i < ['datos', 'codigo', 'firma'].indexOf(retiroStep) ? 'bg-[#2D5A3F] text-white' : 'bg-gray-100 text-gray-400'}`}>
+              {[{ key: 'datos', label: '1. Datos' }, { key: 'codigo', label: '2. Verificar y firmar' }].map((s, i) => (
+                <div key={s.key} className={`flex-1 text-center py-1.5 rounded-lg text-[10px] font-semibold ${retiroStep === s.key || (s.key === 'codigo' && retiroStep === 'firma') ? 'bg-[#1B3A5C] text-white' : i < ['datos', 'codigo'].indexOf(retiroStep) ? 'bg-[#2D5A3F] text-white' : 'bg-gray-100 text-gray-400'}`}>
                   {s.label}
                 </div>
               ))}
@@ -461,77 +461,56 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
               </>
             )}
 
-            {/* STEP 2: Ingresar código */}
+            {/* STEP 2: Código + Firma (unificado) */}
             {retiroStep === 'codigo' && (
               <>
-                <div className="text-center mb-5">
+                <div className="text-center mb-4">
                   <div className="w-14 h-14 bg-[#EDF6FA] rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i className="ti ti-mail-forward text-[#1B3A5C] text-2xl" aria-hidden="true"/>
+                    <i className="ti ti-shield-check text-[#1B3A5C] text-2xl" aria-hidden="true"/>
                   </div>
-                  <h3 className="text-sm font-bold text-[var(--ar-text)] mb-1">Código enviado</h3>
-                  <p className="text-xs text-[var(--ar-muted)]">Se envió un código de 6 dígitos a <strong>{emailParcial}</strong></p>
-                  <p className="text-[10px] text-[var(--ar-muted)] mt-1">Solicite el código e ingréselo a continuación.</p>
+                  <h3 className="text-sm font-bold text-[var(--ar-text)] mb-1">Verificación y firma</h3>
+                  <p className="text-xs text-[var(--ar-muted)]">Código enviado a <strong>{emailParcial}</strong></p>
+                  <p className="text-[10px] text-[var(--ar-muted)] mt-0.5">
+                    {retiroForm.persona_nombre} retira a: <strong>{alumnosRetiro.map(a => `${a.nombre} ${a.apellido}`).join(', ')}</strong>
+                  </p>
                 </div>
 
                 <div className="space-y-4">
+                  {/* Código */}
                   <div>
-                    <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-2 text-center">Código de verificación</label>
+                    <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-2 text-center">Código de verificación (6 dígitos)</label>
                     <input
                       value={codigoInput}
                       onChange={e => setCodigoInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      className="w-full text-center text-2xl font-mono font-bold tracking-[8px] px-4 py-4 bg-gray-50 border-2 border-[var(--ar-border)] rounded-xl outline-none focus:border-[#1B3A5C]"
+                      className="w-full text-center text-2xl font-mono font-bold tracking-[8px] px-4 py-3 bg-gray-50 border-2 border-[var(--ar-border)] rounded-xl outline-none focus:border-[#1B3A5C]"
                       placeholder="000000"
                       maxLength={6}
                       autoFocus
                     />
                   </div>
 
-                  <button onClick={() => setRetiroStep('firma')} disabled={codigoInput.length < 6} className="w-full py-3 bg-[#1B3A5C] text-white text-sm font-semibold rounded-xl disabled:opacity-50">
-                    Continuar
-                  </button>
-
-                  <div className="flex items-center justify-between">
-                    <button onClick={() => { setRetiroStep('datos'); setCodigoEnviado(false) }} className="text-[10px] text-[var(--ar-muted)] hover:underline">← Volver</button>
-                    <button onClick={enviarCodigoRetiro} disabled={loading} className="text-[10px] text-[var(--ar-accent)] hover:underline">Reenviar código</button>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* STEP 3: Firma */}
-            {retiroStep === 'firma' && (
-              <>
-                <div className="text-center mb-4">
-                  <div className="w-14 h-14 bg-[#EDF5F0] rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i className="ti ti-pencil text-[#2D5A3F] text-2xl" aria-hidden="true"/>
-                  </div>
-                  <h3 className="text-sm font-bold text-[var(--ar-text)] mb-1">Firmar retiro</h3>
-                  <p className="text-xs text-[var(--ar-muted)]">
-                    {retiroForm.persona_nombre} retira a: <strong>{alumnosRetiro.map(a => a.nombre).join(', ')}</strong>
-                  </p>
-                </div>
-
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-amber-800 uppercase tracking-wider mb-1">Nombre completo (firma) *</label>
+                  {/* Firma */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+                    <label className="block text-[11px] font-semibold text-amber-800 uppercase tracking-wider">Firma (nombre completo) *</label>
                     <input
                       value={retiroForm.firma}
                       onChange={e => setRetiroForm(p => ({...p, firma: e.target.value}))}
                       className="w-full px-3 py-2.5 bg-white border border-amber-200 rounded-lg text-sm outline-none focus:border-amber-400"
                       placeholder="Escriba su nombre completo"
                     />
+                    <p className="text-[9px] text-amber-700 leading-relaxed">
+                      Al firmar declaro ser la persona autorizada para retirar al/los alumno(s). Firma electrónica simple — Ley 19.799.
+                    </p>
                   </div>
-                  <p className="text-[9px] text-amber-700 leading-relaxed">
-                    Al firmar, declaro bajo juramento ser la persona autorizada para retirar al/los alumno(s) del establecimiento.
-                    Esta firma electrónica simple tiene validez conforme a la Ley 19.799.
-                  </p>
-                </div>
 
-                <div className="flex gap-3 mt-5">
-                  <button onClick={() => setRetiroStep('codigo')} className="flex-1 btn-secondary py-3">← Volver</button>
-                  <button onClick={verificarCodigoRetiro} disabled={loading || !retiroForm.firma.trim()} className="flex-1 py-3 bg-[#2D5A3F] text-white text-sm font-semibold rounded-xl disabled:opacity-50">
+                  <button onClick={verificarCodigoRetiro} disabled={loading || codigoInput.length < 6 || !retiroForm.firma.trim()} className="w-full py-3 bg-[#2D5A3F] text-white text-sm font-semibold rounded-xl disabled:opacity-50">
                     {loading ? 'Verificando...' : `Confirmar retiro (${alumnosRetiro.length})`}
                   </button>
+
+                  <div className="flex items-center justify-between">
+                    <button onClick={() => { setRetiroStep('datos'); setCodigoEnviado(false) }} className="text-[10px] text-[var(--ar-muted)] hover:underline">← Volver a datos</button>
+                    <button onClick={enviarCodigoRetiro} disabled={loading} className="text-[10px] text-[var(--ar-accent)] hover:underline">Reenviar código</button>
+                  </div>
                 </div>
               </>
             )}
