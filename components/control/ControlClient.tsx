@@ -16,14 +16,14 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
-  // Hermanos
-  const [hermanos, setHermanos] = useState<any[]>([])
-  const [hermanosSeleccionados, setHermanosSeleccionados] = useState<string[]>([])
+  // Multi-retiro: lista de alumnos a retirar
+  const [alumnosRetiro, setAlumnosRetiro] = useState<any[]>([])
+  const [busquedaRetiro, setBusquedaRetiro] = useState('')
 
   // Form retiro
   const [retiroForm, setRetiroForm] = useState({
     persona_nombre: '', persona_rut: '', persona_parentesco: '',
-    firma: '', motivo: '', observaciones: '',
+    firma: '', motivo: '', observaciones: '', email_override: '',
   })
 
   // Form ingreso
@@ -35,37 +35,62 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
     return alumnos.filter(a => `${a.nombre} ${a.apellido} ${a.curso}`.toLowerCase().includes(q)).slice(0, 20)
   }, [alumnos, busqueda])
 
+  // Búsqueda para agregar más alumnos al retiro
+  const alumnosFiltradosRetiro = useMemo(() => {
+    if (!busquedaRetiro.trim()) return []
+    const q = busquedaRetiro.toLowerCase()
+    const idsYaAgregados = alumnosRetiro.map(a => a.id)
+    return alumnos
+      .filter(a => !idsYaAgregados.includes(a.id) && `${a.nombre} ${a.apellido} ${a.curso}`.toLowerCase().includes(q))
+      .slice(0, 8)
+  }, [alumnos, busquedaRetiro, alumnosRetiro])
+
   const horaActual = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
   const ingresosHoy = registrosHoy.filter(r => r.tipo === 'ingreso')
   const retirosHoy = registrosHoy.filter(r => r.tipo === 'retiro')
   const atrasosHoy = registrosHoy.filter(r => r.es_atraso)
 
   function getHoraEsperada(alumno: any, tipo: string): string {
-    // AR School: ingreso 08:30, retiro 16:00 (lun-mar-jue) o 13:40 (mie-vie)
     const dia = new Date().getDay()
     if (tipo === 'ingreso') return '08:30'
-    if (dia === 3 || dia === 5) return '13:40' // mie, vie
+    if (dia === 3 || dia === 5) return '13:40'
     return '16:00'
   }
 
-  async function cargarHermanos(alumnoId: string) {
-    try {
-      const res = await fetch(`/api/control/hermanos?alumno_id=${alumnoId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setHermanos(data)
-        // Pre-seleccionar todos los hermanos
-        setHermanosSeleccionados(data.map((h: any) => h.id))
-      }
-    } catch { setHermanos([]) }
+  function iniciarRetiro(alumno: any) {
+    setAlumnosRetiro([alumno])
+    setVista('retiro')
+    setBusquedaRetiro('')
+    setRetiroStep('datos')
+    setCodigoEnviado(false)
+    setCodigoInput('')
+    setRetiroForm({ persona_nombre: '', persona_rut: '', persona_parentesco: '', firma: '', motivo: '', observaciones: '', email_override: '' })
+    // Auto-buscar hermanos y agregarlos
+    cargarHermanosYAgregar(alumno)
   }
 
-  function iniciarRetiro(alumno: any) {
-    setAlumnoSeleccionado(alumno)
-    setVista('retiro')
-    setHermanos([])
-    setHermanosSeleccionados([])
-    cargarHermanos(alumno.id)
+  async function cargarHermanosYAgregar(alumno: any) {
+    try {
+      const res = await fetch(`/api/control/hermanos?alumno_id=${alumno.id}`)
+      if (res.ok) {
+        const hermanos = await res.json()
+        if (hermanos.length > 0) {
+          setAlumnosRetiro(prev => [...prev, ...hermanos])
+          toast(`${hermanos.length} hermano${hermanos.length > 1 ? 's' : ''} agregado${hermanos.length > 1 ? 's' : ''} automáticamente`, { icon: '👨‍👩‍👧‍👦' })
+        }
+      }
+    } catch {}
+  }
+
+  function agregarAlumnoRetiro(alumno: any) {
+    if (!alumnosRetiro.find(a => a.id === alumno.id)) {
+      setAlumnosRetiro(prev => [...prev, alumno])
+      setBusquedaRetiro('')
+    }
+  }
+
+  function quitarAlumnoRetiro(alumnoId: string) {
+    setAlumnosRetiro(prev => prev.filter(a => a.id !== alumnoId))
   }
 
   async function registrarIngreso() {
@@ -102,9 +127,10 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
 
   async function enviarCodigoRetiro() {
     if (!retiroForm.persona_nombre.trim()) { toast.error('Nombre de quien retira es obligatorio'); return }
+    if (alumnosRetiro.length === 0) { toast.error('Agregue al menos un alumno'); return }
     setLoading(true)
     try {
-      const alumnoIds = [alumnoSeleccionado.id, ...hermanosSeleccionados]
+      const alumnoIds = alumnosRetiro.map(a => a.id)
       const res = await fetch('/api/control/verificar-retiro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -114,6 +140,7 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
           persona_nombre: retiroForm.persona_nombre,
           persona_rut: retiroForm.persona_rut || null,
           persona_parentesco: retiroForm.persona_parentesco || null,
+          email_override: retiroForm.email_override || null,
         }),
       })
       const data = await res.json()
@@ -131,7 +158,7 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
     if (!retiroForm.firma.trim()) { toast.error('La firma (nombre completo) es obligatoria'); return }
     setLoading(true)
     try {
-      const alumnoIds = [alumnoSeleccionado.id, ...hermanosSeleccionados]
+      const alumnoIds = alumnosRetiro.map(a => a.id)
       const res = await fetch('/api/control/verificar-retiro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -143,7 +170,7 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
           persona_nombre: retiroForm.persona_nombre,
           persona_rut: retiroForm.persona_rut || null,
           persona_parentesco: retiroForm.persona_parentesco || null,
-          hora_esperada: getHoraEsperada(alumnoSeleccionado, 'retiro'),
+          hora_esperada: getHoraEsperada(alumnosRetiro[0], 'retiro'),
           motivo: retiroForm.motivo || null,
           observaciones: retiroForm.observaciones || null,
         }),
@@ -152,10 +179,8 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
       if (!res.ok) throw new Error(data.error)
       toast.success(`Retiro confirmado: ${data.count} alumno${data.count > 1 ? 's' : ''}`)
       setVista('panel')
-      setAlumnoSeleccionado(null)
-      setHermanos([])
-      setHermanosSeleccionados([])
-      setRetiroForm({ persona_nombre: '', persona_rut: '', persona_parentesco: '', firma: '', motivo: '', observaciones: '' })
+      setAlumnosRetiro([])
+      setRetiroForm({ persona_nombre: '', persona_rut: '', persona_parentesco: '', firma: '', motivo: '', observaciones: '', email_override: '' })
       setRetiroStep('datos')
       setCodigoEnviado(false)
       setCodigoInput('')
@@ -293,8 +318,8 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
       )}
 
       {/* Formulario de RETIRO */}
-      {vista === 'retiro' && alumnoSeleccionado && (
-        <div className="max-w-md mx-auto">
+      {vista === 'retiro' && alumnosRetiro.length > 0 && (
+        <div className="max-w-lg mx-auto">
           <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-[#EDF6FA] rounded-full flex items-center justify-center">
@@ -302,7 +327,7 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
               </div>
               <div>
                 <h2 className="text-sm font-bold text-[var(--ar-text)]">Registrar retiro</h2>
-                <p className="text-xs text-[var(--ar-muted)]">{alumnoSeleccionado.nombre} {alumnoSeleccionado.apellido} · {alumnoSeleccionado.curso}</p>
+                <p className="text-xs text-[var(--ar-muted)]">{alumnosRetiro.length} alumno{alumnosRetiro.length > 1 ? 's' : ''} seleccionado{alumnosRetiro.length > 1 ? 's' : ''}</p>
               </div>
             </div>
 
@@ -315,48 +340,49 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
               ))}
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-3 mb-4 text-center">
-              <div className="text-2xl font-bold text-[var(--ar-text)] font-mono">{horaActual}</div>
-              <div className="text-[10px] text-[var(--ar-muted)]">Hora de salida esperada: {getHoraEsperada(alumnoSeleccionado, 'retiro')}</div>
-            </div>
-
-            {/* STEP 1: Datos persona + hermanos */}
+            {/* STEP 1: Datos */}
             {retiroStep === 'datos' && (
               <>
-                {/* Hermanos detectados */}
-                {hermanos.length > 0 && (
-                  <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <i className="ti ti-users-group text-blue-600 text-sm" aria-hidden="true"/>
-                      <span className="text-[11px] font-bold text-blue-800">Hermanos detectados — retirar juntos</span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {hermanos.map((h: any) => (
-                        <label key={h.id} className="flex items-center gap-2 p-2 rounded-lg bg-white border border-blue-100 cursor-pointer hover:bg-blue-50/50">
-                          <input
-                            type="checkbox"
-                            checked={hermanosSeleccionados.includes(h.id)}
-                            onChange={e => {
-                              if (e.target.checked) setHermanosSeleccionados(prev => [...prev, h.id])
-                              else setHermanosSeleccionados(prev => prev.filter(id => id !== h.id))
-                            }}
-                            className="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <div className="flex-1">
-                            <span className="text-xs font-semibold text-[var(--ar-text)]">{h.nombre} {h.apellido}</span>
-                            <span className="text-[10px] text-[var(--ar-muted)] ml-2">{h.curso}</span>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                    <p className="text-[9px] text-blue-600 mt-2">Desmarque si no desea retirar a algún hermano/a.</p>
+                {/* Alumnos a retirar */}
+                <div className="mb-4">
+                  <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-2">Alumnos a retirar</label>
+                  <div className="space-y-1.5 mb-2">
+                    {alumnosRetiro.map(a => (
+                      <div key={a.id} className="flex items-center gap-2 p-2 rounded-lg bg-[#EDF6FA] border border-[#1B3A5C]/10">
+                        <i className="ti ti-user text-[#1B3A5C] text-sm" aria-hidden="true"/>
+                        <span className="flex-1 text-xs font-semibold text-[var(--ar-text)]">{a.nombre} {a.apellido}</span>
+                        <span className="text-[9px] text-[var(--ar-muted)]">{a.curso}</span>
+                        {alumnosRetiro.length > 1 && (
+                          <button onClick={() => quitarAlumnoRetiro(a.id)} className="text-red-400 hover:text-red-600 text-xs ml-1" title="Quitar">✕</button>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                )}
+                  {/* Buscar y agregar más */}
+                  <div className="relative">
+                    <input
+                      value={busquedaRetiro}
+                      onChange={e => setBusquedaRetiro(e.target.value)}
+                      className="input-base text-xs"
+                      placeholder="+ Buscar otro alumno para agregar..."
+                    />
+                    {alumnosFiltradosRetiro.length > 0 && (
+                      <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-[var(--ar-border)] rounded-lg shadow-lg max-h-[150px] overflow-y-auto">
+                        {alumnosFiltradosRetiro.map(a => (
+                          <button key={a.id} onClick={() => agregarAlumnoRetiro(a)} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left border-b border-gray-50 last:border-0">
+                            <span className="text-xs font-medium text-[var(--ar-text)]">{a.nombre} {a.apellido}</span>
+                            <span className="text-[9px] text-[var(--ar-muted)]">{a.curso}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Personas autorizadas */}
                 <div className="mb-4">
-                  <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-2">Personas autorizadas para retiro</label>
-                  <AutorizadosList alumnoId={alumnoSeleccionado.id} onSelect={(persona) => setRetiroForm(p => ({...p, persona_nombre: persona.nombre, persona_rut: persona.rut || '', persona_parentesco: persona.parentesco || '', firma: persona.nombre}))} />
+                  <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-2">Personas autorizadas</label>
+                  <AutorizadosList alumnoId={alumnosRetiro[0].id} onSelect={(persona) => setRetiroForm(p => ({...p, persona_nombre: persona.nombre, persona_rut: persona.rut || '', persona_parentesco: persona.parentesco || '', firma: persona.nombre, email_override: ''}))} />
                 </div>
 
                 <div className="space-y-3">
@@ -377,11 +403,27 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
                         <option value="Padre">Padre</option>
                         <option value="Abuela/o">Abuela/o</option>
                         <option value="Tía/o">Tía/o</option>
-                        <option value="Hermana/o">Hermana/o</option>
+                        <option value="Hermana/o mayor">Hermana/o mayor</option>
                         <option value="Otro">Otro</option>
                       </select>
                     </div>
                   </div>
+
+                  {/* Email para código — si no es apoderado */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">
+                      Email para el código {retiroForm.email_override ? '' : '(se envía al apoderado)'}
+                    </label>
+                    <input
+                      type="email"
+                      value={retiroForm.email_override}
+                      onChange={e => setRetiroForm(p => ({...p, email_override: e.target.value}))}
+                      className="input-base"
+                      placeholder="Dejar vacío para usar email del apoderado"
+                    />
+                    <p className="text-[9px] text-[var(--ar-muted)] mt-0.5">Si quien retira no es el apoderado, ingrese su email para recibir el código.</p>
+                  </div>
+
                   <div>
                     <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Motivo retiro anticipado</label>
                     <select value={retiroForm.motivo} onChange={e => setRetiroForm(p => ({...p, motivo: e.target.value}))} className="select-base w-full">
@@ -395,9 +437,9 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
                 </div>
 
                 <div className="flex gap-3 mt-5">
-                  <button onClick={() => { setVista('panel'); setAlumnoSeleccionado(null); setRetiroStep('datos') }} className="flex-1 btn-secondary py-3">Cancelar</button>
-                  <button onClick={enviarCodigoRetiro} disabled={loading} className="flex-1 py-3 bg-[#1B3A5C] text-white text-sm font-semibold rounded-xl disabled:opacity-50">
-                    {loading ? 'Enviando...' : 'Enviar código al apoderado'}
+                  <button onClick={() => { setVista('panel'); setAlumnosRetiro([]); setRetiroStep('datos') }} className="flex-1 btn-secondary py-3">Cancelar</button>
+                  <button onClick={enviarCodigoRetiro} disabled={loading || !retiroForm.persona_nombre.trim()} className="flex-1 py-3 bg-[#1B3A5C] text-white text-sm font-semibold rounded-xl disabled:opacity-50">
+                    {loading ? 'Enviando...' : `Enviar código (${alumnosRetiro.length})`}
                   </button>
                 </div>
               </>
@@ -412,7 +454,7 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
                   </div>
                   <h3 className="text-sm font-bold text-[var(--ar-text)] mb-1">Código enviado</h3>
                   <p className="text-xs text-[var(--ar-muted)]">Se envió un código de 6 dígitos a <strong>{emailParcial}</strong></p>
-                  <p className="text-[10px] text-[var(--ar-muted)] mt-1">Solicite el código al apoderado e ingréselo a continuación.</p>
+                  <p className="text-[10px] text-[var(--ar-muted)] mt-1">Solicite el código e ingréselo a continuación.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -449,8 +491,7 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
                   </div>
                   <h3 className="text-sm font-bold text-[var(--ar-text)] mb-1">Firmar retiro</h3>
                   <p className="text-xs text-[var(--ar-muted)]">
-                    {retiroForm.persona_nombre} retira a: <strong>{alumnoSeleccionado.nombre} {alumnoSeleccionado.apellido}</strong>
-                    {hermanosSeleccionados.length > 0 && ` + ${hermanosSeleccionados.length} hermano${hermanosSeleccionados.length > 1 ? 's' : ''}`}
+                    {retiroForm.persona_nombre} retira a: <strong>{alumnosRetiro.map(a => a.nombre).join(', ')}</strong>
                   </p>
                 </div>
 
@@ -473,7 +514,7 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
                 <div className="flex gap-3 mt-5">
                   <button onClick={() => setRetiroStep('codigo')} className="flex-1 btn-secondary py-3">← Volver</button>
                   <button onClick={verificarCodigoRetiro} disabled={loading || !retiroForm.firma.trim()} className="flex-1 py-3 bg-[#2D5A3F] text-white text-sm font-semibold rounded-xl disabled:opacity-50">
-                    {loading ? 'Verificando...' : 'Confirmar retiro'}
+                    {loading ? 'Verificando...' : `Confirmar retiro (${alumnosRetiro.length})`}
                   </button>
                 </div>
               </>

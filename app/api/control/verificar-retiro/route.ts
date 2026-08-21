@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { accion, alumno_ids, persona_nombre, persona_rut, persona_parentesco } = body
+  const { accion, alumno_ids, persona_nombre, persona_rut, persona_parentesco, email_override } = body
 
   if (!accion || !alumno_ids || alumno_ids.length === 0) {
     return NextResponse.json({ error: 'accion y alumno_ids son requeridos' }, { status: 400 })
@@ -44,19 +44,25 @@ export async function POST(request: NextRequest) {
 
   // === ACCIÓN: ENVIAR CÓDIGO ===
   if (accion === 'enviar_codigo') {
-    // Obtener email del apoderado
-    const { data: familia } = await admin
-      .from('familias')
-      .select('email, nombre_apoderado, apellido_apoderado')
-      .eq('alumno_id', primerAlumnoId)
-      .limit(1)
-      .single()
+    let emailDestino = email_override || ''
+    let nombreApoderado = ''
 
-    if (!familia || !(familia as any).email) {
-      return NextResponse.json({ error: 'No hay email de apoderado registrado para este alumno' }, { status: 400 })
+    // Si no hay email override, usar el del apoderado
+    if (!emailDestino) {
+      const { data: familia } = await admin
+        .from('familias')
+        .select('email, nombre_apoderado, apellido_apoderado')
+        .eq('alumno_id', primerAlumnoId)
+        .limit(1)
+        .single()
+
+      if (!familia || !(familia as any).email) {
+        return NextResponse.json({ error: 'No hay email registrado. Ingrese un email manualmente.' }, { status: 400 })
+      }
+      const fam = familia as any
+      emailDestino = fam.email
+      nombreApoderado = `${fam.nombre_apoderado || ''} ${fam.apellido_apoderado || ''}`.trim()
     }
-
-    const fam = familia as any
     const codigo = generarCodigo()
     const expiraAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutos
 
@@ -68,33 +74,14 @@ export async function POST(request: NextRequest) {
 
     const nombresAlumnos = (alumnosData ?? []).map((a: any) => `${a.nombre} ${a.apellido}`).join(', ')
 
-    // Guardar código en memoria temporal (usar tabla o cache)
-    // Usaremos un registro temporal en registros_control con estado 'pendiente_verificacion'
-    // Para simplificar, guardamos en una tabla auxiliar o reutilizamos metadata
-    // Opción: guardar en un registro temporal que se completa al verificar
-    await admin.from('codigos_retiro').upsert({
-      colegio_id: usuario.colegio_id,
-      alumno_ids: alumno_ids,
-      codigo,
-      codigo_expira_at: expiraAt.toISOString(),
-      intentos: 0,
-      email_destino: fam.email,
-      persona_nombre: persona_nombre || null,
-      persona_rut: persona_rut || null,
-      persona_parentesco: persona_parentesco || null,
-      registrado_por: user.id,
-      created_at: new Date().toISOString(),
-    }, { onConflict: 'colegio_id,alumno_ids' }).select()
-
-    // Si upsert falla por constraint, hacer insert directo
-    // Alternativa: simplemente insertar siempre y usar el más reciente
+    // Guardar código
     await admin.from('codigos_retiro').insert({
       colegio_id: usuario.colegio_id,
       alumno_ids: alumno_ids,
       codigo,
       codigo_expira_at: expiraAt.toISOString(),
       intentos: 0,
-      email_destino: fam.email,
+      email_destino: emailDestino,
       persona_nombre: persona_nombre || null,
       persona_rut: persona_rut || null,
       persona_parentesco: persona_parentesco || null,
@@ -103,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     // Enviar email con código
     await enviarEmail({
-      to: fam.email,
+      to: emailDestino,
       subject: `AR School — Código de autorización para retiro`,
       html: `
         <div style="font-family:-apple-system,sans-serif;max-width:450px;margin:0 auto;padding:30px 20px;text-align:center;">
@@ -133,7 +120,7 @@ export async function POST(request: NextRequest) {
       `,
     })
 
-    const emailOculto = fam.email.replace(/(.{3}).*(@.*)/, '$1***$2')
+    const emailOculto = emailDestino.replace(/(.{3}).*(@.*)/, '$1***$2')
 
     return NextResponse.json({
       ok: true,
