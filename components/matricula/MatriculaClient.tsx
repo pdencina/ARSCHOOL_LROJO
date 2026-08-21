@@ -8,6 +8,7 @@ import CapturaDocumento from '@/components/ui/CapturaDocumento'
 import CapturaMovilSection from '@/components/matricula/CapturaMovilSection'
 import SelectorRegionComuna from '@/components/ui/SelectorRegionComuna'
 import PreAdmisionesQueue from '@/components/matricula/PreAdmisionesQueue'
+import EditarMatriculaModal from '@/components/matricula/EditarMatriculaModal'
 import EscanerCedula from '@/components/ui/EscanerCedula'
 
 interface Props { planes: any[]; matriculas: any[]; cursos: string[]; aportes: any[]; becasAprobadas: any[]; preAdmisiones?: any[] }
@@ -16,6 +17,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
   const router = useRouter()
   const [vista, setVista] = useState<'lista' | 'nueva'>('lista')
   const [saving, setSaving] = useState(false)
+  const [editandoMatricula, setEditandoMatricula] = useState<any>(null)
   const [fechaDisplay, setFechaDisplay] = useState('')
   const [montoMatDisplay, setMontoMatDisplay] = useState('')
   const [montoMensDisplay, setMontoMensDisplay] = useState('')
@@ -372,6 +374,12 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                           className="text-[10px] text-gray-500 hover:text-[#1B3A5C] hover:underline"
                         >
                           Editar datos
+                        </button>
+                        <button
+                          onClick={() => setEditandoMatricula(m)}
+                          className="text-[10px] text-[var(--ar-accent)] hover:underline"
+                        >
+                          Editar matrícula
                         </button>
                         <button
                           onClick={async () => {
@@ -975,6 +983,15 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
           setMostrarScanner(null)
         }}
         onCerrar={() => setMostrarScanner(null)}
+      />
+    )}
+
+    {/* Modal Editar Matrícula */}
+    {editandoMatricula && (
+      <EditarMatriculaModal
+        matricula={editandoMatricula}
+        onClose={() => setEditandoMatricula(null)}
+        onSave={() => { setEditandoMatricula(null); router.refresh() }}
       />
     )}
     </>
