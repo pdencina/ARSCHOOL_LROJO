@@ -87,6 +87,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
     // Cobros
     plan_cobro_id: '', monto_matricula: 0, monto_mensual: 0, meses_cobro: 10, porcentaje_beca: 0,
     medio_pago_matricula: '' as '' | 'transferencia' | 'tarjeta' | 'cheque' | 'pagare',
+    fecha_inicio_contrato: '',
     anio_escolar: new Date().getFullYear() + 1,
     // Config
     crear_cuenta_apoderado: true, password_apoderado: '',
@@ -704,6 +705,11 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                 <input type="text" value={montoMensDisplay} onChange={e => { const v = e.target.value.replace(/\D/g, ''); setMontoMensDisplay(v ? parseInt(v).toLocaleString('es-CL') : ''); setForm(p => ({...p, monto_mensual: parseInt(v) || 0})) }} className="input-base" placeholder="275.000"/>
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Meses</label><input type="number" min="1" max="12" value={form.meses_cobro} onChange={e => setForm(p => ({...p, meses_cobro: parseInt(e.target.value) || 10}))} className="input-base"/></div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Fecha inicio contrato</label>
+                <input type="date" value={form.fecha_inicio_contrato || ''} onChange={e => setForm(p => ({...p, fecha_inicio_contrato: e.target.value}))} className="input-base"/>
+                <p className="text-[9px] text-[var(--ar-muted)] mt-0.5">Desde cuándo rige el contrato. Si no se indica, se usa la fecha de matrícula.</p>
+              </div>
               <div>
                 <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Proporcional 1er mes ($)</label>
                 <input type="text" value={form.proporcional_display || ''} onChange={e => { const v = e.target.value.replace(/\D/g, ''); setForm(p => ({...p, proporcional_primer_mes: parseInt(v) || 0, proporcional_display: v ? parseInt(v).toLocaleString('es-CL') : ''})) }} className="input-base" placeholder="Días proporcionales"/>

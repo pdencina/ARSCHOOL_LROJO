@@ -84,12 +84,17 @@ export async function GET(request: NextRequest) {
 
   const montoInicial = matricula?.monto_matricula ?? defaultInicial
   const montoMensual = matricula?.monto_mensual ?? defaultMensual
-  const mesesCobro = defaultMeses
   const porcentajeBeca = matricula?.porcentaje_beca ?? 0
   const fechaMat = matricula?.fecha_matricula ?? new Date().toISOString().split('T')[0]
+  const fechaInicioContrato = matricula?.fecha_inicio_contrato || fechaMat
   const sede = SEDES[colegio?.id] ?? 'Victoria 52, Comuna de Santiago'
   const firmaApoderado = matricula?.firma_apoderado ?? null
   const firmadoAt = matricula?.firmado_at ? new Date(matricula.firmado_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) : null
+
+  // Calcular meses de cobro basado en fecha de inicio real
+  const mesInicio = new Date(fechaInicioContrato + 'T12:00').getMonth() + 1 // 1-12
+  const mesFin = esLions ? 12 : 12 // Todos terminan en diciembre (Lions usa enero siguiente, pero se maneja aparte)
+  const mesesCobro = esLions ? Math.max(1, 13 - mesInicio) : Math.max(1, mesFin - mesInicio + 1)
 
   const nombreApoderado = `${familia?.nombre_apoderado ?? '___'} ${familia?.apellido_apoderado ?? '___'}`
   const rutApoderado = familia?.rut ?? '___'
@@ -121,16 +126,21 @@ export async function GET(request: NextRequest) {
       return `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
     }).join('')
   } else {
-    // Meses default según programa
-    const meses = esLions
-      ? ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-      : esWorship
-        ? ['abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-        : ['marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-    tablaAportes = meses.map((m, idx) => {
+    // Generar meses desde la fecha de inicio del contrato hasta diciembre
+    const mesesGenerados: string[] = []
+    const inicioIdx = mesInicio - 1 // 0-indexed
+    for (let i = inicioIdx; i < 12; i++) {
+      mesesGenerados.push(mesesNombres[i])
+    }
+    // Lions incluye enero del año siguiente si empieza antes de enero
+    if (esLions && mesInicio <= 12) {
+      mesesGenerados.push('enero')
+    }
+    tablaAportes = mesesGenerados.map((m, idx) => {
       const numCheque = chequesMat?.[idx] || ''
       const banco = numCheque ? bancoMat : ''
-      return `<tr><td>1 ${m} ${anio}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
+      const anioMes = m === 'enero' ? anio + 1 : anio
+      return `<tr><td>1 ${m} ${anioMes}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
     }).join('')
   }
 
@@ -139,12 +149,17 @@ export async function GET(request: NextRequest) {
   if (cobrosmensuales.length > 0) {
     tablaPagare = (cobrosmensuales as any[]).map((c: any) => `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td></tr>`).join('')
   } else {
-    const mesesPagare = esLions
-      ? ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-      : esWorship
-        ? ['abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-        : ['marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-    tablaPagare = mesesPagare.map(m => `<tr><td>1 ${m} ${anio}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td></tr>`).join('')
+    // Generar desde mes de inicio hasta diciembre (+ enero si Lions)
+    const mesesPagare: string[] = []
+    const inicioIdx = mesInicio - 1
+    for (let i = inicioIdx; i < 12; i++) {
+      mesesPagare.push(mesesNombres[i])
+    }
+    if (esLions && mesInicio <= 12) mesesPagare.push('enero')
+    tablaPagare = mesesPagare.map(m => {
+      const anioMes = m === 'enero' ? anio + 1 : anio
+      return `<tr><td>1 ${m} ${anioMes}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td></tr>`
+    }).join('')
   }
 
   const fechaFormateada = `${new Date(fechaMat).getDate()} de ${mesesNombres[new Date(fechaMat).getMonth()]} de ${anio}`

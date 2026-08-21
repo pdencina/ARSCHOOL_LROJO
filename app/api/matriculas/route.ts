@@ -316,7 +316,7 @@ export async function POST(request: NextRequest) {
     // Calcular fechas de contrato (Play/sala cuna = 12 meses desde ingreso)
     const cursoLower = (curso || '').toLowerCase()
     const esPlayOSalaCuna = cursoLower.includes('play') || cursoLower.includes('sala cuna')
-    const fechaIngreso = new Date()
+    const fechaIngreso = body.fecha_inicio_contrato ? new Date(body.fecha_inicio_contrato + 'T12:00') : new Date()
     let fechaInicioContrato = fechaIngreso
     let fechaFinContrato: Date
     let duracionMeses: number
@@ -337,7 +337,7 @@ export async function POST(request: NextRequest) {
 
     if (monto_mensual && meses_cobro) {
       const anio = new Date().getFullYear()
-      const mesInicio = new Date().getMonth() + 1
+      const mesInicio = fechaIngreso.getMonth() + 1
 
       // Cobro de aporte inicial (si aplica)
       if (montoMatFinal > 0) {
