@@ -58,31 +58,38 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   const body = await request.json()
   const { id } = params
 
-  // Campos editables de la matrícula
+  // Campos editables de la matrícula (solo los que existen seguro en la tabla)
   const updates: any = {}
-  if (body.monto_matricula !== undefined) updates.monto_matricula = body.monto_matricula
-  if (body.monto_mensual !== undefined) updates.monto_mensual = body.monto_mensual
+  if (body.monto_matricula !== undefined) updates.monto_matricula = Number(body.monto_matricula)
+  if (body.monto_mensual !== undefined) updates.monto_mensual = Number(body.monto_mensual)
   if (body.observaciones !== undefined) updates.observaciones = body.observaciones
   if (body.estado !== undefined) updates.estado = body.estado
   if (body.medio_pago_matricula !== undefined) updates.medio_pago_matricula = body.medio_pago_matricula
   if (body.banco_cheque !== undefined) updates.banco_cheque = body.banco_cheque
   if (body.cheques !== undefined) updates.cheques = body.cheques
-  if (body.anio_escolar !== undefined) updates.anio_escolar = body.anio_escolar
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
   }
 
-  const { data, error } = await admin.from('matriculas').update(updates).eq('id', id).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  try {
+    const { data, error } = await admin.from('matriculas').update(updates).eq('id', id).select().single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Campos opcionales que pueden no existir en la BD (migraciones pendientes)
-  const updatesOpcionales: any = {}
-  if (body.fecha_inicio_contrato !== undefined) updatesOpcionales.fecha_inicio_contrato = body.fecha_inicio_contrato
-  if (body.porcentaje_beca !== undefined) updatesOpcionales.porcentaje_beca = body.porcentaje_beca
+    // Campos opcionales que pueden no existir en la BD (migraciones pendientes)
+    if (body.fecha_inicio_contrato) {
+      await admin.from('matriculas').update({ fecha_inicio_contrato: body.fecha_inicio_contrato }).eq('id', id).then(() => {}).catch(() => {})
+    }
+    if (body.porcentaje_beca !== undefined && body.porcentaje_beca > 0) {
+      await admin.from('matriculas').update({ porcentaje_beca: Number(body.porcentaje_beca) }).eq('id', id).then(() => {}).catch(() => {})
+    }
+    if (body.anio_escolar !== undefined) {
+      await admin.from('matriculas').update({ anio_escolar: Number(body.anio_escolar) }).eq('id', id).then(() => {}).catch(() => {})
+    }
 
-  if (Object.keys(updatesOpcionales).length > 0) {
-    await admin.from('matriculas').update(updatesOpcionales).eq('id', id).catch(() => {})
+    return NextResponse.json(data)
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Error interno' }, { status: 500 })
   }
 
   return NextResponse.json(data)
