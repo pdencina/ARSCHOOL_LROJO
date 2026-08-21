@@ -177,7 +177,12 @@ export async function GET(request: NextRequest) {
   // Tabla para pagaré (solo 2 columnas: fecha + monto)
   let tablaPagare = ''
   if (cobrosmensuales.length > 0) {
-    tablaPagare = (cobrosmensuales as any[]).map((c: any) => `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td></tr>`).join('')
+    const diaInicioP = new Date(fechaInicioContrato + 'T12:00').getDate()
+    tablaPagare = (cobrosmensuales as any[]).map((c: any, idx: number) => {
+      const esProporcional = idx === 0 && c.monto < montoMensualReal
+      const fechaLabel = esProporcional ? `${diaInicioP} ${mesesNombres[(c.mes - 1)]} ${c.anio}` : `1 ${mesesNombres[(c.mes - 1)]} ${c.anio}`
+      return `<tr><td>${fechaLabel}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td></tr>`
+    }).join('')
   } else {
     // Generar pagaré con misma lógica de meses
     const mesesPagare: { nombre: string; anio: number }[] = []
@@ -228,7 +233,10 @@ export async function GET(request: NextRequest) {
 
   if (tipoDoc === 'pagare') {
     titulo = `Pagaré — ${alumno.nombre} ${alumno.apellido}`
-    const montoAnual = montoMensualReal * mesesCobro
+    // Sumar montos reales de los cobros mensuales (incluye proporcional)
+    const montoAnual = cobrosmensuales.length > 0
+      ? (cobrosmensuales as any[]).reduce((sum: number, c: any) => sum + c.monto, 0)
+      : montoMensualReal * mesesCobro
     contenido = generarPagare({ ...datosBase, montoAnual, montoMensual: montoMensualReal, tablaAportes: tablaPagare })
   } else if (esLions) {
     titulo = `Contrato Lions Soccer — ${alumno.nombre} ${alumno.apellido}`
