@@ -345,7 +345,16 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
               <>
                 {/* Alumnos a retirar */}
                 <div className="mb-4">
-                  <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-2">Alumnos a retirar</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider">Alumnos a retirar</label>
+                    <button
+                      onClick={() => setBusquedaRetiro(busquedaRetiro ? '' : ' ')}
+                      className="flex items-center gap-1 px-2.5 py-1 bg-[#1B3A5C] text-white text-[10px] font-semibold rounded-lg hover:bg-[#152d4a] transition-colors"
+                    >
+                      <i className="ti ti-user-plus text-xs" aria-hidden="true"/>
+                      Agregar alumno
+                    </button>
+                  </div>
                   <div className="space-y-1.5 mb-2">
                     {alumnosRetiro.map(a => (
                       <div key={a.id} className="flex items-center gap-2 p-2 rounded-lg bg-[#EDF6FA] border border-[#1B3A5C]/10">
@@ -359,24 +368,31 @@ export default function ControlClient({ alumnos, registrosHoy }: Props) {
                     ))}
                   </div>
                   {/* Buscar y agregar más */}
-                  <div className="relative">
-                    <input
-                      value={busquedaRetiro}
-                      onChange={e => setBusquedaRetiro(e.target.value)}
-                      className="input-base text-xs"
-                      placeholder="+ Buscar otro alumno para agregar..."
-                    />
-                    {alumnosFiltradosRetiro.length > 0 && (
-                      <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-[var(--ar-border)] rounded-lg shadow-lg max-h-[150px] overflow-y-auto">
-                        {alumnosFiltradosRetiro.map(a => (
-                          <button key={a.id} onClick={() => agregarAlumnoRetiro(a)} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left border-b border-gray-50 last:border-0">
-                            <span className="text-xs font-medium text-[var(--ar-text)]">{a.nombre} {a.apellido}</span>
-                            <span className="text-[9px] text-[var(--ar-muted)]">{a.curso}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  {busquedaRetiro !== '' && (
+                    <div className="relative">
+                      <input
+                        value={busquedaRetiro.trim() ? busquedaRetiro : ''}
+                        onChange={e => setBusquedaRetiro(e.target.value)}
+                        className="input-base text-xs"
+                        placeholder="Buscar por nombre o apellido..."
+                        autoFocus
+                      />
+                      {busquedaRetiro.trim() && alumnosFiltradosRetiro.length > 0 && (
+                        <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-[var(--ar-border)] rounded-lg shadow-lg max-h-[150px] overflow-y-auto">
+                          {alumnosFiltradosRetiro.map(a => (
+                            <button key={a.id} onClick={() => agregarAlumnoRetiro(a)} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left border-b border-gray-50 last:border-0">
+                              <i className="ti ti-plus text-[#2D5A3F] text-xs" aria-hidden="true"/>
+                              <span className="text-xs font-medium text-[var(--ar-text)]">{a.nombre} {a.apellido}</span>
+                              <span className="text-[9px] text-[var(--ar-muted)]">{a.curso}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {busquedaRetiro.trim() && alumnosFiltradosRetiro.length === 0 && (
+                        <p className="text-[10px] text-[var(--ar-muted)] mt-1">No se encontraron alumnos.</p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Personas autorizadas */}
