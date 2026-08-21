@@ -70,13 +70,44 @@ export default function CapturaMovilSection({ documentos, onDocumentos }: Props)
         <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3">
           <i className="ti ti-device-mobile-camera text-xl text-blue-600" aria-hidden="true"/>
         </div>
-        <h3 className="text-[13px] font-semibold text-[#1a2332] mb-1">Captura desde el teléfono</h3>
+        <h3 className="text-[13px] font-semibold text-[#1a2332] mb-1">Documentos adjuntos</h3>
         <p className="text-[11px] text-[#6b7280] mb-4 max-w-md mx-auto">
-          Genera un código QR para abrir la cámara en el celular. Las fotos se sincronizan en tiempo real con este formulario.
+          Puede sacar fotos con el teléfono o adjuntar archivos desde su dispositivo.
         </p>
-        <button onClick={crearSesion} disabled={creando} className="btn-primary text-xs disabled:opacity-60">
-          <i className="ti ti-qrcode text-sm" aria-hidden="true"/> {creando ? 'Generando...' : 'Continuar con teléfono'}
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 justify-center">
+          <button onClick={crearSesion} disabled={creando} className="btn-primary text-xs disabled:opacity-60">
+            <i className="ti ti-qrcode text-sm" aria-hidden="true"/> {creando ? 'Generando...' : 'Capturar con teléfono'}
+          </button>
+          <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[var(--ar-border)] rounded-lg text-xs font-semibold text-[var(--ar-text)] hover:bg-gray-50 cursor-pointer transition-colors">
+            <i className="ti ti-upload text-sm" aria-hidden="true"/> Adjuntar archivos
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              multiple
+              className="hidden"
+              onChange={async (e) => {
+                const files = e.target.files
+                if (!files || files.length === 0) return
+                const tiposDisponibles = Object.keys(DOCS_LABELS).filter(k => !documentos[k])
+                for (let i = 0; i < files.length && i < tiposDisponibles.length; i++) {
+                  const file = files[i]
+                  const reader = new FileReader()
+                  reader.onload = () => {
+                    const base64 = reader.result as string
+                    onDocumentos({ ...documentos, [tiposDisponibles[i]]: base64 })
+                  }
+                  reader.readAsDataURL(file)
+                }
+                e.target.value = ''
+              }}
+            />
+          </label>
+        </div>
+        {totalCapturados > 0 && (
+          <div className="mt-3 bg-emerald-100 text-emerald-800 text-[11px] font-medium px-3 py-2 rounded-lg inline-block">
+            ✓ {totalCapturados} documento{totalCapturados > 1 ? 's' : ''} adjunto{totalCapturados > 1 ? 's' : ''}
+          </div>
+        )}
       </div>
     )
   }
@@ -128,9 +159,35 @@ export default function CapturaMovilSection({ documentos, onDocumentos }: Props)
             </div>
           )}
 
-          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-blue-600">
-            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"/>
-            Esperando capturas del teléfono...
+          <div className="mt-2 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-[10px] text-blue-600">
+              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"/>
+              Esperando capturas del teléfono...
+            </div>
+            <label className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 rounded-md text-[9px] font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">
+              <i className="ti ti-upload text-[10px]" aria-hidden="true"/> Adjuntar
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                multiple
+                className="hidden"
+                onChange={async (e) => {
+                  const files = e.target.files
+                  if (!files || files.length === 0) return
+                  const tiposDisponibles = Object.keys(DOCS_LABELS).filter(k => !documentos[k])
+                  for (let i = 0; i < files.length && i < tiposDisponibles.length; i++) {
+                    const file = files[i]
+                    const reader = new FileReader()
+                    reader.onload = () => {
+                      const base64 = reader.result as string
+                      onDocumentos({ ...documentos, [tiposDisponibles[i]]: base64 })
+                    }
+                    reader.readAsDataURL(file)
+                  }
+                  e.target.value = ''
+                }}
+              />
+            </label>
           </div>
         </div>
       </div>
