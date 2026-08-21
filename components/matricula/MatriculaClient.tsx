@@ -368,7 +368,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                       </div>
                       <div className="flex gap-2 mt-1.5">
                         <button
-                          onClick={() => { window.open(`/api/alumnos/${m.alumno_id}`, '_blank') }}
+                          onClick={() => { window.open(`/alumnos/${m.alumno_id}`, '_blank') }}
                           className="text-[10px] text-gray-500 hover:text-[#1B3A5C] hover:underline"
                         >
                           Editar datos
