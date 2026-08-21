@@ -172,6 +172,10 @@ export async function GET(request: NextRequest) {
 
   // Tabla para pagaré (solo 2 columnas: fecha + monto)
   let tablaPagare = ''
+  // Aporte inicial en pagaré
+  if (montoInicial > 0) {
+    tablaPagare = `<tr style="background:#f8f9fb;"><td><strong>Aporte inicial</strong></td><td><strong>$${montoInicial.toLocaleString('es-CL')} CLP</strong></td></tr>`
+  }
   if (cobrosmensuales.length > 0) {
     const diaInicioP = new Date(fechaInicioContrato + 'T12:00').getDate()
     tablaPagare = (cobrosmensuales as any[]).map((c: any, idx: number) => {
@@ -229,10 +233,11 @@ export async function GET(request: NextRequest) {
 
   if (tipoDoc === 'pagare') {
     titulo = `Pagaré — ${alumno.nombre} ${alumno.apellido}`
-    // Sumar montos reales de los cobros mensuales (incluye proporcional)
-    const montoAnual = cobrosmensuales.length > 0
+    // Sumar montos reales de los cobros mensuales (incluye proporcional) + aporte inicial
+    const sumaCobrosMensuales = cobrosmensuales.length > 0
       ? (cobrosmensuales as any[]).reduce((sum: number, c: any) => sum + c.monto, 0)
       : montoMensualReal * mesesCobro
+    const montoAnual = sumaCobrosMensuales + montoInicial
     contenido = generarPagare({ ...datosBase, montoAnual, montoMensual: montoMensualReal, tablaAportes: tablaPagare })
   } else if (esLions) {
     titulo = `Contrato Lions Soccer — ${alumno.nombre} ${alumno.apellido}`
