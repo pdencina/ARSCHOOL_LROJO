@@ -128,10 +128,16 @@ export async function GET(request: NextRequest) {
     if (montoInicial > 0) {
       tablaAportes += `<tr style="background:#f8f9fb;"><td><strong>Aporte inicial</strong></td><td><strong>$${montoInicial.toLocaleString('es-CL')} CLP</strong></td><td></td><td></td></tr>`
     }
+    // Fecha real de inicio para el primer cobro (proporcional)
+    const diaInicio = new Date(fechaInicioContrato + 'T12:00').getDate()
     tablaAportes += (cobrosmensuales as any[]).map((c: any, idx: number) => {
       const numCheque = chequesMat?.[idx] || ''
       const banco = numCheque ? bancoMat : ''
-      return `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
+      // Primer cobro: usar fecha real de inicio si es proporcional (monto diferente al estándar)
+      const esProporcional = idx === 0 && c.monto < montoMensualReal
+      const fechaLabel = esProporcional ? `${diaInicio} ${mesesNombres[(c.mes - 1)]} ${c.anio}` : `1 ${mesesNombres[(c.mes - 1)]} ${c.anio}`
+      const notaProporcional = esProporcional ? ' <em style="font-size:10px;color:#6b7280;">(proporcional)</em>' : ''
+      return `<tr><td>${fechaLabel}${notaProporcional}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
     }).join('')
   } else {
     // Generar meses desde la fecha de inicio del contrato
