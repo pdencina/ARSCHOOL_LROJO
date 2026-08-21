@@ -124,8 +124,9 @@ export async function GET(request: NextRequest) {
   const bancoMat = matricula?.banco_cheque || ''
 
   // Agregar aporte inicial como primera línea (siempre si > 0)
+  const fechaInicioDisplay = `${new Date(fechaInicioContrato + 'T12:00').getDate()}-${String(new Date(fechaInicioContrato + 'T12:00').getMonth() + 1).padStart(2, '0')}-${new Date(fechaInicioContrato + 'T12:00').getFullYear()}`
   if (montoInicial > 0) {
-    tablaAportes = `<tr style="background:#f8f9fb;"><td><strong>Aporte inicial</strong></td><td><strong>$${montoInicial.toLocaleString('es-CL')} CLP</strong></td><td></td><td></td></tr>`
+    tablaAportes = `<tr style="background:#f8f9fb;"><td><strong>Aporte inicial — ${fechaInicioDisplay}</strong></td><td><strong>$${montoInicial.toLocaleString('es-CL')} CLP</strong></td><td></td><td></td></tr>`
   }
 
   if (cobrosmensuales.length > 0) {
@@ -174,7 +175,7 @@ export async function GET(request: NextRequest) {
   let tablaPagare = ''
   // Aporte inicial en pagaré
   if (montoInicial > 0) {
-    tablaPagare = `<tr style="background:#f8f9fb;"><td><strong>Aporte inicial</strong></td><td><strong>$${montoInicial.toLocaleString('es-CL')} CLP</strong></td></tr>`
+    tablaPagare = `<tr style="background:#f8f9fb;"><td><strong>Aporte inicial — ${fechaInicioDisplay}</strong></td><td><strong>$${montoInicial.toLocaleString('es-CL')} CLP</strong></td></tr>`
   }
   if (cobrosmensuales.length > 0) {
     const diaInicioP = new Date(fechaInicioContrato + 'T12:00').getDate()
