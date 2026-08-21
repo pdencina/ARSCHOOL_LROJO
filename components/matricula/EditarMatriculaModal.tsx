@@ -21,14 +21,13 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
   async function guardar() {
     setSaving(true)
     try {
-      const payload: any = {}
-      if (form.monto_matricula !== matricula.monto_matricula) payload.monto_matricula = form.monto_matricula
-      if (form.monto_mensual !== matricula.monto_mensual) payload.monto_mensual = form.monto_mensual
-      if (form.observaciones !== (matricula.observaciones || '')) payload.observaciones = form.observaciones
+      const payload: any = {
+        monto_matricula: form.monto_matricula,
+        monto_mensual: form.monto_mensual,
+      }
+      if (form.observaciones) payload.observaciones = form.observaciones
       if (form.fecha_inicio_contrato) payload.fecha_inicio_contrato = form.fecha_inicio_contrato
       if (form.porcentaje_beca > 0) payload.porcentaje_beca = form.porcentaje_beca
-
-      if (Object.keys(payload).length === 0) { toast.error('No hay cambios'); setSaving(false); return }
 
       const res = await fetch(`/api/matriculas/${matricula.id}`, {
         method: 'PATCH',
@@ -37,7 +36,7 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
       })
       if (!res.ok) {
         const text = await res.text()
-        throw new Error(text ? JSON.parse(text).error : 'Error al guardar')
+        throw new Error(text ? JSON.parse(text).error || 'Error al guardar' : 'Error al guardar')
       }
       toast.success('Matrícula actualizada. El contrato reflejará los nuevos datos.')
       onSave()

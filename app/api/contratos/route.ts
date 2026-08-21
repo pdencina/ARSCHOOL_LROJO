@@ -103,8 +103,8 @@ export async function GET(request: NextRequest) {
 
   // Calcular meses de cobro basado en fecha de inicio real
   const mesInicio = new Date(fechaInicioContrato + 'T12:00').getMonth() + 1 // 1-12
-  const mesFin = esLions ? 12 : 12 // Todos terminan en diciembre (Lions usa enero siguiente, pero se maneja aparte)
-  const mesesCobro = esLions ? Math.max(1, 13 - mesInicio) : Math.max(1, mesFin - mesInicio + 1)
+  // Play/Preschool = 12 meses corridos, Lions = hasta enero siguiente, otros = hasta diciembre
+  const mesesCobro = esPreschool ? 12 : esLions ? Math.max(1, 13 - mesInicio) : Math.max(1, 12 - mesInicio + 1)
 
   const nombreApoderado = `${familia?.nombre_apoderado ?? '___'} ${familia?.apellido_apoderado ?? '___'}`
   const rutApoderado = familia?.rut ?? '___'
@@ -136,21 +136,32 @@ export async function GET(request: NextRequest) {
       return `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
     }).join('')
   } else {
-    // Generar meses desde la fecha de inicio del contrato hasta diciembre
-    const mesesGenerados: string[] = []
+    // Generar meses desde la fecha de inicio del contrato
+    const mesesGenerados: { nombre: string; anio: number }[] = []
     const inicioIdx = mesInicio - 1 // 0-indexed
-    for (let i = inicioIdx; i < 12; i++) {
-      mesesGenerados.push(mesesNombres[i])
+
+    if (esPreschool) {
+      // Play/Preschool: 12 meses corridos desde fecha inicio
+      for (let i = 0; i < 12; i++) {
+        const mesIdx = (inicioIdx + i) % 12
+        const anioMes = inicioIdx + i >= 12 ? anio + 1 : anio
+        mesesGenerados.push({ nombre: mesesNombres[mesIdx], anio: anioMes })
+      }
+    } else {
+      // Otros: desde mes inicio hasta diciembre
+      for (let i = inicioIdx; i < 12; i++) {
+        mesesGenerados.push({ nombre: mesesNombres[i], anio })
+      }
+      // Lions incluye enero del año siguiente
+      if (esLions && mesInicio <= 12) {
+        mesesGenerados.push({ nombre: 'enero', anio: anio + 1 })
+      }
     }
-    // Lions incluye enero del año siguiente si empieza antes de enero
-    if (esLions && mesInicio <= 12) {
-      mesesGenerados.push('enero')
-    }
+
     tablaAportes = mesesGenerados.map((m, idx) => {
       const numCheque = chequesMat?.[idx] || ''
       const banco = numCheque ? bancoMat : ''
-      const anioMes = m === 'enero' ? anio + 1 : anio
-      return `<tr><td>1 ${m} ${anioMes}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
+      return `<tr><td>1 ${m.nombre} ${m.anio}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
     }).join('')
   }
 
@@ -159,17 +170,24 @@ export async function GET(request: NextRequest) {
   if (cobrosmensuales.length > 0) {
     tablaPagare = (cobrosmensuales as any[]).map((c: any) => `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td></tr>`).join('')
   } else {
-    // Generar desde mes de inicio hasta diciembre (+ enero si Lions)
-    const mesesPagare: string[] = []
+    // Generar pagaré con misma lógica de meses
+    const mesesPagare: { nombre: string; anio: number }[] = []
     const inicioIdx = mesInicio - 1
-    for (let i = inicioIdx; i < 12; i++) {
-      mesesPagare.push(mesesNombres[i])
+
+    if (esPreschool) {
+      for (let i = 0; i < 12; i++) {
+        const mesIdx = (inicioIdx + i) % 12
+        const anioMes = inicioIdx + i >= 12 ? anio + 1 : anio
+        mesesPagare.push({ nombre: mesesNombres[mesIdx], anio: anioMes })
+      }
+    } else {
+      for (let i = inicioIdx; i < 12; i++) {
+        mesesPagare.push({ nombre: mesesNombres[i], anio })
+      }
+      if (esLions && mesInicio <= 12) mesesPagare.push({ nombre: 'enero', anio: anio + 1 })
     }
-    if (esLions && mesInicio <= 12) mesesPagare.push('enero')
-    tablaPagare = mesesPagare.map(m => {
-      const anioMes = m === 'enero' ? anio + 1 : anio
-      return `<tr><td>1 ${m} ${anioMes}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td></tr>`
-    }).join('')
+
+    tablaPagare = mesesPagare.map(m => `<tr><td>1 ${m.nombre} ${m.anio}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td></tr>`).join('')
   }
 
   const fechaFormateada = `${new Date(fechaMat).getDate()} de ${mesesNombres[new Date(fechaMat).getMonth()]} de ${anio}`
