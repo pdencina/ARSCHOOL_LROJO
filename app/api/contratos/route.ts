@@ -123,11 +123,12 @@ export async function GET(request: NextRequest) {
   const chequesMat = matricula?.cheques || null // array de números
   const bancoMat = matricula?.banco_cheque || ''
 
+  // Agregar aporte inicial como primera línea (siempre si > 0)
+  if (montoInicial > 0) {
+    tablaAportes = `<tr style="background:#f8f9fb;"><td><strong>Aporte inicial</strong></td><td><strong>$${montoInicial.toLocaleString('es-CL')} CLP</strong></td><td></td><td></td></tr>`
+  }
+
   if (cobrosmensuales.length > 0) {
-    // Si hay aporte inicial, agregarlo como primera línea
-    if (montoInicial > 0) {
-      tablaAportes += `<tr style="background:#f8f9fb;"><td><strong>Aporte inicial</strong></td><td><strong>$${montoInicial.toLocaleString('es-CL')} CLP</strong></td><td></td><td></td></tr>`
-    }
     // Fecha real de inicio para el primer cobro (proporcional)
     const diaInicio = new Date(fechaInicioContrato + 'T12:00').getDate()
     tablaAportes += (cobrosmensuales as any[]).map((c: any, idx: number) => {
@@ -143,11 +144,6 @@ export async function GET(request: NextRequest) {
     // Generar meses desde la fecha de inicio del contrato
     const mesesGenerados: { nombre: string; anio: number }[] = []
     const inicioIdx = mesInicio - 1 // 0-indexed
-
-    // Agregar aporte inicial si existe
-    if (montoInicial > 0) {
-      tablaAportes += `<tr style="background:#f8f9fb;"><td><strong>Aporte inicial</strong></td><td><strong>$${montoInicial.toLocaleString('es-CL')} CLP</strong></td><td></td><td></td></tr>`
-    }
 
     if (esPreschool) {
       // Play/Preschool: 12 meses corridos desde fecha inicio
