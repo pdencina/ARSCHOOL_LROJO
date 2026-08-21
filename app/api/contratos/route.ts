@@ -21,16 +21,26 @@ const SEDES: Record<string, string> = {
 }
 
 export async function GET(request: NextRequest) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('No autorizado', { status: 401 })
-
   const { searchParams } = new URL(request.url)
   const matriculaId = searchParams.get('matricula_id')
   const alumnoId = searchParams.get('alumno_id')
-  const tipoDoc = searchParams.get('tipo') || 'contrato' // contrato | pagare
+  const tipoDoc = searchParams.get('tipo') || 'contrato'
+  const firmaToken = searchParams.get('token') // Token de firma para acceso sin auth
 
   const admin = getAdmin()
+
+  // Verificar autenticación: sesión de usuario O token de firma válido
+  let autorizado = false
+  if (firmaToken) {
+    const { data: ft } = await admin.from('firma_tokens').select('id, matricula_id, estado').eq('token', firmaToken).single()
+    if (ft && (ft as any).estado !== 'cancelado') autorizado = true
+  } else {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) autorizado = true
+  }
+
+  if (!autorizado) return new NextResponse('No autorizado', { status: 401 })
   let alumno: any, familia: any, matricula: any, colegio: any
 
   if (matriculaId) {

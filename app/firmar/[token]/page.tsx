@@ -58,9 +58,9 @@ export default async function FirmarRemotoPage({ params }: { params: { token: st
     )
   }
 
-  // Obtener URL del contrato para mostrar
+  // Obtener URL del contrato para mostrar (con token para acceso sin auth)
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-  const contratoUrl = `${baseUrl}/api/contratos?matricula_id=${ft.matricula_id}&tipo=${ft.tipo}`
+  const contratoUrl = `${baseUrl}/api/contratos?matricula_id=${ft.matricula_id}&tipo=${ft.tipo}&token=${token}`
 
   return (
     <FirmaRemotaClient

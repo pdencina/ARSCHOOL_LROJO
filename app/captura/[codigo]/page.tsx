@@ -26,6 +26,7 @@ export default function CapturaMovilPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [stream, setStream] = useState<MediaStream | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     verificarSesion()
@@ -89,6 +90,12 @@ export default function CapturaMovilPage() {
       setCapturando(null)
     }
     reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  function adjuntarDesdeGaleria(tipo: string) {
+    setCapturando(tipo)
+    galleryRef.current?.click()
   }
 
   async function enviarDocumento(tipo: string, dataUrl: string) {
@@ -187,18 +194,29 @@ export default function CapturaMovilPage() {
                 <div className={`text-[13px] font-medium ${captured ? 'text-emerald-800' : 'text-[#1a2332]'}`}>{doc.label}</div>
                 {captured && <div className="text-[10px] text-emerald-600 font-medium">✓ Capturado</div>}
               </div>
-              <button 
-                onClick={() => abrirCamara(doc.tipo)} 
-                disabled={enviando}
-                className={`px-3 py-2 rounded-lg text-[11px] font-semibold transition-colors ${
-                  captured 
-                    ? 'bg-[#f4f5f7] text-[#6b7280] hover:bg-[#e8eaed]' 
-                    : 'bg-[#1a2332] text-white hover:bg-[#2a3342]'
-                }`}
-              >
-                <i className={`ti ${captured ? 'ti-refresh' : 'ti-camera'} text-xs mr-1`} aria-hidden="true"/>
-                {captured ? 'Repetir' : 'Capturar'}
-              </button>
+              <div className="flex gap-1.5 flex-shrink-0">
+                <button 
+                  onClick={() => abrirCamara(doc.tipo)} 
+                  disabled={enviando}
+                  className={`px-3 py-2 rounded-lg text-[11px] font-semibold transition-colors ${
+                    captured 
+                      ? 'bg-[#f4f5f7] text-[#6b7280] hover:bg-[#e8eaed]' 
+                      : 'bg-[#1a2332] text-white hover:bg-[#2a3342]'
+                  }`}
+                >
+                  <i className={`ti ${captured ? 'ti-refresh' : 'ti-camera'} text-xs mr-1`} aria-hidden="true"/>
+                  {captured ? 'Repetir' : 'Capturar'}
+                </button>
+                {!captured && (
+                  <button 
+                    onClick={() => adjuntarDesdeGaleria(doc.tipo)} 
+                    disabled={enviando}
+                    className="px-2.5 py-2 rounded-lg text-[11px] font-semibold bg-[#f4f5f7] text-[#6b7280] hover:bg-[#e8eaed] transition-colors"
+                  >
+                    <i className="ti ti-upload text-xs" aria-hidden="true"/>
+                  </button>
+                )}
+              </div>
             </div>
           )
         })}
@@ -214,6 +232,7 @@ export default function CapturaMovilPage() {
       )}
 
       <input ref={inputRef} type="file" accept="image/*" capture="environment" onChange={handleFileInput} className="hidden"/>
+      <input ref={galleryRef} type="file" accept="image/*,.pdf" onChange={handleFileInput} className="hidden"/>
       <canvas ref={canvasRef} className="hidden"/>
     </div>
   )
