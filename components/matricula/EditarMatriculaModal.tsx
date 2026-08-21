@@ -31,6 +31,7 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
       if (form.fecha_inicio_contrato) payload.fecha_inicio_contrato = form.fecha_inicio_contrato
       if (form.porcentaje_beca > 0) payload.porcentaje_beca = form.porcentaje_beca
 
+      // 1. Guardar matrícula
       const res = await fetch(`/api/matriculas/${matricula.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -40,7 +41,26 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
         const text = await res.text()
         throw new Error(text ? JSON.parse(text).error || 'Error al guardar' : 'Error al guardar')
       }
-      toast.success('Matrícula actualizada. El contrato reflejará los nuevos datos.')
+
+      // 2. Recalcular cobros automáticamente
+      const res2 = await fetch(`/api/matriculas/${matricula.id}/recalcular-cobros`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          monto_mensual: form.monto_mensual,
+          monto_matricula: form.monto_matricula,
+          fecha_inicio_contrato: form.fecha_inicio_contrato,
+          porcentaje_beca: form.porcentaje_beca,
+          proporcional_primer_mes: form.proporcional_primer_mes || 0,
+        }),
+      })
+      if (res2.ok) {
+        const data2 = await res2.json()
+        toast.success(`Matrícula guardada y cobros recalculados (${data2.generados} generados)`)
+      } else {
+        toast.success('Matrícula guardada. Cobros no se recalcularon (revise manualmente).')
+      }
+
       onSave()
     } catch (e: any) { toast.error(e.message || 'Error al guardar') }
     finally { setSaving(false) }
@@ -161,23 +181,13 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
           <div className="flex gap-3 mt-6">
             <button onClick={onClose} className="flex-1 btn-secondary py-2.5">Cancelar</button>
             <button onClick={guardar} disabled={saving} className="flex-1 py-2.5 bg-[#1B3A5C] text-white text-sm font-semibold rounded-xl disabled:opacity-50">
-              {saving ? 'Guardando...' : 'Guardar cambios'}
+              {saving ? 'Guardando...' : 'Guardar y recalcular'}
             </button>
           </div>
 
-          {/* Recalcular cobros */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <button
-              onClick={recalcularCobros}
-              disabled={recalculando}
-              className="w-full py-2.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold rounded-xl hover:bg-amber-100 disabled:opacity-50 transition-colors"
-            >
-              {recalculando ? 'Recalculando...' : '⟳ Recalcular cobros pendientes'}
-            </button>
-            <p className="text-[9px] text-[var(--ar-muted)] text-center mt-1.5">
-              Elimina cobros pendientes y los regenera con los montos actuales. Los pagados no se tocan.
-            </p>
-          </div>
+          <p className="text-[9px] text-[var(--ar-muted)] text-center mt-3">
+            Al guardar, se actualizan los datos y se regeneran los cobros pendientes automáticamente.
+          </p>
         </div>
       </div>
     </>
