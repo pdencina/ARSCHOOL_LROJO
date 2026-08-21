@@ -67,8 +67,6 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (body.medio_pago_matricula !== undefined) updates.medio_pago_matricula = body.medio_pago_matricula
   if (body.banco_cheque !== undefined) updates.banco_cheque = body.banco_cheque
   if (body.cheques !== undefined) updates.cheques = body.cheques
-  if (body.fecha_inicio_contrato !== undefined) updates.fecha_inicio_contrato = body.fecha_inicio_contrato
-  if (body.porcentaje_beca !== undefined) updates.porcentaje_beca = body.porcentaje_beca
   if (body.anio_escolar !== undefined) updates.anio_escolar = body.anio_escolar
 
   if (Object.keys(updates).length === 0) {
@@ -77,6 +75,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
   const { data, error } = await admin.from('matriculas').update(updates).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Campos opcionales que pueden no existir en la BD (migraciones pendientes)
+  const updatesOpcionales: any = {}
+  if (body.fecha_inicio_contrato !== undefined) updatesOpcionales.fecha_inicio_contrato = body.fecha_inicio_contrato
+  if (body.porcentaje_beca !== undefined) updatesOpcionales.porcentaje_beca = body.porcentaje_beca
+
+  if (Object.keys(updatesOpcionales).length > 0) {
+    await admin.from('matriculas').update(updatesOpcionales).eq('id', id).catch(() => {})
+  }
 
   return NextResponse.json(data)
 }
