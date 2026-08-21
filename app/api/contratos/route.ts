@@ -112,9 +112,9 @@ export async function GET(request: NextRequest) {
   const comunaApoderado = familia?.comuna ?? 'Santiago'
 
   // Cobros para tabla
-  const { data: cobros } = await admin.from('cobros').select('monto, mes, anio, observaciones').eq('alumno_id', alumno.id).order('anio').order('mes')
-  const cobrosmensuales = (cobros ?? []).filter((c: any) => c.monto !== montoInicial)
-  const montoMensualReal = cobrosmensuales.length > 0 ? (cobrosmensuales as any[])[0].monto : Math.round(montoMensual * (1 - porcentajeBeca / 100))
+  const { data: cobros } = await admin.from('cobros').select('monto, mes, anio, tipo_concepto').eq('alumno_id', alumno.id).order('anio').order('mes')
+  const cobrosmensuales = (cobros ?? []).filter((c: any) => c.tipo_concepto === 'aporte_mensual')
+  const montoMensualReal = cobrosmensuales.length > 0 ? Math.max(...(cobrosmensuales as any[]).map((c: any) => c.monto)) : Math.round(montoMensual * (1 - porcentajeBeca / 100))
 
   const mesesNombres = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
   let tablaAportes = ''
@@ -131,10 +131,6 @@ export async function GET(request: NextRequest) {
     tablaAportes += (cobrosmensuales as any[]).map((c: any, idx: number) => {
       const numCheque = chequesMat?.[idx] || ''
       const banco = numCheque ? bancoMat : ''
-      if (!numCheque) {
-        const chequeMatch = (c.observaciones || '').match(/Cheque N° ([^\s—]+)\s*—\s*(.*)$/)
-        if (chequeMatch) return `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td><td>${chequeMatch[1]}</td><td>${chequeMatch[2].trim()}</td></tr>`
-      }
       return `<tr><td>1 ${mesesNombres[(c.mes - 1)]} ${c.anio}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
     }).join('')
   } else {
