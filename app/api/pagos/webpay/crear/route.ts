@@ -34,10 +34,32 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { cobro_id } = body
+  const { cobro_id, matricula_id, tipo } = body
 
-  if (!cobro_id) {
-    return NextResponse.json({ error: 'cobro_id es requerido' }, { status: 400 })
+  let cobroId = cobro_id
+
+  // Si viene matricula_id, buscar el cobro de aporte_inicial o el primer cobro pendiente
+  if (!cobroId && matricula_id) {
+    const { data: mat } = await admin.from('matriculas').select('alumno_id').eq('id', matricula_id).single()
+    if (!mat) return NextResponse.json({ error: 'Matrícula no encontrada' }, { status: 404 })
+
+    const tipoConcepto = tipo === 'aporte_inicial' ? 'aporte_inicial' : 'aporte_mensual'
+    const { data: cobroBuscado } = await admin
+      .from('cobros')
+      .select('id')
+      .eq('alumno_id', (mat as any).alumno_id)
+      .eq('tipo_concepto', tipoConcepto)
+      .eq('estado', 'pendiente')
+      .order('anio').order('mes')
+      .limit(1)
+      .single()
+
+    if (!cobroBuscado) return NextResponse.json({ error: 'No hay cobro pendiente para pagar' }, { status: 404 })
+    cobroId = (cobroBuscado as any).id
+  }
+
+  if (!cobroId) {
+    return NextResponse.json({ error: 'cobro_id o matricula_id es requerido' }, { status: 400 })
   }
 
   const admin = getAdmin()
@@ -46,7 +68,7 @@ export async function POST(request: NextRequest) {
   const { data: cobro } = await admin
     .from('cobros')
     .select('*, alumno:alumnos(nombre, apellido), familia:familias(nombre_apoderado, email)')
-    .eq('id', cobro_id)
+    .eq('id', cobroId)
     .single()
 
   if (!cobro) return NextResponse.json({ error: 'Cobro no encontrado' }, { status: 404 })
@@ -62,7 +84,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Generar orden única
-  const buyOrder = `AR-${cobro_id.substring(0, 8)}-${Date.now()}`
+  const buyOrder = `AR-${cobroId.substring(0, 8)}-${Date.now()}`
   const sessionId = `S-${user.id.substring(0, 8)}-${Date.now()}`
   const amount = montoPendiente
 
@@ -76,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     // Guardar referencia de la transacción
     await admin.from('pagos').insert({
-      cobro_id,
+      cobro_id: cobroId,
       monto: amount,
       medio_pago: 'webpay',
       referencia: buyOrder,

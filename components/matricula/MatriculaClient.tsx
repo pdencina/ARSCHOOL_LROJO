@@ -892,63 +892,120 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
     {/* Modal post-matrícula: enviar a firma */}
     {matriculaCompletada && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,36,0.4)', backdropFilter: 'blur(4px)' }}>
-        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-[fadeIn_0.2s_ease-out]">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-[fadeIn_0.2s_ease-out] max-h-[90vh] overflow-y-auto">
           <div className="text-center mb-5">
             <div className="w-14 h-14 bg-[#EDF5F0] rounded-full flex items-center justify-center mx-auto mb-3">
               <svg className="w-7 h-7 text-[#2D5A3F]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>
             </div>
             <h2 className="text-lg font-bold text-[#1B3A5C]">Matrícula completada</h2>
-            <p className="text-sm text-gray-500 mt-1">¿Desea enviar el contrato al apoderado para firma digital?</p>
+            <p className="text-sm text-gray-500 mt-1">Seleccione las acciones a realizar</p>
           </div>
 
-          <div className="space-y-2.5">
-            {/* Enviar contrato a firma */}
-            <button
-              onClick={async () => {
-                setEnviandoFirma(true)
-                try {
-                  const res = await fetch('/api/contratos/enviar-firma', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matricula_id: matriculaCompletada, tipo: 'contrato' }) })
-                  const d = await res.json()
-                  if (!res.ok) throw new Error(d.error)
-                  toast.success(`Contrato enviado a ${d.email_enviado_a}`)
-                  // También enviar pagaré
-                  const res2 = await fetch('/api/contratos/enviar-firma', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matricula_id: matriculaCompletada, tipo: 'pagare' }) })
-                  const d2 = await res2.json()
-                  if (res2.ok) toast.success('Pagaré también enviado')
-                } catch (e: any) { toast.error(e.message) }
-                setEnviandoFirma(false)
-                setMatriculaCompletada(null)
-                setVista('lista')
-                router.refresh()
-              }}
-              disabled={enviandoFirma}
-              className="w-full py-3 bg-[#2D5A3F] text-white text-sm font-semibold rounded-xl hover:bg-[#245234] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {enviandoFirma ? 'Enviando...' : '📧 Enviar contrato y pagaré a firma'}
-            </button>
+          <div className="space-y-3">
+            {/* Sección: Pago del aporte inicial */}
+            {form.monto_matricula > 0 && (
+              <div className="bg-[#f8f9fb] border border-[var(--ar-border)] rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <i className="ti ti-cash text-[#2D5A3F]" aria-hidden="true"/>
+                  <span className="text-xs font-bold text-[var(--ar-text)]">Pago aporte inicial: ${form.monto_matricula.toLocaleString('es-CL')}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Pagar con tarjeta (Webpay) */}
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/pagos/webpay/crear', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ matricula_id: matriculaCompletada, tipo: 'aporte_inicial' }),
+                        })
+                        const data = await res.json()
+                        if (res.ok && data.url && data.token) {
+                          const f = document.createElement('form')
+                          f.method = 'POST'
+                          f.action = data.url
+                          const input = document.createElement('input')
+                          input.type = 'hidden'
+                          input.name = 'token_ws'
+                          input.value = data.token
+                          f.appendChild(input)
+                          document.body.appendChild(f)
+                          f.submit()
+                        } else {
+                          toast.error(data.error || 'Error al iniciar pago')
+                        }
+                      } catch { toast.error('Error de conexión') }
+                    }}
+                    className="flex flex-col items-center gap-1.5 p-3 bg-white border border-[var(--ar-border)] rounded-lg hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
+                  >
+                    <i className="ti ti-credit-card text-blue-600 text-lg" aria-hidden="true"/>
+                    <span className="text-[10px] font-semibold text-[var(--ar-text)]">Pagar con tarjeta</span>
+                    <span className="text-[8px] text-[var(--ar-muted)]">Débito / Crédito</span>
+                  </button>
 
-            {/* Revisar contrato */}
-            <button
-              onClick={() => window.open(`/api/contratos?matricula_id=${matriculaCompletada}`, '_blank')}
-              className="w-full py-3 bg-white border border-[var(--ar-border)] text-[#1B3A5C] text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-            >
-              👁️ Revisar contrato antes de enviar
-            </button>
+                  {/* Pago por transferencia */}
+                  <button
+                    onClick={() => {
+                      toast.success('Datos bancarios copiados al portapapeles')
+                      navigator.clipboard.writeText('Fundación Educacional AR Ministries\nRUT: 65.168.392-0\nBanco: BancoEstado\nCta. Corriente: 291-0-008051-4\nEmail: adm@arschoolglobal.com')
+                    }}
+                    className="flex flex-col items-center gap-1.5 p-3 bg-white border border-[var(--ar-border)] rounded-lg hover:border-emerald-300 hover:bg-emerald-50/30 transition-colors"
+                  >
+                    <i className="ti ti-building-bank text-emerald-600 text-lg" aria-hidden="true"/>
+                    <span className="text-[10px] font-semibold text-[var(--ar-text)]">Transferencia</span>
+                    <span className="text-[8px] text-[var(--ar-muted)]">Copiar datos banco</span>
+                  </button>
+                </div>
+                <div className="mt-2 bg-white border border-gray-100 rounded-lg p-2.5 text-[9px] text-[var(--ar-muted)] leading-relaxed">
+                  <strong>Datos bancarios:</strong> Fundación Educacional AR Ministries · RUT 65.168.392-0<br/>
+                  BancoEstado · Cta. Corriente 291-0-008051-4 · adm@arschoolglobal.com
+                </div>
+              </div>
+            )}
 
-            {/* Revisar pagaré */}
-            <button
-              onClick={() => window.open(`/api/contratos?matricula_id=${matriculaCompletada}&tipo=pagare`, '_blank')}
-              className="w-full py-2.5 text-[#3D7A94] text-xs font-medium hover:underline"
-            >
-              Ver pagaré
-            </button>
+            {/* Sección: Contrato y firma */}
+            <div className="border-t border-gray-100 pt-3">
+              <button
+                onClick={async () => {
+                  setEnviandoFirma(true)
+                  try {
+                    const res = await fetch('/api/contratos/enviar-firma', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matricula_id: matriculaCompletada, tipo: 'contrato' }) })
+                    const d = await res.json()
+                    if (!res.ok) throw new Error(d.error)
+                    toast.success(`Contrato enviado a ${d.email_enviado_a}`)
+                    const res2 = await fetch('/api/contratos/enviar-firma', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matricula_id: matriculaCompletada, tipo: 'pagare' }) })
+                    const d2 = await res2.json()
+                    if (res2.ok) toast.success('Pagaré también enviado')
+                  } catch (e: any) { toast.error(e.message) }
+                  setEnviandoFirma(false)
+                  setMatriculaCompletada(null)
+                  setVista('lista')
+                  router.refresh()
+                }}
+                disabled={enviandoFirma}
+                className="w-full py-3 bg-[#1B3A5C] text-white text-sm font-semibold rounded-xl hover:bg-[#152d4a] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {enviandoFirma ? 'Enviando...' : '📧 Enviar contrato y pagaré a firma'}
+              </button>
+            </div>
 
-            {/* Cerrar sin enviar */}
+            {/* Links secundarios */}
+            <div className="flex gap-2 justify-center">
+              <button onClick={() => window.open(`/api/contratos?matricula_id=${matriculaCompletada}`, '_blank')} className="text-[10px] text-[var(--ar-accent)] hover:underline">
+                Ver contrato
+              </button>
+              <span className="text-gray-300">·</span>
+              <button onClick={() => window.open(`/api/contratos?matricula_id=${matriculaCompletada}&tipo=pagare`, '_blank')} className="text-[10px] text-[#3D7A94] hover:underline">
+                Ver pagaré
+              </button>
+            </div>
+
+            {/* Cerrar */}
             <button
               onClick={() => { setMatriculaCompletada(null); setVista('lista'); router.refresh() }}
-              className="w-full py-2.5 text-gray-400 text-xs hover:text-gray-600"
+              className="w-full py-2 text-gray-400 text-xs hover:text-gray-600"
             >
-              Cerrar sin enviar (puedo hacerlo después)
+              Cerrar (puedo hacer esto después)
             </button>
           </div>
         </div>
