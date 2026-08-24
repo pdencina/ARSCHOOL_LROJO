@@ -97,7 +97,11 @@ export async function GET(request: NextRequest) {
   const porcentajeBeca = matricula?.porcentaje_beca ?? 0
   const fechaMat = matricula?.fecha_matricula ?? new Date().toISOString().split('T')[0]
   const fechaInicioContrato = matricula?.fecha_inicio_contrato || fechaMat
-  const sede = SEDES[colegio?.id] ?? 'Victoria 52, Comuna de Santiago'
+  const sede = matricula?.sede
+    ? (matricula.sede === 'puente_alto' ? 'José Manuel Irarrázaval 0565, Comuna de Puente Alto'
+      : matricula.sede === 'punta_arenas' ? 'Chiloé 862, Comuna de Punta Arenas'
+      : 'Victoria 52, Comuna de Santiago')
+    : SEDES[colegio?.id] ?? 'Victoria 52, Comuna de Santiago'
   const firmaApoderado = matricula?.firma_apoderado ?? null
   const firmadoAt = matricula?.firmado_at ? new Date(matricula.firmado_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) : null
 

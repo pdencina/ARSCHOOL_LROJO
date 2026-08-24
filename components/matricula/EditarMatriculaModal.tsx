@@ -17,6 +17,7 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
     fecha_inicio_contrato: matricula.fecha_inicio_contrato || matricula.fecha_matricula || '',
     porcentaje_beca: matricula.porcentaje_beca ?? 0,
     proporcional_primer_mes: 0,
+    sede: matricula.sede || '',
     observaciones: matricula.observaciones || '',
   })
 
@@ -28,6 +29,7 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
         monto_mensual: form.monto_mensual,
       }
       if (form.observaciones) payload.observaciones = form.observaciones
+      if (form.sede) payload.sede = form.sede
       if (form.fecha_inicio_contrato) payload.fecha_inicio_contrato = form.fecha_inicio_contrato
       if (form.porcentaje_beca > 0) payload.porcentaje_beca = form.porcentaje_beca
 
@@ -138,6 +140,20 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
                 className="input-base"
               />
               <p className="text-[9px] text-[var(--ar-muted)] mt-0.5">Desde cuándo rigen los cobros. Afecta la tabla del contrato.</p>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Sede</label>
+              <select
+                value={form.sede}
+                onChange={e => setForm(p => ({...p, sede: e.target.value}))}
+                className="select-base w-full"
+              >
+                <option value="">Según colegio del usuario</option>
+                <option value="santiago">Sede Santiago — Victoria 52</option>
+                <option value="puente_alto">Sede Puente Alto — Irarrázaval 0565</option>
+                <option value="punta_arenas">Sede Punta Arenas — Chiloé 862</option>
+              </select>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
