@@ -67,7 +67,6 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (body.medio_pago_matricula !== undefined) updates.medio_pago_matricula = body.medio_pago_matricula
   if (body.banco_cheque !== undefined) updates.banco_cheque = body.banco_cheque
   if (body.cheques !== undefined) updates.cheques = body.cheques
-  if (body.sede !== undefined) updates.sede = body.sede
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
@@ -86,6 +85,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
     if (body.anio_escolar !== undefined) {
       await admin.from('matriculas').update({ anio_escolar: Number(body.anio_escolar) }).eq('id', id).then(() => {}).catch(() => {})
+    }
+    if (body.sede !== undefined) {
+      await admin.from('matriculas').update({ sede: body.sede }).eq('id', id).then(() => {}).catch(() => {})
     }
 
     return NextResponse.json(data)
