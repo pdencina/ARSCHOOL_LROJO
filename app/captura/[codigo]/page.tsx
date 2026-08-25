@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useParams } from 'next/navigation'
-import Image from 'next/image'
 
 const DOCUMENTOS = [
   { tipo: 'ci_frente', label: 'CI Alumno (frente)', icon: 'ti-id' },
@@ -17,7 +16,7 @@ const DOCUMENTOS = [
 
 export default function CapturaMovilPage() {
   const params = useParams()
-  const codigo = (params.codigo as string)?.toUpperCase()
+  const codigo = (Array.isArray(params?.codigo) ? params.codigo[0] : params?.codigo as string)?.toUpperCase() || ''
   const [sesionValida, setSesionValida] = useState<boolean | null>(null)
   const [capturados, setCapturados] = useState<Record<string, string>>({})
   const [capturando, setCapturando] = useState<string | null>(null)
@@ -29,8 +28,9 @@ export default function CapturaMovilPage() {
   const galleryRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    verificarSesion()
-  }, [])
+    if (codigo) verificarSesion()
+    else setSesionValida(false)
+  }, [codigo])
 
   async function verificarSesion() {
     const res = await fetch(`/api/captura?codigo=${codigo}`)
@@ -144,7 +144,7 @@ export default function CapturaMovilPage() {
       <div className="bg-white border-b border-[#e8eaed] px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Image src="/logo-arschool.png" alt="AR School" width={28} height={28} className="rounded-md"/>
+            <img src="/logo-arschool.png" alt="AR School" width={28} height={28} className="rounded-md"/>
             <div>
               <div className="text-[12px] font-bold text-[#1a2332]">Captura de documentos</div>
               <div className="text-[10px] text-[#9ca3af]">Código: {codigo}</div>
