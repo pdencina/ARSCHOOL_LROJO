@@ -85,30 +85,66 @@ export default function PortalPagosClient({ cobros }: Props) {
   const pagados = cobros.filter(c => c.estado === 'pagado')
   const totalPendiente = pendientes.reduce((a, c) => a + (c.monto - (c.monto_pagado ?? 0)), 0)
 
-  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+  function comprimirImagen(file: File, maxDim = 1600, calidad = 0.7): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo'))
+      reader.onload = () => {
+        const img = new Image()
+        img.onerror = () => reject(new Error('No se pudo procesar la imagen'))
+        img.onload = () => {
+          let { width, height } = img
+          if (width > maxDim || height > maxDim) {
+            const escala = maxDim / Math.max(width, height)
+            width = Math.round(width * escala)
+            height = Math.round(height * escala)
+          }
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          if (!ctx) { reject(new Error('Canvas no soportado')); return }
+          ctx.drawImage(img, 0, 0, width, height)
+          resolve(canvas.toDataURL('image/jpeg', calidad))
+        }
+        img.src = reader.result as string
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  async function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => setComprobante(reader.result as string)
-    reader.readAsDataURL(file)
+    try {
+      const dataUrl = await comprimirImagen(file)
+      setComprobante(dataUrl)
+    } catch {
+      toast.error('No se pudo procesar la imagen. Intenta con otra foto.')
+    }
   }
 
   async function enviarComprobante(cobroId: string) {
     if (!comprobante) { toast.error('Sube una foto del comprobante'); return }
     setEnviando(true)
-    const res = await fetch('/api/pagos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cobro_id: cobroId, comprobante_url: comprobante, metodo: 'transferencia' }),
-    })
-    if (res.ok) {
-      toast.success('Comprobante enviado. Se validará en breve.')
-      setReportandoId(null)
-      setComprobante('')
-      // Refresh page
-      window.location.reload()
-    } else {
-      toast.error('Error al enviar comprobante')
+    try {
+      const res = await fetch('/api/pagos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cobro_id: cobroId, comprobante_url: comprobante, metodo: 'transferencia' }),
+      })
+      if (res.ok) {
+        toast.success('Comprobante enviado. Se validará en breve.')
+        setReportandoId(null)
+        setComprobante('')
+        // Refresh page
+        window.location.reload()
+      } else {
+        const data = await res.json().catch(() => null)
+        toast.error(data?.error ? `Error al enviar comprobante: ${data.error}` : 'Error al enviar comprobante')
+      }
+    } catch {
+      toast.error('Error de conexión al enviar comprobante')
     }
     setEnviando(false)
   }
