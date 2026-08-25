@@ -260,8 +260,12 @@ export async function GET(request: NextRequest) {
     contenido = generarContratoARSchool(datosBase)
   }
 
-  // Agregar firmas solo al contrato (no al pagaré, ya tiene su propia)
-  const firmas = tipoDoc !== 'pagare' ? seccionFirmas(firmaApoderado, firmadoAt, nombreApoderado, rutApoderado) : ''
+  // Agregar firmas — contrato usa firma_apoderado, pagaré usa firma_pagare
+  const firmaPagare = matricula?.firma_pagare ?? null
+  const firmadoPagareAt = matricula?.firmado_pagare_at ? new Date(matricula.firmado_pagare_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) : null
+  const firmas = tipoDoc === 'pagare'
+    ? seccionFirmas(firmaPagare, firmadoPagareAt || firmadoAt, nombreApoderado, rutApoderado)
+    : seccionFirmas(firmaApoderado, firmadoAt, nombreApoderado, rutApoderado)
 
   const html = `<!DOCTYPE html>
 <html lang="es">
