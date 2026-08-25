@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
     monto: montoPago,
     medio_pago: metodo || 'transferencia',
     referencia: comprobante_url || null,
-    registrado_por: user.id,
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
