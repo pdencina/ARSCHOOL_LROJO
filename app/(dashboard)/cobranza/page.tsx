@@ -64,10 +64,20 @@ export default async function CobranzaPage() {
     .order('created_at', { ascending: false })
     .limit(20)
 
+  // Pagos con comprobante (vouchers por revisar)
+  const { data: pagosConVoucher } = await admin
+    .from('pagos')
+    .select('*, cobro:cobros(*, alumno:alumnos(nombre, apellido, curso), familia:familias(nombre_apoderado, email))')
+    .not('referencia', 'is', null)
+    .eq('medio_pago', 'transferencia')
+    .order('created_at', { ascending: false })
+    .limit(20)
+
   return (
     <CobranzaClient
       cobros={(cobros as any[]) ?? []}
       logReciente={(logReciente as any[]) ?? []}
+      pagosConVoucher={(pagosConVoucher as any[]) ?? []}
       anio={anio}
     />
   )

@@ -15,9 +15,10 @@ interface Props {
   cobros: any[]
   logReciente: any[]
   anio: number
+  pagosConVoucher?: any[]
 }
 
-export default function CobranzaClient({ cobros, logReciente, anio }: Props) {
+export default function CobranzaClient({ cobros, logReciente, anio, pagosConVoucher = [] }: Props) {
   const [filtroSemaforo, setFiltroSemaforo] = useState<string>('')
   const [filtroCurso, setFiltroCurso] = useState<string>('')
   const [vista, setVista] = useState<'tabla' | 'log'>('tabla')
@@ -235,6 +236,51 @@ export default function CobranzaClient({ cobros, logReciente, anio }: Props) {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Comprobantes de transferencia por revisar */}
+      {pagosConVoucher.length > 0 && (
+        <div className="mt-6 bg-white border border-[var(--ar-border)] rounded-xl overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
+          <div className="px-4 py-3 border-b border-[var(--ar-border)] flex items-center justify-between">
+            <h3 className="text-sm font-bold text-[var(--ar-text)]">
+              <i className="ti ti-receipt text-sm mr-1.5" aria-hidden="true"/>Comprobantes de transferencia
+            </h3>
+            <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">{pagosConVoucher.length} por revisar</span>
+          </div>
+          <div className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto">
+            {pagosConVoucher.map((p: any) => (
+              <div key={p.id} className="p-4 flex gap-4 hover:bg-gray-50">
+                {/* Voucher image */}
+                {p.referencia && (
+                  <a href={p.referencia} target="_blank" className="flex-shrink-0">
+                    <img src={p.referencia} alt="Comprobante" className="w-20 h-20 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity"/>
+                  </a>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-[var(--ar-text)]">
+                    {p.cobro?.alumno?.nombre} {p.cobro?.alumno?.apellido}
+                  </div>
+                  <div className="text-[10px] text-[var(--ar-muted)]">
+                    {p.cobro?.familia?.nombre_apoderado} · {p.cobro?.alumno?.curso}
+                  </div>
+                  <div className="text-xs font-bold text-[#2D5A3F] mt-1">
+                    ${p.monto?.toLocaleString('es-CL')} CLP
+                  </div>
+                  <div className="text-[9px] text-[var(--ar-muted)] mt-0.5">
+                    {new Date(p.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+                <div className="flex-shrink-0">
+                  {p.referencia && (
+                    <a href={p.referencia} target="_blank" className="text-[10px] text-[var(--ar-accent)] hover:underline font-medium">
+                      Ver comprobante →
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
