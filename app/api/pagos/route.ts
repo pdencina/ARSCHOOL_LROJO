@@ -47,17 +47,16 @@ export async function POST(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Si es pago directo (sin comprobante por validar), marcar cobro como pagado
-  if (!comprobante_url) {
-    const nuevoMontoPagado = (cobroData.monto_pagado ?? 0) + montoPago
-    const nuevoEstado = nuevoMontoPagado >= cobroData.monto ? 'pagado' : 'parcial'
-    await admin.from('cobros').update({
-      monto_pagado: nuevoMontoPagado,
-      estado: nuevoEstado,
-    }).eq('id', cobro_id)
-  }
+  // Marcar cobro como pagado (con o sin comprobante)
+  const nuevoMontoPagado = (cobroData.monto_pagado ?? 0) + montoPago
+  const nuevoEstado = nuevoMontoPagado >= cobroData.monto ? 'pagado' : 'parcial'
+  await admin.from('cobros').update({
+    monto_pagado: nuevoMontoPagado,
+    estado: nuevoEstado,
+    fecha_pago: new Date().toISOString().split('T')[0],
+  }).eq('id', cobro_id)
 
-  return NextResponse.json({ ok: true, pago })
+  return NextResponse.json({ ok: true, pago, por_confirmar: !!comprobante_url })
 }
 
 // GET: Listar pagos (para admin: todos del colegio, para apoderado: solo los suyos)
