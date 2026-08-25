@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import toast from 'react-hot-toast'
 
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 
@@ -271,12 +272,29 @@ export default function CobranzaClient({ cobros, logReciente, anio, pagosConVouc
                     {new Date(p.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 flex flex-col gap-1.5">
                   {p.referencia && (
                     <a href={p.referencia} target="_blank" className="text-[10px] text-[var(--ar-accent)] hover:underline font-medium">
                       Ver comprobante →
                     </a>
                   )}
+                  <button
+                    onClick={async () => {
+                      if (!confirm('¿Confirmar este pago como recibido?')) return
+                      try {
+                        const res = await fetch('/api/pagos/confirmar', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ pago_id: p.id, cobro_id: p.cobro_id }),
+                        })
+                        if (res.ok) { toast.success('Pago confirmado'); window.location.reload() }
+                        else toast.error('Error al confirmar')
+                      } catch { toast.error('Error') }
+                    }}
+                    className="text-[10px] bg-[#2D5A3F] text-white px-2.5 py-1 rounded-md font-semibold hover:bg-[#245234]"
+                  >
+                    ✓ Confirmar
+                  </button>
                 </div>
               </div>
             ))}
