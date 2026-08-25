@@ -40,14 +40,10 @@ export async function POST(request: NextRequest) {
   // Crear registro de pago
   const { data: pago, error } = await admin.from('pagos').insert({
     cobro_id,
-    alumno_id: cobroData.alumno_id,
-    colegio_id: cobroData.colegio_id,
     monto: montoPago,
-    metodo: metodo || 'transferencia',
-    comprobante_url: comprobante_url || null,
-    estado: comprobante_url ? 'pendiente' : 'confirmado', // Si tiene comprobante, queda pendiente de validación
+    medio_pago: metodo || 'transferencia',
+    referencia: comprobante_url || null,
     registrado_por: user.id,
-    observaciones: observaciones || null,
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

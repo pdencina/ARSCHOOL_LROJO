@@ -5,6 +5,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { formatMonto } from '@/lib/utils'
 import EditarDatosMedicos from '@/components/alumnos/EditarDatosMedicos'
+import EditarApoderado from '@/components/alumnos/EditarApoderado'
 
 export const metadata = { title: 'Ficha del Alumno — AR School' }
 
@@ -135,7 +136,10 @@ export default async function FichaAlumnoPage({ params }: { params: { id: string
 
           {fam && (
             <div className="bg-white border border-[var(--ar-border)] rounded-xl p-4" style={{ boxShadow: 'var(--shadow-sm)' }}>
-              <div className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider mb-3">Apoderado</div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider">Apoderado</div>
+                <EditarApoderado familiaId={fam.id} datos={fam} />
+              </div>
               <div className="space-y-2 text-[12px]">
                 <div className="font-medium text-[#1a2332]">{fam.nombre_apoderado} {fam.apellido_apoderado}</div>
                 <div className="text-[#6b7280]">{fam.email}</div>
