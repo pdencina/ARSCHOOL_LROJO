@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import toast, { Toaster } from 'react-hot-toast'
+import { formatearRut, validarRut } from '@/lib/validaciones'
 
 const INSTRUMENTOS = ['Guitarra', 'Bajo', 'Teclado', 'Batería', 'Canto', 'Saxophone', 'Violín']
 const PROGRAMAS = [
@@ -15,9 +16,10 @@ export default function WorshipInscripcionPage() {
   const [codigo, setCodigo] = useState('')
   const [form, setForm] = useState({
     programa: '', // music_and_play | ar_worship
-    alumno_nombre: '', alumno_apellido: '', alumno_rut: '', alumno_fecha_nacimiento: '',
-    alumno_sexo: '', alumno_telefono: '', alumno_email: '',
-    apoderado_nombre: '', apoderado_apellido: '', apoderado_email: '', apoderado_telefono: '',
+    alumno_nombre: '', alumno_segundo_nombre: '', alumno_apellido: '', alumno_apellido_materno: '',
+    alumno_rut: '', alumno_fecha_nacimiento: '', alumno_sexo: '', alumno_telefono: '', alumno_email: '',
+    apoderado_nombre: '', apoderado_segundo_nombre: '', apoderado_apellido: '', apoderado_apellido_materno: '',
+    apoderado_rut: '', apoderado_email: '', apoderado_telefono: '', apoderado_direccion: '',
     instrumento: '', ciclo: '', rango_edad: '', experiencia_previa: '', motivacion: '',
     como_se_entero: '', observaciones: '', sede: 'santiago',
   })
@@ -25,16 +27,26 @@ export default function WorshipInscripcionPage() {
   function set(field: string, value: string) { setForm(f => ({ ...f, [field]: value })) }
 
   async function enviar() {
-    if (!form.alumno_nombre || !form.alumno_apellido || !form.programa) {
-      toast.error('Nombre, apellido y programa son obligatorios')
-      return
-    }
-    if (form.programa === 'ar_worship' && !form.instrumento) {
-      toast.error('Selecciona un instrumento')
-      return
-    }
-    if (!form.apoderado_email && !form.alumno_email) {
-      toast.error('Se requiere al menos un email de contacto')
+    // Validar campos obligatorios
+    const errores: string[] = []
+    if (!form.alumno_nombre) errores.push('Primer nombre del alumno')
+    if (!form.alumno_segundo_nombre) errores.push('Segundo nombre del alumno')
+    if (!form.alumno_apellido) errores.push('Apellido paterno del alumno')
+    if (!form.alumno_apellido_materno) errores.push('Apellido materno del alumno')
+    if (!form.alumno_rut || !validarRut(form.alumno_rut)) errores.push('RUT del alumno válido')
+    if (!form.alumno_fecha_nacimiento) errores.push('Fecha de nacimiento')
+    if (!form.alumno_sexo) errores.push('Sexo')
+    if (!form.programa) errores.push('Programa')
+    if (form.programa === 'ar_worship' && !form.instrumento) errores.push('Instrumento')
+    if (form.programa === 'music_and_play' && !form.rango_edad) errores.push('Rango de edad')
+    if (!form.apoderado_nombre) errores.push('Nombre del apoderado')
+    if (!form.apoderado_apellido) errores.push('Apellido del apoderado')
+    if (!form.apoderado_email) errores.push('Email del apoderado')
+    if (!form.apoderado_telefono) errores.push('Teléfono del apoderado')
+    if (form.apoderado_rut && !validarRut(form.apoderado_rut)) errores.push('RUT apoderado válido')
+
+    if (errores.length > 0) {
+      toast.error(`Campos obligatorios: ${errores.slice(0, 3).join(', ')}${errores.length > 3 ? ` (+${errores.length - 3} más)` : ''}`)
       return
     }
 
@@ -52,18 +64,20 @@ export default function WorshipInscripcionPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          alumno_nombre: form.alumno_nombre,
-          alumno_apellido: form.alumno_apellido,
+          alumno_nombre: `${form.alumno_nombre} ${form.alumno_segundo_nombre || ''}`.trim(),
+          alumno_apellido: `${form.alumno_apellido} ${form.alumno_apellido_materno || ''}`.trim(),
           alumno_rut: form.alumno_rut,
           alumno_fecha_nacimiento: form.alumno_fecha_nacimiento,
           alumno_sexo: form.alumno_sexo,
           curso_solicitado: `AR Worship - ${nivel}`,
           sede: form.sede,
           jornada: 'completa',
-          apoderado_nombre: form.apoderado_nombre || form.alumno_nombre,
-          apoderado_apellido: form.apoderado_apellido || form.alumno_apellido,
-          apoderado_email: form.apoderado_email || form.alumno_email,
-          apoderado_telefono: form.apoderado_telefono || form.alumno_telefono,
+          apoderado_nombre: `${form.apoderado_nombre} ${form.apoderado_segundo_nombre || ''}`.trim(),
+          apoderado_apellido: `${form.apoderado_apellido} ${form.apoderado_apellido_materno || ''}`.trim(),
+          apoderado_rut: form.apoderado_rut || null,
+          apoderado_email: form.apoderado_email,
+          apoderado_telefono: form.apoderado_telefono,
+          apoderado_direccion: form.apoderado_direccion || null,
           observaciones_apoderado: [
             `Programa: ${form.programa === 'music_and_play' ? 'Music and Play' : 'AR Worship School'}`,
             form.instrumento ? `Instrumento: ${form.instrumento}` : '',
@@ -123,18 +137,42 @@ export default function WorshipInscripcionPage() {
 
           <div className="space-y-4">
             {/* Datos alumno */}
+            <div className="text-[10px] font-bold text-[#ff6b6b] uppercase tracking-wider">Datos del alumno</div>
             <div className="grid grid-cols-2 gap-3">
-              <WInput label="Nombre *" value={form.alumno_nombre} onChange={v => set('alumno_nombre', v)}/>
-              <WInput label="Apellido *" value={form.alumno_apellido} onChange={v => set('alumno_apellido', v)}/>
+              <WInput label="Primer nombre *" value={form.alumno_nombre} onChange={v => set('alumno_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Benjamín"/>
+              <WInput label="Segundo nombre *" value={form.alumno_segundo_nombre || ''} onChange={v => set('alumno_segundo_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Ananías"/>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <WInput label="RUT" value={form.alumno_rut} onChange={v => set('alumno_rut', v)} placeholder="12.345.678-9"/>
-              <WInput label="Fecha nacimiento" type="date" value={form.alumno_fecha_nacimiento} onChange={v => set('alumno_fecha_nacimiento', v)}/>
+              <WInput label="Apellido paterno *" value={form.alumno_apellido} onChange={v => set('alumno_apellido', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Pinto"/>
+              <WInput label="Apellido materno *" value={form.alumno_apellido_materno || ''} onChange={v => set('alumno_apellido_materno', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Guzmán"/>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <WInput label="Email" type="email" value={form.alumno_email} onChange={v => set('alumno_email', v)}/>
-              <WInput label="Teléfono" value={form.alumno_telefono} onChange={v => set('alumno_telefono', v)} placeholder="+56 9..."/>
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">RUT alumno *</label>
+                <div className="relative">
+                  <input type="text" value={form.alumno_rut} onChange={e => set('alumno_rut', formatearRut(e.target.value))} placeholder="12.345.678-9" maxLength={12}
+                    className="w-full px-3 py-2.5 pr-8 bg-[#1a1a1a] border border-[#3a3a3a] rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-[#ff6b6b]"/>
+                  {form.alumno_rut && form.alumno_rut.length > 3 && (
+                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-sm ${validarRut(form.alumno_rut) ? 'text-green-400' : 'text-red-400'}`}>
+                      {validarRut(form.alumno_rut) ? '✓' : '✗'}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <WInput label="Fecha nacimiento *" type="date" value={form.alumno_fecha_nacimiento} onChange={v => set('alumno_fecha_nacimiento', v)}/>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Sexo *</label>
+                <select value={form.alumno_sexo} onChange={e => set('alumno_sexo', e.target.value)} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#3a3a3a] rounded-xl text-sm text-white outline-none focus:border-[#ff6b6b] appearance-none">
+                  <option value="">Seleccionar...</option>
+                  <option value="masculino">Masculino</option>
+                  <option value="femenino">Femenino</option>
+                </select>
+              </div>
+              <WInput label="Teléfono alumno" value={form.alumno_telefono} onChange={v => set('alumno_telefono', v)} placeholder="+56 9 1234 5678"/>
+            </div>
+            <WInput label="Email alumno" type="email" value={form.alumno_email} onChange={v => set('alumno_email', v)} placeholder="correo@ejemplo.com"/>
 
             {/* Programa */}
             <div>
@@ -213,18 +251,35 @@ export default function WorshipInscripcionPage() {
               </select>
             </div>
 
-            {/* Apoderado (si es menor) */}
-            <details className="group">
-              <summary className="text-[11px] font-semibold text-[#ff6b6b] cursor-pointer py-1">Datos del apoderado (si el alumno es menor de edad)</summary>
-              <div className="space-y-3 mt-3">
+            {/* Apoderado — obligatorio */}
+            <div className="border-t border-[#3a3a3a] pt-4 mt-4">
+              <div className="text-[10px] font-bold text-[#ff6b6b] uppercase tracking-wider mb-3">Datos del apoderado *</div>
+              <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <WInput label="Nombre apoderado" value={form.apoderado_nombre} onChange={v => set('apoderado_nombre', v)}/>
-                  <WInput label="Apellido apoderado" value={form.apoderado_apellido} onChange={v => set('apoderado_apellido', v)}/>
+                  <WInput label="Primer nombre *" value={form.apoderado_nombre} onChange={v => set('apoderado_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Nombre"/>
+                  <WInput label="Segundo nombre" value={form.apoderado_segundo_nombre || ''} onChange={v => set('apoderado_segundo_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))}/>
                 </div>
-                <WInput label="Email apoderado" type="email" value={form.apoderado_email} onChange={v => set('apoderado_email', v)}/>
-                <WInput label="Teléfono apoderado" value={form.apoderado_telefono} onChange={v => set('apoderado_telefono', v)}/>
+                <div className="grid grid-cols-2 gap-3">
+                  <WInput label="Apellido paterno *" value={form.apoderado_apellido} onChange={v => set('apoderado_apellido', v.replace(/\b\w/g, c => c.toUpperCase()))}/>
+                  <WInput label="Apellido materno *" value={form.apoderado_apellido_materno || ''} onChange={v => set('apoderado_apellido_materno', v.replace(/\b\w/g, c => c.toUpperCase()))}/>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">RUT apoderado *</label>
+                  <div className="relative">
+                    <input type="text" value={form.apoderado_rut || ''} onChange={e => set('apoderado_rut', formatearRut(e.target.value))} placeholder="12.345.678-9" maxLength={12}
+                      className="w-full px-3 py-2.5 pr-8 bg-[#1a1a1a] border border-[#3a3a3a] rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-[#ff6b6b]"/>
+                    {form.apoderado_rut && form.apoderado_rut.length > 3 && (
+                      <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-sm ${validarRut(form.apoderado_rut) ? 'text-green-400' : 'text-red-400'}`}>
+                        {validarRut(form.apoderado_rut) ? '✓' : '✗'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <WInput label="Email apoderado *" type="email" value={form.apoderado_email} onChange={v => set('apoderado_email', v)} placeholder="correo@ejemplo.com"/>
+                <WInput label="Teléfono apoderado *" value={form.apoderado_telefono} onChange={v => set('apoderado_telefono', v)} placeholder="+56 9 1234 5678"/>
+                <WInput label="Dirección *" value={form.apoderado_direccion || ''} onChange={v => set('apoderado_direccion', v)} placeholder="Calle, número, comuna"/>
               </div>
-            </details>
+            </div>
 
             <WInput label="Observaciones" value={form.observaciones} onChange={v => set('observaciones', v)} placeholder="Algo que quieras agregar..."/>
           </div>
