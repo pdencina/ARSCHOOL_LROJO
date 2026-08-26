@@ -152,6 +152,52 @@ export default async function InicioPage() {
         tipo: 'warning',
       })
     }
+
+    // Vouchers/comprobantes por confirmar
+    const { count: vouchersPendientes } = await admin
+      .from('pagos')
+      .select('*', { count: 'exact', head: true })
+      .not('referencia', 'is', null)
+      .eq('medio_pago', 'transferencia')
+    if (vouchersPendientes && vouchersPendientes > 0) {
+      pendientes.push({
+        texto: `${vouchersPendientes} comprobante${vouchersPendientes > 1 ? 's' : ''} de transferencia por revisar`,
+        href: '/cobranza',
+        icon: 'ti-receipt',
+        tipo: 'action',
+      })
+    }
+
+    // Pre-admisiones pendientes de importar
+    const { count: preAdmisionesPendientes } = await admin
+      .from('pre_admisiones')
+      .select('*', { count: 'exact', head: true })
+      .eq('colegio_id', colegioId)
+      .eq('estado', 'aprobada')
+    if (preAdmisionesPendientes && preAdmisionesPendientes > 0) {
+      pendientes.push({
+        texto: `${preAdmisionesPendientes} admisión${preAdmisionesPendientes > 1 ? 'es' : ''} aprobada${preAdmisionesPendientes > 1 ? 's' : ''} por matricular`,
+        href: '/matricula',
+        icon: 'ti-user-plus',
+        tipo: 'info',
+      })
+    }
+
+    // Contratos pendientes de firma
+    const { count: contratosPendientes } = await admin
+      .from('matriculas')
+      .select('*', { count: 'exact', head: true })
+      .eq('colegio_id', colegioId)
+      .eq('estado', 'activa')
+      .is('firma_apoderado', null)
+    if (contratosPendientes && contratosPendientes > 0) {
+      pendientes.push({
+        texto: `${contratosPendientes} contrato${contratosPendientes > 1 ? 's' : ''} pendiente${contratosPendientes > 1 ? 's' : ''} de firma`,
+        href: '/matricula',
+        icon: 'ti-file-certificate',
+        tipo: 'warning',
+      })
+    }
   }
 
   // Mensajes sin respuesta >24h (admin/super_admin)

@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   if (!cobro_id) return NextResponse.json({ error: 'cobro_id requerido' }, { status: 400 })
 
   // Obtener el cobro
-  const { data: cobro } = await admin.from('cobros').select('*').eq('id', cobro_id).single()
+  const { data: cobro } = await admin.from('cobros').select('*, alumno:alumnos(nombre, apellido)').eq('id', cobro_id).single()
   if (!cobro) return NextResponse.json({ error: 'Cobro no encontrado' }, { status: 404 })
 
   const cobroData = cobro as any
@@ -55,6 +55,42 @@ export async function POST(request: NextRequest) {
     estado: nuevoEstado,
     fecha_pago: new Date().toISOString().split('T')[0],
   }).eq('id', cobro_id)
+
+  // Notificar al admin si es pago con comprobante (voucher)
+  if (comprobante_url) {
+    const { enviarEmail } = await import('@/lib/email')
+    const alumnoNombre = `${cobroData.alumno?.nombre || ''} ${cobroData.alumno?.apellido || ''}`.trim() || 'Alumno'
+    // Notificar a admins del colegio
+    const { data: admins } = await admin
+      .from('usuarios')
+      .select('email')
+      .eq('colegio_id', cobroData.colegio_id)
+      .in('rol', ['super_admin', 'admin', 'pastor_campus'])
+      .eq('activo', true)
+    const emailsAdmin = (admins ?? []).map((a: any) => a.email).filter(Boolean).slice(0, 5)
+    if (emailsAdmin.length > 0) {
+      await enviarEmail({
+        to: emailsAdmin,
+        subject: `AR School — Comprobante de pago recibido: ${alumnoNombre}`,
+        html: `
+          <div style="font-family:-apple-system,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
+            <strong style="font-size:15px;color:#1B3A5C;">AR SCHOOL</strong>
+            <h2 style="color:#1B3A5C;font-size:16px;margin:16px 0 8px;">Comprobante de pago recibido</h2>
+            <p style="color:#4b5563;font-size:13px;">Un apoderado ha reportado un pago por transferencia:</p>
+            <div style="background:#f8f9fb;border-radius:8px;padding:14px;margin:12px 0;">
+              <p style="margin:0;font-size:13px;color:#1a2332;"><strong>Alumno:</strong> ${alumnoNombre}</p>
+              <p style="margin:4px 0 0;font-size:13px;color:#1a2332;"><strong>Monto:</strong> $${montoPago.toLocaleString('es-CL')} CLP</p>
+              <p style="margin:4px 0 0;font-size:13px;color:#1a2332;"><strong>Estado:</strong> Pagado (por confirmar)</p>
+            </div>
+            <p style="color:#6b7280;font-size:12px;">Ingrese a la sección de <strong>Cobranza</strong> para revisar el comprobante y confirmar.</p>
+            <div style="margin-top:20px;text-align:center;">
+              <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://app.arschoolglobal.com'}/cobranza" style="background:#1B3A5C;color:white;text-decoration:none;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;">Ver en Cobranza</a>
+            </div>
+          </div>
+        `,
+      }).catch(() => {}) // No bloquear si falla el email
+    }
+  }
 
   return NextResponse.json({ ok: true, pago, por_confirmar: !!comprobante_url })
 }
