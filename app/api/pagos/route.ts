@@ -26,12 +26,31 @@ export async function POST(request: NextRequest) {
 
   const admin = getAdmin()
   const body = await request.json()
-  const { cobro_id, comprobante_url, metodo, monto: montoManual, observaciones } = body
+  const { cobro_id, matricula_id, tipo_cobro, comprobante_url, metodo, monto: montoManual, observaciones } = body
 
-  if (!cobro_id) return NextResponse.json({ error: 'cobro_id requerido' }, { status: 400 })
+  let cobroIdFinal = cobro_id
+
+  // Si viene matricula_id, buscar el cobro por tipo
+  if (!cobroIdFinal && matricula_id) {
+    const { data: mat } = await admin.from('matriculas').select('alumno_id').eq('id', matricula_id).single()
+    if (mat) {
+      const tipoBuscar = tipo_cobro || 'aporte_inicial'
+      const { data: cobroBuscado } = await admin.from('cobros')
+        .select('id')
+        .eq('alumno_id', (mat as any).alumno_id)
+        .eq('tipo_concepto', tipoBuscar)
+        .eq('estado', 'pendiente')
+        .order('anio').order('mes')
+        .limit(1)
+        .single()
+      if (cobroBuscado) cobroIdFinal = (cobroBuscado as any).id
+    }
+  }
+
+  if (!cobroIdFinal) return NextResponse.json({ error: 'No se encontró cobro pendiente' }, { status: 400 })
 
   // Obtener el cobro
-  const { data: cobro } = await admin.from('cobros').select('*, alumno:alumnos(nombre, apellido)').eq('id', cobro_id).single()
+  const { data: cobro } = await admin.from('cobros').select('*, alumno:alumnos(nombre, apellido)').eq('id', cobroIdFinal).single()
   if (!cobro) return NextResponse.json({ error: 'Cobro no encontrado' }, { status: 404 })
 
   const cobroData = cobro as any
@@ -39,7 +58,7 @@ export async function POST(request: NextRequest) {
 
   // Crear registro de pago
   const { data: pago, error } = await admin.from('pagos').insert({
-    cobro_id,
+    cobro_id: cobroIdFinal,
     monto: montoPago,
     medio_pago: metodo || 'transferencia',
     referencia: comprobante_url || null,
@@ -54,7 +73,7 @@ export async function POST(request: NextRequest) {
     monto_pagado: nuevoMontoPagado,
     estado: nuevoEstado,
     fecha_pago: new Date().toISOString().split('T')[0],
-  }).eq('id', cobro_id)
+  }).eq('id', cobroIdFinal)
 
   // Notificar al admin si es pago con comprobante (voucher)
   if (comprobante_url) {

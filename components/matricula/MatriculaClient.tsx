@@ -45,6 +45,14 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
       if (res.ok) {
         const data = await res.json()
         setRutDuplicado(data.existe ? data.alumno : null)
+        // Auto-aplicar beca si el alumno tiene una aprobada
+        if (data.existe && data.alumno?.id) {
+          const becaAlumno = becasAprobadas.find((b: any) => b.alumno_id === data.alumno.id)
+          if (becaAlumno) {
+            setForm(p => ({...p, porcentaje_beca: becaAlumno.porcentaje}))
+            toast.success(`Beca ${becaAlumno.porcentaje}% aplicada automáticamente`)
+          }
+        }
       }
     } catch { /* silently fail */ }
   }
@@ -517,8 +525,9 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                 </select>
               </div>
               <div><label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Tipo de ingreso</label>
-                <select value={form.tipo_ingreso} onChange={e => { setForm(p => ({...p, tipo_ingreso: e.target.value})); calcularMontos(form.curso, form.jornada, form.sede, e.target.value) }} className="select-base w-full">
-                  <option value="nuevo">Nuevo ingreso</option>
+                <select value={form.tipo_ingreso} onChange={e => { setForm(p => ({...p, tipo_ingreso: e.target.value})); calcularMontos(form.curso, form.jornada, form.sede, e.target.value) }} className={`w-full px-3 py-2.5 rounded-xl border-2 text-sm font-semibold outline-none transition-all ${form.tipo_ingreso === 'continuidad' ? 'border-[#2D5A3F] bg-[#EDF5F0] text-[#2D5A3F]' : 'border-[#1B3A5C] bg-[#EDF6FA] text-[#1B3A5C]'}`}>
+                  <option value="nuevo">🆕 Nuevo ingreso</option>
+                  <option value="continuidad">🔄 Continuidad</option>
                   <option value="continuidad">Continuidad</option>
                 </select>
               </div>
@@ -727,10 +736,24 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                 <label className="block text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Beca / Descuento (%)</label>
                 <input type="number" min="0" max="100" value={form.porcentaje_beca || ''} onChange={e => setForm(p => ({...p, porcentaje_beca: parseInt(e.target.value) || 0}))} className="input-base" placeholder="0"/>
                 {becasAprobadas.length > 0 && (
-                  <p className="text-[10px] text-emerald-600 mt-1">
-                    <i className="ti ti-info-circle text-[10px] mr-0.5" aria-hidden="true"/>
-                    {becasAprobadas.length} beca{becasAprobadas.length > 1 ? 's' : ''} aprobada{becasAprobadas.length > 1 ? 's' : ''} este año.
-                  </p>
+                  <div className="mt-1.5">
+                    <p className="text-[9px] text-emerald-600 mb-1">
+                      <i className="ti ti-info-circle text-[9px] mr-0.5" aria-hidden="true"/>
+                      Becas aprobadas disponibles:
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {becasAprobadas.map((b: any, i: number) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setForm(p => ({...p, porcentaje_beca: b.porcentaje}))}
+                          className={`text-[9px] px-2 py-0.5 rounded-full font-semibold transition-colors ${form.porcentaje_beca === b.porcentaje ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
+                        >
+                          {b.porcentaje}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -909,7 +932,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                   <i className="ti ti-cash text-[#2D5A3F]" aria-hidden="true"/>
                   <span className="text-xs font-bold text-[var(--ar-text)]">Pago aporte inicial: ${form.monto_matricula.toLocaleString('es-CL')}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {/* Pagar con tarjeta (Webpay) */}
                   <button
                     onClick={async () => {
@@ -939,8 +962,8 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                     className="flex flex-col items-center gap-1.5 p-3 bg-white border border-[var(--ar-border)] rounded-lg hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
                   >
                     <i className="ti ti-credit-card text-blue-600 text-lg" aria-hidden="true"/>
-                    <span className="text-[10px] font-semibold text-[var(--ar-text)]">Pagar con tarjeta</span>
-                    <span className="text-[8px] text-[var(--ar-muted)]">Débito / Crédito</span>
+                    <span className="text-[10px] font-semibold text-[var(--ar-text)]">Tarjeta</span>
+                    <span className="text-[8px] text-[var(--ar-muted)]">Webpay</span>
                   </button>
 
                   {/* Pago por transferencia */}
@@ -953,8 +976,38 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                   >
                     <i className="ti ti-building-bank text-emerald-600 text-lg" aria-hidden="true"/>
                     <span className="text-[10px] font-semibold text-[var(--ar-text)]">Transferencia</span>
-                    <span className="text-[8px] text-[var(--ar-muted)]">Copiar datos banco</span>
+                    <span className="text-[8px] text-[var(--ar-muted)]">Copiar datos</span>
                   </button>
+
+                  {/* Adjuntar comprobante */}
+                  <label className="flex flex-col items-center gap-1.5 p-3 bg-white border border-[var(--ar-border)] rounded-lg hover:border-amber-300 hover:bg-amber-50/30 transition-colors cursor-pointer">
+                    <i className="ti ti-upload text-amber-600 text-lg" aria-hidden="true"/>
+                    <span className="text-[10px] font-semibold text-[var(--ar-text)]">Adjuntar</span>
+                    <span className="text-[8px] text-[var(--ar-muted)]">Comprobante</span>
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        const reader = new FileReader()
+                        reader.onload = async () => {
+                          try {
+                            const res = await fetch('/api/pagos', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ matricula_id: matriculaCompletada, tipo_cobro: 'aporte_inicial', comprobante_url: reader.result, metodo: 'transferencia' }),
+                            })
+                            if (res.ok) toast.success('Comprobante adjuntado. Pago registrado.')
+                            else toast.error('Error al adjuntar comprobante')
+                          } catch { toast.error('Error') }
+                        }
+                        reader.readAsDataURL(file)
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
                 </div>
                 <div className="mt-2 bg-white border border-gray-100 rounded-lg p-2.5 text-[9px] text-[var(--ar-muted)] leading-relaxed">
                   <strong>Datos bancarios:</strong> Fundación Educacional AR Ministries · RUT 65.168.392-0<br/>

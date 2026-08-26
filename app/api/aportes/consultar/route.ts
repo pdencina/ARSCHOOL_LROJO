@@ -28,22 +28,6 @@ export async function GET(request: NextRequest) {
   const nivel = esPlaygroup ? 'Playgroup' : 'Preschool a High School'
   const jornadaTipo = jornada === 'completa' ? 'completa' : 'media'
 
-  // Buscar aporte inicial
-  const { data: iniciales } = await admin
-    .from('tabla_aportes')
-    .select('monto, sede, nivel')
-    .eq('tipo', 'inicial')
-    .eq('nivel', nivel)
-    .eq('activo', true)
-    .eq('anio', anio)
-
-  let montoInicial = 0
-  if (iniciales && iniciales.length > 0) {
-    const conSede = (iniciales as any[]).find(a => a.sede === sede)
-    const sinSede = (iniciales as any[]).find(a => !a.sede)
-    montoInicial = (conSede || sinSede || iniciales[0] as any).monto
-  }
-
   // Buscar aporte mensual
   const { data: mensuales } = await admin
     .from('tabla_aportes')
@@ -56,12 +40,35 @@ export async function GET(request: NextRequest) {
   let montoMensual = 0
   if (mensuales && mensuales.length > 0) {
     const candidatos = mensuales as any[]
-    const match1 = candidatos.find(a => (a.tipo_ingreso === tipoIngreso || a.tipo_ingreso === 'todos') && a.sede === sede && (a.jornada === jornadaTipo || !a.jornada))
-    const match2 = candidatos.find(a => a.sede === sede && (a.jornada === jornadaTipo || !a.jornada))
-    const match3 = candidatos.find(a => !a.sede && (a.jornada === jornadaTipo || !a.jornada))
-    const match4 = candidatos.find(a => (a.jornada === jornadaTipo || !a.jornada))
-    const match5 = candidatos[0]
-    montoMensual = (match1 || match2 || match3 || match4 || match5).monto
+    // Prioridad de búsqueda: más específico → más genérico
+    const match = candidatos.find(a => a.tipo_ingreso === tipoIngreso && a.sede === sede && (a.jornada === jornadaTipo || !a.jornada))
+      || candidatos.find(a => a.tipo_ingreso === 'todos' && a.sede === sede && (a.jornada === jornadaTipo || !a.jornada))
+      || candidatos.find(a => a.tipo_ingreso === tipoIngreso && !a.sede && (a.jornada === jornadaTipo || !a.jornada))
+      || candidatos.find(a => a.sede === sede && (a.jornada === jornadaTipo || !a.jornada))
+      || candidatos.find(a => !a.sede && (a.jornada === jornadaTipo || !a.jornada))
+      || candidatos[0]
+    montoMensual = match.monto
+  }
+
+  // Buscar aporte inicial (también puede variar por sede)
+  const { data: iniciales } = await admin
+    .from('tabla_aportes')
+    .select('monto, sede, tipo_ingreso')
+    .eq('tipo', 'inicial')
+    .eq('nivel', nivel)
+    .eq('activo', true)
+    .eq('anio', anio)
+
+  let montoInicial = 0
+  if (iniciales && iniciales.length > 0) {
+    const candidatos = iniciales as any[]
+    const match = candidatos.find(a => a.tipo_ingreso === tipoIngreso && a.sede === sede)
+      || candidatos.find(a => a.tipo_ingreso === 'todos' && a.sede === sede)
+      || candidatos.find(a => a.tipo_ingreso === tipoIngreso && !a.sede)
+      || candidatos.find(a => a.sede === sede)
+      || candidatos.find(a => !a.sede)
+      || candidatos[0]
+    montoInicial = match.monto
   }
 
   return NextResponse.json({

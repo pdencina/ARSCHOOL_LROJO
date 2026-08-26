@@ -217,21 +217,6 @@ export default function PreAdmisionForm() {
             </div>
             <Field label="Dirección del alumno" value={form.alumno_direccion} onChange={v => set('alumno_direccion', v)} placeholder="Calle, número, depto"/>
             <ComunaField label="Comuna" value={form.alumno_comuna} onChange={v => set('alumno_comuna', v)}/>
-
-            {/* Montos referenciales desde tabla de aportes */}
-            {montosRef && montosRef.mensual > 0 && (
-              <div className="bg-[#f0f4f8] rounded-xl p-3 mt-2">
-                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Aportes referenciales</div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-600">Aporte inicial:</span>
-                  <span className="font-semibold text-[#1B3A5C]">${montosRef.inicial.toLocaleString('es-CL')}</span>
-                </div>
-                <div className="flex justify-between text-xs mt-1">
-                  <span className="text-gray-600">Aporte mensual:</span>
-                  <span className="font-semibold text-[#1B3A5C]">${montosRef.mensual.toLocaleString('es-CL')}</span>
-                </div>
-              </div>
-            )}
           </section>
         )}
 
