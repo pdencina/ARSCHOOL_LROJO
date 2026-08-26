@@ -85,7 +85,7 @@ export default function PortalPagosClient({ cobros }: Props) {
   const pagados = cobros.filter(c => c.estado === 'pagado')
   const totalPendiente = pendientes.reduce((a, c) => a + (c.monto - (c.monto_pagado ?? 0)), 0)
 
-  function comprimirImagen(file: File, maxDim = 1600, calidad = 0.7): Promise<string> {
+  function comprimirImagen(file: File, maxDim = 1200, calidad = 0.6): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onerror = () => reject(new Error('No se pudo leer el archivo'))
@@ -116,6 +116,17 @@ export default function PortalPagosClient({ cobros }: Props) {
   async function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    // PDFs: rechazar si es muy grande, aceptar si es chico
+    if (file.type === 'application/pdf') {
+      if (file.size > 3 * 1024 * 1024) {
+        toast.error('PDF muy pesado. Por favor haga un screenshot del comprobante y suba la imagen.')
+        return
+      }
+      const reader = new FileReader()
+      reader.onload = () => setComprobante(reader.result as string)
+      reader.readAsDataURL(file)
+      return
+    }
     try {
       const dataUrl = await comprimirImagen(file)
       setComprobante(dataUrl)
@@ -126,6 +137,12 @@ export default function PortalPagosClient({ cobros }: Props) {
 
   async function enviarComprobante(cobroId: string) {
     if (!comprobante) { toast.error('Sube una foto del comprobante'); return }
+    // Verificar tamaño del base64 (Vercel limit ~4MB)
+    const tamanoMB = (comprobante.length * 0.75) / (1024 * 1024)
+    if (tamanoMB > 3.5) {
+      toast.error(`Imagen muy pesada (${tamanoMB.toFixed(1)}MB). Use una foto más liviana o haga screenshot.`)
+      return
+    }
     setEnviando(true)
     try {
       const res = await fetch('/api/pagos', {
@@ -134,14 +151,13 @@ export default function PortalPagosClient({ cobros }: Props) {
         body: JSON.stringify({ cobro_id: cobroId, comprobante_url: comprobante, metodo: 'transferencia' }),
       })
       if (res.ok) {
-        toast.success('Comprobante enviado. Se validará en breve.')
+        toast.success('Comprobante enviado correctamente')
         setReportandoId(null)
         setComprobante('')
-        // Refresh page
         window.location.reload()
       } else {
         const data = await res.json().catch(() => null)
-        toast.error(data?.error ? `Error al enviar comprobante: ${data.error}` : 'Error al enviar comprobante')
+        toast.error(data?.error ? `Error: ${data.error}` : 'Error al enviar comprobante. Intente con una imagen más liviana.')
       }
     } catch {
       toast.error('Error de conexión al enviar comprobante')
