@@ -164,7 +164,7 @@ export default function WorshipInscripcionPage() {
             {form.programa === 'ar_worship' && (
               <div className="bg-[#1a1a1a] border border-[#3a3a3a] rounded-xl p-4 space-y-3">
                 <div>
-                  <label className="block text-[10px] font-semibold text-[#ff6b6b] uppercase tracking-wider mb-2">Instrumento *</label>
+                  <label className="block text-[10px] font-semibold text-[#ff6b6b] uppercase tracking-wider mb-1">Instrumento * <span className="normal-case text-gray-400 font-normal">(desde 8 años en adelante)</span></label>
                   <div className="grid grid-cols-2 gap-2">
                     {INSTRUMENTOS.map(i => (
                       <button key={i} type="button" onClick={() => set('instrumento', i)} className={`py-2.5 rounded-lg text-xs font-semibold transition-all ${form.instrumento === i ? 'bg-[#ff6b6b] text-white' : 'bg-[#2a2a2a] text-gray-300 border border-[#3a3a3a] hover:border-[#ff6b6b]'}`}>
