@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AlumnosClient from '@/components/alumnos/AlumnosClient'
+import { getColegioScope } from '@/lib/colegioScope'
 
 function getAdmin() {
   return createAdminClient(
@@ -19,12 +20,18 @@ export default async function AlumnosPage() {
 
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('colegio_id, rol').eq('id', user.id).single()
-  const colegioId = (ur as any)?.colegio_id ?? ''
+  const usuario = ur as any
+
+  // Alcance de sedes (super_admin: todas o una elegida)
+  const scope = await getColegioScope(usuario)
+  const colegioIds = scope.all ? scope.colegioIds : (scope.colegioId ? [scope.colegioId] : [])
+  const colegioIdsSafe = colegioIds.length ? colegioIds : ['__none__']
+  const colegioId = scope.colegioId ?? usuario?.colegio_id ?? (colegioIds[0] ?? '')
 
   const { data: alumnos } = await admin
     .from('alumnos')
     .select('*, familias(nombre_apoderado, apellido_apoderado, email, telefono)')
-    .eq('colegio_id', colegioId)
+    .in('colegio_id', colegioIdsSafe)
     .order('apellido')
 
   const cursos = [...new Set((alumnos ?? []).map((a: any) => a.curso))].sort()

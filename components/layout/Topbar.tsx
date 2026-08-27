@@ -4,8 +4,9 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import SedeSelector from '@/components/layout/SedeSelector'
 
-interface Props { usuario: any }
+interface Props { usuario: any; colegios?: { id: string; nombre: string }[]; sedeActiva?: string }
 
 const ROL_LABEL: Record<string, string> = {
   super_admin: 'super_admin',
@@ -17,7 +18,7 @@ const ROL_LABEL: Record<string, string> = {
   alumno:      'Alumno',
 }
 
-export default function Topbar({ usuario }: Props) {
+export default function Topbar({ usuario, colegios = [], sedeActiva = 'todas' }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const rol = usuario?.rol ?? 'admin'
@@ -56,6 +57,9 @@ export default function Topbar({ usuario }: Props) {
 
         {/* Search trigger + User */}
         <div className="flex items-center gap-2 shrink-0 relative">
+          {rol === 'super_admin' && colegios.length > 0 && (
+            <SedeSelector colegios={colegios} sedeActiva={sedeActiva}/>
+          )}
           <button
             onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
             className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--ar-border)] hover:border-slate-300 hover:bg-slate-50 transition-all text-[12px] text-slate-400"

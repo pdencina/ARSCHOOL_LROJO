@@ -3,10 +3,12 @@ export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 import Topbar from '@/components/layout/Topbar'
 import SidebarWrapper from '@/components/layout/SidebarWrapper'
 import CommandPalette from '@/components/layout/CommandPalette'
 import AsistenciaBanner from '@/components/layout/AsistenciaBanner'
+import { SEDE_COOKIE, SEDE_TODAS } from '@/lib/colegioScope'
 import { Toaster } from 'react-hot-toast'
 
 function getAdmin() {
@@ -49,11 +51,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
     }
   }
 
+  // Multi-sede: cargar sedes y sede activa (solo para super_admin)
+  let colegios: { id: string; nombre: string }[] = []
+  let sedeActiva = SEDE_TODAS
+  if (usuario.rol === 'super_admin') {
+    const { data: cols } = await admin.from('colegios').select('id, nombre').order('nombre')
+    colegios = (cols as any[]) ?? []
+    sedeActiva = cookies().get(SEDE_COOKIE)?.value ?? SEDE_TODAS
+  }
+
   return (
     <div className="min-h-screen bg-[var(--ar-bg)]">
       <Toaster position="top-right"/>
       <CommandPalette/>
-      <Topbar usuario={usuario}/>
+      <Topbar usuario={usuario} colegios={colegios} sedeActiva={sedeActiva}/>
       <AsistenciaBanner rol={usuario.rol} userId={user.id} colegioId={usuario.colegio_id}/>
       <div className="flex h-[calc(100vh-56px)]">
         <SidebarWrapper rol={usuario.rol} modulosHabilitadosInicial={modulosHabilitados}/>

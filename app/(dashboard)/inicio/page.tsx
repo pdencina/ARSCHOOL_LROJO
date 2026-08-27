@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import DashboardInicio from '@/components/dashboard/DashboardInicio'
 import { getMesNombre } from '@/lib/utils'
+import { getColegioScope } from '@/lib/colegioScope'
 
 export const metadata = { title: 'Inicio — AR School' }
 
@@ -29,15 +30,22 @@ export default async function InicioPage() {
     .single()
 
   const usuario  = ur as any
-  const colegioId = usuario?.colegio_id ?? ''
   const rol       = usuario?.rol ?? 'admin'
   const ahora     = new Date()
   const hoy       = ahora.toISOString().split('T')[0]
 
+  // Alcance de sedes: super_admin puede ver todas (o una elegida); resto ve la suya.
+  const scope = await getColegioScope(usuario)
+  // Lista de colegios para filtrar con .in(). Un solo id se comporta como .eq().
+  const colegioIds = scope.all ? scope.colegioIds : (scope.colegioId ? [scope.colegioId] : [])
+  const colegioIdsSafe = colegioIds.length ? colegioIds : ['__none__']
+  // Para inserts/props que requieren un colegio único, usar el primero (o el propio del usuario).
+  const colegioId = scope.colegioId ?? usuario?.colegio_id ?? (colegioIds[0] ?? '')
+
   const { data: ultimoCobro } = await admin
     .from('cobros')
     .select('mes, anio')
-    .eq('colegio_id', colegioId)
+    .in('colegio_id', colegioIdsSafe)
     .order('anio', { ascending: false })
     .order('mes', { ascending: false })
     .limit(1)
@@ -54,12 +62,12 @@ export default async function InicioPage() {
     { data: notificaciones },
     { data: ultimosComunicados },
   ] = await Promise.all([
-    admin.from('alumnos').select('*', { count: 'exact', head: true }).eq('colegio_id', colegioId).eq('activo', true),
-    admin.from('comunicados').select('*', { count: 'exact', head: true }).eq('colegio_id', colegioId),
-    admin.from('cobros').select('estado, monto, monto_pagado').eq('colegio_id', colegioId).eq('mes', mes).eq('anio', anio),
-    admin.from('asistencias').select('estado').eq('colegio_id', colegioId).eq('fecha', hoy),
-    admin.from('notificaciones').select('*').eq('colegio_id', colegioId).eq('leida', false).order('created_at', { ascending: false }).limit(10),
-    admin.from('comunicados').select('*').eq('colegio_id', colegioId).order('created_at', { ascending: false }).limit(5),
+    admin.from('alumnos').select('*', { count: 'exact', head: true }).in('colegio_id', colegioIdsSafe).eq('activo', true),
+    admin.from('comunicados').select('*', { count: 'exact', head: true }).in('colegio_id', colegioIdsSafe),
+    admin.from('cobros').select('estado, monto, monto_pagado').in('colegio_id', colegioIdsSafe).eq('mes', mes).eq('anio', anio),
+    admin.from('asistencias').select('estado').in('colegio_id', colegioIdsSafe).eq('fecha', hoy),
+    admin.from('notificaciones').select('*').in('colegio_id', colegioIdsSafe).eq('leida', false).order('created_at', { ascending: false }).limit(10),
+    admin.from('comunicados').select('*').in('colegio_id', colegioIdsSafe).order('created_at', { ascending: false }).limit(5),
   ])
 
   // --- ACCIONES PENDIENTES (contextual) ---
@@ -70,7 +78,7 @@ export default async function InicioPage() {
     const { count: horariosBorrador } = await admin
       .from('propuestas_horario')
       .select('*', { count: 'exact', head: true })
-      .eq('colegio_id', colegioId)
+      .in('colegio_id', colegioIdsSafe)
       .eq('estado', 'borrador')
     if (horariosBorrador && horariosBorrador > 0) {
       pendientes.push({
@@ -128,7 +136,7 @@ export default async function InicioPage() {
     const { count: reportesHoy } = await admin
       .from('reportes_diarios')
       .select('*', { count: 'exact', head: true })
-      .eq('colegio_id', colegioId)
+      .in('colegio_id', colegioIdsSafe)
       .eq('fecha', hoy)
       .eq('tutor_id', user.id)
     if (!reportesHoy || reportesHoy === 0) {
@@ -173,7 +181,7 @@ export default async function InicioPage() {
     const { count: preAdmisionesPendientes } = await admin
       .from('pre_admisiones')
       .select('*', { count: 'exact', head: true })
-      .eq('colegio_id', colegioId)
+      .in('colegio_id', colegioIdsSafe)
       .eq('estado', 'aprobada')
     if (preAdmisionesPendientes && preAdmisionesPendientes > 0) {
       pendientes.push({
@@ -188,7 +196,7 @@ export default async function InicioPage() {
     const { count: contratosPendientes } = await admin
       .from('matriculas')
       .select('*', { count: 'exact', head: true })
-      .eq('colegio_id', colegioId)
+      .in('colegio_id', colegioIdsSafe)
       .eq('estado', 'activa')
       .is('firma_apoderado', null)
     if (contratosPendientes && contratosPendientes > 0) {
@@ -206,7 +214,7 @@ export default async function InicioPage() {
     const { count: sinRespuesta24h } = await admin
       .from('conversaciones')
       .select('*', { count: 'exact', head: true })
-      .eq('colegio_id', colegioId)
+      .in('colegio_id', colegioIdsSafe)
       .eq('pendiente_respuesta', true)
       .eq('activa', true)
       .lt('ultimo_mensaje_familia_at', new Date(Date.now() - 24 * 3600000).toISOString())
@@ -236,7 +244,7 @@ export default async function InicioPage() {
   const { data: todosCobros } = await admin
     .from('cobros')
     .select('estado, monto, monto_pagado')
-    .eq('colegio_id', colegioId)
+    .in('colegio_id', colegioIdsSafe)
   const recaudado = (todosCobros ?? []).reduce((a: number, c: any) => {
     if (c.estado === 'pagado') return a + c.monto
     if (c.estado === 'parcial') return a + (c.monto_pagado ?? 0)
@@ -256,7 +264,7 @@ export default async function InicioPage() {
         .from('inscripciones_programa')
         .select('*', { count: 'exact', head: true })
         .eq('programa_id', p.id)
-        .eq('colegio_id', colegioId)
+        .in('colegio_id', colegioIdsSafe)
         .eq('estado', 'activa')
       programaStats.push({ codigo: p.codigo, nombre: p.nombre_corto || p.nombre, color: p.color, icono: p.icono, inscritos: count ?? 0 })
     }

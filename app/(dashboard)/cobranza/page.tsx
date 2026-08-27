@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import CobranzaClient from '@/components/cobranza/CobranzaClient'
+import { getColegioScope } from '@/lib/colegioScope'
 
 export const metadata = { title: 'Cobranza — AR School' }
 
@@ -24,7 +25,11 @@ export default async function CobranzaPage() {
   const usuario = ur as any
   if (!['super_admin', 'admin', 'pastor_campus', 'coordinador'].includes(usuario?.rol)) redirect('/inicio')
 
-  const colegioId = usuario?.colegio_id
+  // Alcance de sedes (super_admin: todas o una elegida)
+  const scope = await getColegioScope(usuario)
+  const colegioIds = scope.all ? scope.colegioIds : (scope.colegioId ? [scope.colegioId] : [])
+  const colegioIdsSafe = colegioIds.length ? colegioIds : ['__none__']
+  const colegioId = scope.colegioId ?? usuario?.colegio_id ?? (colegioIds[0] ?? '')
   const anio = new Date().getFullYear()
 
   // Si es coordinador, filtrar solo alumnos de sus programas
@@ -34,7 +39,7 @@ export default async function CobranzaPage() {
       .from('inscripciones_programa')
       .select('alumno_id')
       .in('programa_id', usuario.programa_ids)
-      .eq('colegio_id', colegioId)
+      .in('colegio_id', colegioIdsSafe)
       .in('estado', ['activa', 'prueba'])
     alumnoIdsFilter = (inscripciones ?? []).map((i: any) => i.alumno_id)
   }
@@ -43,7 +48,7 @@ export default async function CobranzaPage() {
   let query = admin
     .from('cobros')
     .select('*, alumno:alumnos(nombre, apellido, curso), familia:familias(nombre_apoderado, apellido_apoderado, email, telefono)')
-    .eq('colegio_id', colegioId)
+    .in('colegio_id', colegioIdsSafe)
     .eq('anio', anio)
     .order('fecha_vencimiento', { ascending: true })
 
@@ -60,7 +65,7 @@ export default async function CobranzaPage() {
   const { data: logReciente } = await admin
     .from('log_cobranza')
     .select('*')
-    .eq('colegio_id', colegioId)
+    .in('colegio_id', colegioIdsSafe)
     .order('created_at', { ascending: false })
     .limit(20)
 
