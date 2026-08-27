@@ -119,7 +119,7 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
             <p className="text-white/50 text-sm mt-0.5">{mesActual} · {cobros.length} cobros registrados</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <button onClick={() => setCobroModal({} as any)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-400 hover:bg-amber-300 text-slate-900 text-xs font-semibold rounded-lg transition-colors">
+            <button onClick={() => setVista('deudores')} className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-400 hover:bg-amber-300 text-slate-900 text-xs font-semibold rounded-lg transition-colors">
               <i className="ti ti-plus text-sm" aria-hidden="true"/> Registrar pago
             </button>
             <button onClick={handleAvisos} disabled={loadingAvisos} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-60">
@@ -417,7 +417,7 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
                 { ico: '📩', txt: 'Avisos masivos',   action: handleAvisos },
                 { ico: '📊', txt: 'Exportar Excel',   action: handleExportar },
                 { ico: '💳', txt: 'Nuevo plan',        action: () => { setVista('planes'); setShowPlanModal(true) } },
-                { ico: '➕', txt: 'Registrar pago',   action: () => setCobroModal({} as any) },
+                { ico: '➕', txt: 'Registrar pago',   action: () => setVista('deudores') },
               ].map((a, i) => (
                 <button key={i} onClick={a.action} className="p-2.5 border border-slate-200 rounded-lg text-left hover:border-blue-300 hover:bg-blue-50 transition-colors">
                   <div className="text-lg mb-1">{a.ico}</div>

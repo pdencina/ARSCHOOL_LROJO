@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { CobroConFamilia } from '@/types'
 import { formatMonto } from '@/lib/utils'
@@ -17,7 +16,6 @@ export default function ModalPago({ cobro, onClose }: Props) {
   const [medio, setMedio] = useState<MedioPago>('transferencia')
   const [obs, setObs] = useState('')
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
   const router = useRouter()
 
   const saldo = cobro.monto - cobro.monto_pagado
@@ -26,23 +24,21 @@ export default function ModalPago({ cobro, onClose }: Props) {
   async function handlePago() {
     setLoading(true)
     try {
-      const { error: pagoError } = await supabase.from('pagos').insert({
-        cobro_id: cobro.id,
-        monto,
-        medio_pago: medio,
-        referencia: obs || null,
-        registrado_por: (await supabase.auth.getUser()).data.user!.id,
+      // Registro manual desde Aportes: usa el endpoint unificado /api/pagos.
+      // Como no lleva comprobante, el pago queda 'confirmado' y el cobro se
+      // marca pagado/parcial de inmediato (lo registra un admin con autoridad).
+      const res = await fetch('/api/pagos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cobro_id: cobro.id,
+          monto,
+          metodo: medio,
+          observaciones: obs || undefined,
+        }),
       })
-      if (pagoError) throw pagoError
-
-      const nuevoMontoPagado = cobro.monto_pagado + monto
-      const nuevoEstado = nuevoMontoPagado >= cobro.monto ? 'pagado' : 'parcial'
-      await supabase.from('cobros').update({
-        monto_pagado: nuevoMontoPagado,
-        estado: nuevoEstado,
-        medio_pago: medio,
-        fecha_pago: nuevoEstado === 'pagado' ? new Date().toISOString().split('T')[0] : null,
-      }).eq('id', cobro.id)
+      const data = await res.json().catch(() => null)
+      if (!res.ok) { toast.error(data?.error ?? 'Error al registrar el pago'); setLoading(false); return }
 
       toast.success('Pago registrado correctamente')
       onClose()

@@ -62,12 +62,14 @@ export async function POST(request: NextRequest) {
   const estadoPago = esVoucher ? 'pendiente' : 'confirmado'
 
   // Crear registro de pago
+  // referencia guarda el comprobante (voucher) o las observaciones del registro manual
   const { data: pago, error } = await admin.from('pagos').insert({
     cobro_id: cobroIdFinal,
     monto: montoPago,
     medio_pago: metodo || 'transferencia',
-    referencia: comprobante_url || null,
+    referencia: comprobante_url || observaciones || null,
     estado: estadoPago,
+    registrado_por: user.id,
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -80,7 +82,8 @@ export async function POST(request: NextRequest) {
     await admin.from('cobros').update({
       monto_pagado: nuevoMontoPagado,
       estado: nuevoEstado,
-      fecha_pago: new Date().toISOString().split('T')[0],
+      medio_pago: metodo || 'transferencia',
+      fecha_pago: nuevoEstado === 'pagado' ? new Date().toISOString().split('T')[0] : null,
     }).eq('id', cobroIdFinal)
   }
 
