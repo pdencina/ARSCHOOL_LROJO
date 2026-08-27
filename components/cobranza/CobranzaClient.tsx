@@ -23,6 +23,7 @@ export default function CobranzaClient({ cobros, logReciente, anio, pagosConVouc
   const [filtroSemaforo, setFiltroSemaforo] = useState<string>('')
   const [filtroCurso, setFiltroCurso] = useState<string>('')
   const [vista, setVista] = useState<'tabla' | 'log'>('tabla')
+  const [voucherVisor, setVoucherVisor] = useState<string | null>(null)
 
   // KPIs
   const totalAlumnos = new Set(cobros.map(c => c.alumno_id)).size
@@ -254,9 +255,9 @@ export default function CobranzaClient({ cobros, logReciente, anio, pagosConVouc
               <div key={p.id} className="p-4 flex gap-4 hover:bg-gray-50">
                 {/* Voucher image */}
                 {p.referencia && (
-                  <a href={p.referencia} target="_blank" className="flex-shrink-0">
-                    <img src={p.referencia} alt="Comprobante" className="w-20 h-20 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity"/>
-                  </a>
+                  <button type="button" onClick={() => setVoucherVisor(p.referencia)} className="flex-shrink-0">
+                    <img src={p.referencia} alt="Comprobante" className="w-20 h-20 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity cursor-zoom-in"/>
+                  </button>
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-semibold text-[var(--ar-text)]">
@@ -274,9 +275,9 @@ export default function CobranzaClient({ cobros, logReciente, anio, pagosConVouc
                 </div>
                 <div className="flex-shrink-0 flex flex-col gap-1.5">
                   {p.referencia && (
-                    <a href={p.referencia} target="_blank" className="text-[10px] text-[var(--ar-accent)] hover:underline font-medium text-center">
+                    <button type="button" onClick={() => setVoucherVisor(p.referencia)} className="text-[10px] text-[var(--ar-accent)] hover:underline font-medium text-center">
                       Ver comprobante →
-                    </a>
+                    </button>
                   )}
                   <button
                     onClick={async () => {
@@ -316,6 +317,33 @@ export default function CobranzaClient({ cobros, logReciente, anio, pagosConVouc
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Visor de comprobante (lightbox) */}
+      {voucherVisor && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setVoucherVisor(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setVoucherVisor(null)}
+            className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center text-xl"
+            aria-label="Cerrar"
+          >
+            <i className="ti ti-x" aria-hidden="true"/>
+          </button>
+          {voucherVisor.startsWith('data:application/pdf') ? (
+            <iframe src={voucherVisor} className="w-full max-w-3xl h-[85vh] rounded-lg bg-white" onClick={e => e.stopPropagation()} title="Comprobante"/>
+          ) : (
+            <img
+              src={voucherVisor}
+              alt="Comprobante"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onClick={e => e.stopPropagation()}
+            />
+          )}
         </div>
       )}
     </div>
