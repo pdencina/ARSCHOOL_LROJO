@@ -52,6 +52,7 @@ export default async function ContablePage({ searchParams }: { searchParams: { m
   const [{ data: planes }, { data: ultimosPagos }] = await Promise.all([
     admin.from('planes_cobro').select('*').eq('colegio_id', colegioId).eq('activo', true),
     admin.from('pagos').select('*, cobro:cobros(*, familia:familias(nombre_apoderado, apellido_apoderado))')
+      .neq('estado', 'rechazado')
       .order('created_at', { ascending: false }).limit(8),
   ])
 
