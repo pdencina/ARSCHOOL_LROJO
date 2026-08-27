@@ -50,5 +50,20 @@ export default async function PortalPagosPage() {
     .order('anio', { ascending: true })
     .order('mes', { ascending: true })
 
-  return <PortalPagosClient cobros={(cobros as any[]) ?? []} />
+  const listaCobros = (cobros as any[]) ?? []
+
+  // Marcar cobros que tienen un comprobante pendiente de validación por el pastor de campus
+  const cobroIds = listaCobros.map(c => c.id)
+  if (cobroIds.length > 0) {
+    const { data: pagosPendientes } = await admin
+      .from('pagos')
+      .select('cobro_id')
+      .in('cobro_id', cobroIds)
+      .eq('estado', 'pendiente')
+      .not('referencia', 'is', null)
+    const idsPendientes = new Set((pagosPendientes ?? []).map((p: any) => p.cobro_id))
+    listaCobros.forEach(c => { c._voucherPendiente = idsPendientes.has(c.id) })
+  }
+
+  return <PortalPagosClient cobros={listaCobros} />
 }

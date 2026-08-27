@@ -56,24 +56,33 @@ export async function POST(request: NextRequest) {
   const cobroData = cobro as any
   const montoPago = montoManual || cobroData.monto
 
+  // Un comprobante (voucher) de apoderado queda PENDIENTE de validación por el pastor de campus.
+  // Un pago directo registrado por admin (sin comprobante) queda CONFIRMADO de inmediato.
+  const esVoucher = !!comprobante_url
+  const estadoPago = esVoucher ? 'pendiente' : 'confirmado'
+
   // Crear registro de pago
   const { data: pago, error } = await admin.from('pagos').insert({
     cobro_id: cobroIdFinal,
     monto: montoPago,
     medio_pago: metodo || 'transferencia',
     referencia: comprobante_url || null,
+    estado: estadoPago,
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Marcar cobro como pagado (con o sin comprobante)
-  const nuevoMontoPagado = (cobroData.monto_pagado ?? 0) + montoPago
-  const nuevoEstado = nuevoMontoPagado >= cobroData.monto ? 'pagado' : 'parcial'
-  await admin.from('cobros').update({
-    monto_pagado: nuevoMontoPagado,
-    estado: nuevoEstado,
-    fecha_pago: new Date().toISOString().split('T')[0],
-  }).eq('id', cobroIdFinal)
+  // Solo marcar el cobro como pagado si NO es un voucher pendiente de validación.
+  // Los vouchers los aprueba el pastor de campus en Cobranza.
+  if (!esVoucher) {
+    const nuevoMontoPagado = (cobroData.monto_pagado ?? 0) + montoPago
+    const nuevoEstado = nuevoMontoPagado >= cobroData.monto ? 'pagado' : 'parcial'
+    await admin.from('cobros').update({
+      monto_pagado: nuevoMontoPagado,
+      estado: nuevoEstado,
+      fecha_pago: new Date().toISOString().split('T')[0],
+    }).eq('id', cobroIdFinal)
+  }
 
   // Notificar al admin si es pago con comprobante (voucher)
   if (comprobante_url) {
@@ -99,9 +108,9 @@ export async function POST(request: NextRequest) {
             <div style="background:#f8f9fb;border-radius:8px;padding:14px;margin:12px 0;">
               <p style="margin:0;font-size:13px;color:#1a2332;"><strong>Alumno:</strong> ${alumnoNombre}</p>
               <p style="margin:4px 0 0;font-size:13px;color:#1a2332;"><strong>Monto:</strong> $${montoPago.toLocaleString('es-CL')} CLP</p>
-              <p style="margin:4px 0 0;font-size:13px;color:#1a2332;"><strong>Estado:</strong> Pagado (por confirmar)</p>
+              <p style="margin:4px 0 0;font-size:13px;color:#b45309;"><strong>Estado:</strong> Por validar</p>
             </div>
-            <p style="color:#6b7280;font-size:12px;">Ingrese a la sección de <strong>Cobranza</strong> para revisar el comprobante y confirmar.</p>
+            <p style="color:#6b7280;font-size:12px;">Ingrese a la sección de <strong>Cobranza</strong> para revisar el comprobante y aprobar o rechazar el pago.</p>
             <div style="margin-top:20px;text-align:center;">
               <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://app.arschoolglobal.com'}/cobranza" style="background:#1B3A5C;color:white;text-decoration:none;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;">Ver en Cobranza</a>
             </div>
@@ -111,7 +120,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, pago, por_confirmar: !!comprobante_url })
+  return NextResponse.json({ ok: true, pago, por_validar: esVoucher })
 }
 
 // GET: Listar pagos (para admin: todos del colegio, para apoderado: solo los suyos)

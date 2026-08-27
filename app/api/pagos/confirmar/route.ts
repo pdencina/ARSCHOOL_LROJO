@@ -22,7 +22,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
-  const { pago_id, cobro_id } = await request.json()
+  const { pago_id, cobro_id, accion } = await request.json()
+  // accion: 'aprobar' (default) | 'rechazar'
+  const esRechazo = accion === 'rechazar'
+
+  // ── Rechazar el comprobante ──────────────────────────────────────
+  if (esRechazo) {
+    if (!pago_id) return NextResponse.json({ error: 'pago_id requerido para rechazar' }, { status: 400 })
+    await admin.from('pagos').update({ estado: 'rechazado' }).eq('id', pago_id)
+    return NextResponse.json({ ok: true, accion: 'rechazado' })
+  }
+
+  // ── Aprobar el comprobante ───────────────────────────────────────
   if (!cobro_id) return NextResponse.json({ error: 'cobro_id requerido' }, { status: 400 })
 
   // Obtener cobro
@@ -38,6 +49,11 @@ export async function POST(request: NextRequest) {
     if (pago) montoPago = (pago as any).monto
   }
 
+  // Marcar el pago como confirmado
+  if (pago_id) {
+    await admin.from('pagos').update({ estado: 'confirmado' }).eq('id', pago_id)
+  }
+
   // Marcar cobro como pagado
   const nuevoMontoPagado = Math.max(montoPago, c.monto_pagado ?? 0)
   await admin.from('cobros').update({
@@ -46,5 +62,5 @@ export async function POST(request: NextRequest) {
     fecha_pago: new Date().toISOString().split('T')[0],
   }).eq('id', cobro_id)
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, accion: 'aprobado' })
 }

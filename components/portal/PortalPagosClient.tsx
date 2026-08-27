@@ -151,7 +151,7 @@ export default function PortalPagosClient({ cobros }: Props) {
         body: JSON.stringify({ cobro_id: cobroId, comprobante_url: comprobante, metodo: 'transferencia' }),
       })
       if (res.ok) {
-        toast.success('Comprobante enviado correctamente')
+        toast.success('Comprobante enviado. Quedará por validar hasta que el equipo lo apruebe.')
         setReportandoId(null)
         setComprobante('')
         window.location.reload()
@@ -255,21 +255,34 @@ export default function PortalPagosClient({ cobros }: Props) {
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <div className="text-[15px] font-bold text-[#1B3A5C]">${c.monto.toLocaleString('es-CL')}</div>
-                      <span className="inline-flex items-center px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[9px] font-bold rounded uppercase">Pendiente</span>
-                    </div>
-                    <button onClick={() => { setReportandoId(c.id); setComprobante('') }} className="btn-secondary text-[11px] py-2 px-3">
-                      <i className="ti ti-upload text-xs" aria-hidden="true"/> Transferencia
-                    </button>
-                    <button onClick={() => generarQR(c.id)} className="btn-secondary text-[11px] py-2 px-3">
-                      <i className="ti ti-qrcode text-xs" aria-hidden="true"/> QR
-                    </button>
-                    <button onClick={() => pagarConWebpay(c.id)} disabled={pagandoWebpay === c.id} className="btn-primary text-[11px] py-2 px-3 disabled:opacity-60">
-                      {pagandoWebpay === c.id ? (
-                        <><i className="ti ti-loader text-xs animate-spin" aria-hidden="true"/> Procesando...</>
+                      {c._voucherPendiente ? (
+                        <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[9px] font-bold rounded uppercase">Por validar</span>
                       ) : (
-                        <><i className="ti ti-credit-card text-xs" aria-hidden="true"/> Pagar con tarjeta</>
+                        <span className="inline-flex items-center px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[9px] font-bold rounded uppercase">Pendiente</span>
                       )}
-                    </button>
+                    </div>
+                    {c._voucherPendiente ? (
+                      <div className="text-[10px] text-blue-600 max-w-[180px] flex items-center gap-1.5">
+                        <i className="ti ti-clock-hour-4 text-sm" aria-hidden="true"/>
+                        <span>Comprobante enviado. En revisión por el equipo.</span>
+                      </div>
+                    ) : (
+                      <>
+                        <button onClick={() => { setReportandoId(c.id); setComprobante('') }} className="btn-secondary text-[11px] py-2 px-3">
+                          <i className="ti ti-upload text-xs" aria-hidden="true"/> Transferencia
+                        </button>
+                        <button onClick={() => generarQR(c.id)} className="btn-secondary text-[11px] py-2 px-3">
+                          <i className="ti ti-qrcode text-xs" aria-hidden="true"/> QR
+                        </button>
+                        <button onClick={() => pagarConWebpay(c.id)} disabled={pagandoWebpay === c.id} className="btn-primary text-[11px] py-2 px-3 disabled:opacity-60">
+                          {pagandoWebpay === c.id ? (
+                            <><i className="ti ti-loader text-xs animate-spin" aria-hidden="true"/> Procesando...</>
+                          ) : (
+                            <><i className="ti ti-credit-card text-xs" aria-hidden="true"/> Pagar con tarjeta</>
+                          )}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 

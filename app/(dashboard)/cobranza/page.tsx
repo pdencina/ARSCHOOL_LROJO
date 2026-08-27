@@ -64,12 +64,13 @@ export default async function CobranzaPage() {
     .order('created_at', { ascending: false })
     .limit(20)
 
-  // Pagos con comprobante (vouchers por revisar)
+  // Pagos con comprobante PENDIENTES de validación (el pastor de campus aprueba o rechaza)
   const { data: pagosConVoucher } = await admin
     .from('pagos')
     .select('*, cobro:cobros(*, alumno:alumnos(nombre, apellido, curso), familia:familias(nombre_apoderado, email))')
     .not('referencia', 'is', null)
     .eq('medio_pago', 'transferencia')
+    .eq('estado', 'pendiente')
     .order('created_at', { ascending: false })
     .limit(20)
 

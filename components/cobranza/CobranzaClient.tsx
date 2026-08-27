@@ -245,9 +245,9 @@ export default function CobranzaClient({ cobros, logReciente, anio, pagosConVouc
         <div className="mt-6 bg-white border border-[var(--ar-border)] rounded-xl overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
           <div className="px-4 py-3 border-b border-[var(--ar-border)] flex items-center justify-between">
             <h3 className="text-sm font-bold text-[var(--ar-text)]">
-              <i className="ti ti-receipt text-sm mr-1.5" aria-hidden="true"/>Comprobantes de transferencia
+              <i className="ti ti-receipt text-sm mr-1.5" aria-hidden="true"/>Comprobantes por validar
             </h3>
-            <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">{pagosConVoucher.length} por revisar</span>
+            <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">{pagosConVoucher.length} por validar</span>
           </div>
           <div className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto">
             {pagosConVoucher.map((p: any) => (
@@ -274,26 +274,43 @@ export default function CobranzaClient({ cobros, logReciente, anio, pagosConVouc
                 </div>
                 <div className="flex-shrink-0 flex flex-col gap-1.5">
                   {p.referencia && (
-                    <a href={p.referencia} target="_blank" className="text-[10px] text-[var(--ar-accent)] hover:underline font-medium">
+                    <a href={p.referencia} target="_blank" className="text-[10px] text-[var(--ar-accent)] hover:underline font-medium text-center">
                       Ver comprobante →
                     </a>
                   )}
                   <button
                     onClick={async () => {
-                      if (!confirm('¿Confirmar este pago como recibido?')) return
+                      if (!confirm('¿Aprobar este pago? El cobro quedará marcado como pagado.')) return
                       try {
                         const res = await fetch('/api/pagos/confirmar', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ pago_id: p.id, cobro_id: p.cobro_id }),
+                          body: JSON.stringify({ pago_id: p.id, cobro_id: p.cobro_id, accion: 'aprobar' }),
                         })
-                        if (res.ok) { toast.success('Pago confirmado'); window.location.reload() }
-                        else toast.error('Error al confirmar')
+                        if (res.ok) { toast.success('Pago aprobado'); window.location.reload() }
+                        else toast.error('Error al aprobar')
                       } catch { toast.error('Error') }
                     }}
                     className="text-[10px] bg-[#2D5A3F] text-white px-2.5 py-1 rounded-md font-semibold hover:bg-[#245234]"
                   >
-                    ✓ Confirmar
+                    ✓ Aprobar
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!confirm('¿Rechazar este comprobante? El apoderado deberá enviar otro.')) return
+                      try {
+                        const res = await fetch('/api/pagos/confirmar', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ pago_id: p.id, cobro_id: p.cobro_id, accion: 'rechazar' }),
+                        })
+                        if (res.ok) { toast.success('Comprobante rechazado'); window.location.reload() }
+                        else toast.error('Error al rechazar')
+                      } catch { toast.error('Error') }
+                    }}
+                    className="text-[10px] bg-white border border-red-300 text-red-600 px-2.5 py-1 rounded-md font-semibold hover:bg-red-50"
+                  >
+                    ✕ Rechazar
                   </button>
                 </div>
               </div>
