@@ -153,15 +153,16 @@ export default async function InicioPage() {
       })
     }
 
-    // Vouchers/comprobantes por confirmar
+    // Vouchers/comprobantes por validar (solo los pendientes de aprobación)
     const { count: vouchersPendientes } = await admin
       .from('pagos')
       .select('*', { count: 'exact', head: true })
       .not('referencia', 'is', null)
       .eq('medio_pago', 'transferencia')
+      .eq('estado', 'pendiente')
     if (vouchersPendientes && vouchersPendientes > 0) {
       pendientes.push({
-        texto: `${vouchersPendientes} comprobante${vouchersPendientes > 1 ? 's' : ''} de transferencia por revisar`,
+        texto: `${vouchersPendientes} comprobante${vouchersPendientes > 1 ? 's' : ''} de transferencia por validar`,
         href: '/cobranza',
         icon: 'ti-receipt',
         tipo: 'action',
