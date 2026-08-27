@@ -102,45 +102,47 @@ export default function DashboardInicio({ usuario, rol, stats, notificaciones, u
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-6">
-        {/* Acciones pendientes */}
-        {pendientes.length > 0 && (
-          <div className="col-span-3 mb-2">
-            <h2 className="font-semibold text-[#1a2332] text-sm mb-3" style={{ fontFamily: 'DM Sans, sans-serif' }}>
-              <i className="ti ti-alert-circle text-amber-500 mr-1.5" aria-hidden="true"/>
-              Acciones pendientes
-            </h2>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-              {pendientes.map((p, i) => (
-                <Link key={i} href={p.href} className={`flex items-center gap-3 rounded-xl p-3 border transition-all hover:scale-[1.01] ${
-                  p.tipo === 'warning' ? 'bg-amber-50 border-amber-200 hover:border-amber-300' :
-                  p.tipo === 'action'  ? 'bg-blue-50 border-blue-200 hover:border-blue-300' :
-                  'bg-slate-50 border-slate-200 hover:border-slate-300'
+      {/* Acciones pendientes — ancho completo */}
+      {pendientes.length > 0 && (
+        <div className="mb-6">
+          <h2 className="font-semibold text-[#1a2332] text-sm mb-3" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+            <i className="ti ti-alert-circle text-amber-500 mr-1.5" aria-hidden="true"/>
+            Acciones pendientes
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {pendientes.map((p, i) => (
+              <Link key={i} href={p.href} className={`flex items-center gap-3 rounded-xl p-3 border transition-all hover:scale-[1.01] ${
+                p.tipo === 'warning' ? 'bg-amber-50 border-amber-200 hover:border-amber-300' :
+                p.tipo === 'action'  ? 'bg-blue-50 border-blue-200 hover:border-blue-300' :
+                'bg-slate-50 border-slate-200 hover:border-slate-300'
+              }`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  p.tipo === 'warning' ? 'bg-amber-100' :
+                  p.tipo === 'action'  ? 'bg-blue-100' :
+                  'bg-slate-100'
                 }`}>
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    p.tipo === 'warning' ? 'bg-amber-100' :
-                    p.tipo === 'action'  ? 'bg-blue-100' :
-                    'bg-slate-100'
-                  }`}>
-                    <i className={`ti ${p.icon} text-sm ${
-                      p.tipo === 'warning' ? 'text-amber-700' :
-                      p.tipo === 'action'  ? 'text-blue-700' :
-                      'text-slate-600'
-                    }`} aria-hidden="true"/>
-                  </div>
-                  <span className={`text-[12px] font-medium ${
-                    p.tipo === 'warning' ? 'text-amber-800' :
-                    p.tipo === 'action'  ? 'text-blue-800' :
-                    'text-slate-700'
-                  }`}>{p.texto}</span>
-                </Link>
-              ))}
-            </div>
+                  <i className={`ti ${p.icon} text-sm ${
+                    p.tipo === 'warning' ? 'text-amber-700' :
+                    p.tipo === 'action'  ? 'text-blue-700' :
+                    'text-slate-600'
+                  }`} aria-hidden="true"/>
+                </div>
+                <span className={`text-[12px] font-medium ${
+                  p.tipo === 'warning' ? 'text-amber-800' :
+                  p.tipo === 'action'  ? 'text-blue-800' :
+                  'text-slate-700'
+                }`}>{p.texto}</span>
+              </Link>
+            ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Últimos comunicados */}
-        <div className="col-span-2">
+      {/* Grilla principal: izquierda (comunicados + programas) / derecha (notificaciones + cumpleaños) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Columna izquierda */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Últimos comunicados */}
           {ultimosComunicados.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -164,30 +166,30 @@ export default function DashboardInicio({ usuario, rol, stats, notificaciones, u
               </div>
             </div>
           )}
+
+          {/* Programas */}
+          {programaStats.length > 0 && ['super_admin', 'admin', 'pastor_campus'].includes(rol) && (
+            <div>
+              <h2 className="font-semibold text-[#1a2332] text-sm mb-3" style={{ fontFamily: 'DM Sans, sans-serif' }}>Programas</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {programaStats.map(p => (
+                  <div key={p.codigo} className="bg-white border border-[var(--ar-border)] rounded-xl p-4 flex items-center gap-3" style={{ boxShadow: 'var(--shadow-sm)' }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: p.color + '15' }}>
+                      <i className={`ti ${p.icono} text-lg`} style={{ color: p.color }} aria-hidden="true"/>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xl font-bold text-[var(--ar-text)]">{p.inscritos}</div>
+                      <div className="text-[11px] text-[var(--ar-muted)] truncate">{p.nombre}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Programas */}
-        {programaStats.length > 0 && ['super_admin', 'admin', 'pastor_campus'].includes(rol) && (
-          <div className="mb-6">
-            <h2 className="font-semibold text-[#1a2332] text-sm mb-3" style={{ fontFamily: 'DM Sans, sans-serif' }}>Programas</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {programaStats.map(p => (
-                <div key={p.codigo} className="bg-white border border-[var(--ar-border)] rounded-xl p-4 flex items-center gap-3" style={{ boxShadow: 'var(--shadow-sm)' }}>
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: p.color + '15' }}>
-                    <i className={`ti ${p.icono} text-lg`} style={{ color: p.color }} aria-hidden="true"/>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xl font-bold text-[var(--ar-text)]">{p.inscritos}</div>
-                    <div className="text-[11px] text-[var(--ar-muted)] truncate">{p.nombre}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Notificaciones */}
-        <div>
+        {/* Columna derecha: Notificaciones + Cumpleaños */}
+        <div className="lg:col-span-1">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-[#1a2332] text-sm" style={{ fontFamily: 'DM Sans, sans-serif' }}>Notificaciones</h2>
             {notifsNoLeidas > 0 && (

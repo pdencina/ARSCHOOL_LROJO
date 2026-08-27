@@ -12,6 +12,10 @@ ALTER TABLE public.cobros   ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFA
 ALTER TABLE public.familias ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 ALTER TABLE public.fichas   ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 
+-- Columna de auditoría faltante en pagos (quién registró el pago).
+-- La usa el flujo unificado /api/pagos.
+ALTER TABLE public.pagos ADD COLUMN IF NOT EXISTS registrado_por uuid REFERENCES public.usuarios(id);
+
 -- Verificación: no debe quedar ninguna tabla con el trigger pero sin la columna.
 -- SELECT c.relname AS tabla
 -- FROM pg_trigger t

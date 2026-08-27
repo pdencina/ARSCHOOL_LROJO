@@ -63,14 +63,19 @@ export async function POST(request: NextRequest) {
 
   // Crear registro de pago
   // referencia guarda el comprobante (voucher) o las observaciones del registro manual
-  const { data: pago, error } = await admin.from('pagos').insert({
+  const pagoBase = {
     cobro_id: cobroIdFinal,
     monto: montoPago,
     medio_pago: metodo || 'transferencia',
     referencia: comprobante_url || observaciones || null,
     estado: estadoPago,
-    registrado_por: user.id,
-  }).select().single()
+  }
+  // registrado_por es opcional: algunas instancias no tienen la columna.
+  let { data: pago, error } = await admin.from('pagos').insert({ ...pagoBase, registrado_por: user.id }).select().single()
+  if (error && /registrado_por/.test(error.message)) {
+    const retry = await admin.from('pagos').insert(pagoBase).select().single()
+    pago = retry.data; error = retry.error
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
