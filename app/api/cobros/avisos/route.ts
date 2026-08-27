@@ -19,14 +19,25 @@ export async function POST(request: NextRequest) {
 
   if (!cobros?.length) return NextResponse.json({ message: 'No hay cobros pendientes', count: 0 })
 
-  const comunicados = cobros.map((c: any) => ({
+  const buildComunicados = (tipo: string) => cobros.map((c: any) => ({
     colegio_id: colegioId,
     titulo: `Aviso de cobro — ${c.concepto?.nombre ?? 'Mensualidad'} ${mes}/${anio}`,
     contenido: `Estimada familia ${c.familia?.apellido_apoderado}, tiene un pago pendiente de $${c.monto.toLocaleString('es-CL')} con vencimiento ${new Date(c.fecha_vencimiento).toLocaleDateString('es-CL')}. Por favor regularice su situación a la brevedad.`,
-    tipo: 'cobro',
+    tipo,
     enviado_at: new Date().toISOString(),
   }))
 
-  await supabase.from('comunicados').insert(comunicados)
+  // La restricción comunicados_tipo_check acepta 'cobro' (migración 003).
+  // Si en otra instancia solo existiera 'cobranza' (migración 002), reintentamos.
+  let { error } = await supabase.from('comunicados').insert(buildComunicados('cobro'))
+  if (error) {
+    const retry = await supabase.from('comunicados').insert(buildComunicados('cobranza'))
+    error = retry.error
+  }
+
+  if (error) {
+    return NextResponse.json({ error: `No se pudieron enviar los avisos: ${error.message}` }, { status: 500 })
+  }
+
   return NextResponse.json({ message: `Avisos enviados a ${cobros.length} familias`, count: cobros.length })
 }

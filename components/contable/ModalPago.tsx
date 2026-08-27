@@ -134,7 +134,7 @@ export default function ModalPago({ cobro, onClose }: Props) {
             disabled={loading || monto <= 0}
             className="btn-primary flex-1 bg-verde hover:bg-verde-oscuro disabled:opacity-60"
           >
-            {loading ? 'Registrando…' : '✓ Confirmar y emitir boleta'}
+            {loading ? 'Registrando…' : '✓ Confirmar pago'}
           </button>
         </div>
       </div>

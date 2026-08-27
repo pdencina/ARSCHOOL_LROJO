@@ -55,8 +55,9 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
     setLoadingAvisos(true)
     try {
       const res = await fetch('/api/cobros/avisos', { method: 'POST' })
-      const data = await res.json()
-      toast.success(data.message ?? 'Avisos enviados')
+      const data = await res.json().catch(() => null)
+      if (!res.ok) { toast.error(data?.error ?? 'Error al enviar avisos'); return }
+      toast.success(data?.message ?? 'Avisos enviados')
     } catch { toast.error('Error al enviar avisos') }
     finally { setLoadingAvisos(false) }
   }
@@ -261,7 +262,7 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
                           </td>
                           <td className="px-4 py-3">
                             {cobro.estado === 'pagado'
-                              ? <button onClick={() => toast.success('Boleta generada')} className="text-xs text-blue-600 hover:underline">Ver boleta</button>
+                              ? <span className="text-xs text-slate-400">{cobro.fecha_pago ? `Pagado ${formatFecha(cobro.fecha_pago)}` : 'Pagado'}</span>
                               : <button onClick={() => setCobroModal(cobro)} className="btn-primary text-xs py-1 px-3">Registrar pago</button>
                             }
                           </td>
@@ -334,8 +335,9 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
                       <button onClick={() => setCobroModal(cobro)} className="btn-primary text-xs py-1 px-3">Registrar pago</button>
                       <button onClick={async () => {
                         const res = await fetch('/api/cobros/avisos', { method: 'POST' })
-                        const d = await res.json()
-                        toast.success(d.message ?? 'Aviso enviado')
+                        const d = await res.json().catch(() => null)
+                        if (!res.ok) { toast.error(d?.error ?? 'Error al enviar aviso'); return }
+                        toast.success(d?.message ?? 'Aviso enviado')
                       }} className="btn-secondary text-xs py-1 px-3">Enviar aviso</button>
                     </div>
                   </div>
