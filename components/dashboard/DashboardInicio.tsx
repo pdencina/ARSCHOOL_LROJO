@@ -73,8 +73,8 @@ export default function DashboardInicio({ usuario, rol, stats, notificaciones, u
           {[
             { label: 'Alumnos activos',  val: stats.totalAlumnos.toString(),  sub: mesActual, href: '/alumnos' },
             { label: 'Asistencia hoy',   val: stats.pctAsistencia != null ? `${stats.pctAsistencia}%` : '—', sub: mesActual, href: '/asistencias' },
-            { label: 'Recaudado',        val: formatMonto(stats.recaudado), sub: mesActual, href: '/contable' },
-            { label: 'En mora',          val: formatMonto(stats.enMora),    sub: stats.enMora > 0 ? 'Requiere atención' : 'Sin pendientes', href: '/contable' },
+            { label: 'Recaudado',        val: formatMonto(stats.recaudado), sub: 'Total histórico', href: '/contable' },
+            { label: 'Por cobrar',       val: formatMonto(stats.enMora),    sub: stats.enMora > 0 ? 'Total pendiente' : 'Sin pendientes', href: '/contable' },
           ].map((k, i) => (
             <Link key={i} href={k.href} className="bg-white border border-[#e8eaed] rounded-xl p-5 hover:border-[#b8860b]/30 transition-all group">
               <div className="text-[11px] font-semibold text-[#9ca3af] uppercase tracking-wider mb-2">{k.label}</div>

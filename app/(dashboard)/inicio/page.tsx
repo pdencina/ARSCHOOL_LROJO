@@ -231,8 +231,18 @@ export default async function InicioPage() {
     })
   }
 
-  const recaudado = (cobros ?? []).filter((c: any) => c.estado === 'pagado').reduce((a: number, c: any) => a + c.monto, 0)
-  const enMora    = (cobros ?? []).filter((c: any) => ['mora','parcial','pendiente'].includes(c.estado)).reduce((a: number, c: any) => a + (c.monto - c.monto_pagado), 0)
+  // Recaudado TOTAL histórico: incluye aporte inicial (matrícula), mensualidades y cualquier
+  // pago parcial, de todos los meses/años (no solo el mes en curso).
+  const { data: todosCobros } = await admin
+    .from('cobros')
+    .select('estado, monto, monto_pagado')
+    .eq('colegio_id', colegioId)
+  const recaudado = (todosCobros ?? []).reduce((a: number, c: any) => {
+    if (c.estado === 'pagado') return a + c.monto
+    if (c.estado === 'parcial') return a + (c.monto_pagado ?? 0)
+    return a
+  }, 0)
+  const enMora    = (todosCobros ?? []).filter((c: any) => ['mora','parcial','pendiente'].includes(c.estado)).reduce((a: number, c: any) => a + (c.monto - (c.monto_pagado ?? 0)), 0)
   const pctAsistencia = (asistenciasHoy ?? []).length > 0
     ? Math.round((asistenciasHoy ?? []).filter((a: any) => a.estado === 'presente').length / (asistenciasHoy ?? []).length * 100)
     : null
