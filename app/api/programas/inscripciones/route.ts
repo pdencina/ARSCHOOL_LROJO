@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No tiene acceso a este programa' }, { status: 403 })
   }
 
-  const { data, error } = await admin.from('inscripciones_programa').upsert({
+  const base: Record<string, any> = {
     alumno_id,
     programa_id,
     colegio_id: usuario.colegio_id,
@@ -48,7 +48,24 @@ export async function POST(request: NextRequest) {
     observaciones: observaciones || null,
     estado: body.estado || 'activa',
     fecha_prueba: body.estado === 'prueba' ? new Date().toISOString().split('T')[0] : null,
-  }, { onConflict: 'alumno_id,programa_id' }).select().single()
+  }
+  // Atributos estructurados (migración 046). Opcionales y resilientes si faltan columnas.
+  const atributos: Record<string, any> = {
+    instrumento: body.instrumento || null,
+    ciclo: body.ciclo || null,
+    categoria: body.categoria || null,
+    posicion: body.posicion || null,
+    rango_edad: body.rango_edad || null,
+  }
+
+  let { data, error } = await admin.from('inscripciones_programa')
+    .upsert({ ...base, ...atributos }, { onConflict: 'alumno_id,programa_id' }).select().single()
+  // Reintento sin atributos si la instancia aún no aplicó la migración 046
+  if (error && /(instrumento|ciclo|categoria|posicion|rango_edad)/.test(error.message)) {
+    const retry = await admin.from('inscripciones_programa')
+      .upsert(base, { onConflict: 'alumno_id,programa_id' }).select().single()
+    data = retry.data; error = retry.error
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
