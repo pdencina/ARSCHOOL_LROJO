@@ -85,6 +85,56 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(data ?? [])
 }
 
+// PATCH /api/programas/inscripciones — Convertir prueba -> activa (u otros cambios de estado)
+export async function PATCH(request: NextRequest) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const admin = getAdmin()
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids').eq('id', user.id).single()
+  const usuario = ur as any
+
+  if (!['super_admin', 'admin', 'pastor_campus', 'coordinador'].includes(usuario?.rol)) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
+  const body = await request.json()
+  const { inscripcion_id, alumno_id, programa_id, accion } = body // accion: 'convertir' | 'suspender' | 'reactivar'
+
+  // Localizar inscripción
+  let query = admin.from('inscripciones_programa').select('id, alumno_id, programa_id, estado').eq('colegio_id', usuario.colegio_id)
+  if (inscripcion_id) query = query.eq('id', inscripcion_id)
+  else if (alumno_id && programa_id) query = query.eq('alumno_id', alumno_id).eq('programa_id', programa_id)
+  else return NextResponse.json({ error: 'Se requiere inscripcion_id o alumno_id+programa_id' }, { status: 400 })
+
+  const { data: inscripcion } = await query.single()
+  if (!inscripcion) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
+  const ins = inscripcion as any
+
+  // Coordinador solo su programa
+  if (usuario.rol === 'coordinador' && usuario.programa_ids?.length > 0 && !usuario.programa_ids.includes(ins.programa_id)) {
+    return NextResponse.json({ error: 'No tiene acceso a este programa' }, { status: 403 })
+  }
+
+  let update: Record<string, any> = {}
+  if (accion === 'convertir') {
+    // Prueba -> Activa, dejando registro de conversión
+    update = { estado: 'activa', convertida_at: new Date().toISOString() }
+  } else if (accion === 'suspender') {
+    update = { estado: 'suspendida' }
+  } else if (accion === 'reactivar') {
+    update = { estado: 'activa' }
+  } else {
+    return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
+  }
+
+  const { error } = await admin.from('inscripciones_programa').update(update).eq('id', ins.id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ ok: true, estado: update.estado })
+}
+
 // DELETE /api/programas/inscripciones — Dar de baja inscripción
 export async function DELETE(request: NextRequest) {
   const supabase = createClient()

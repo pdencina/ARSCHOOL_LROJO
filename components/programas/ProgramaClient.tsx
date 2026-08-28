@@ -95,6 +95,15 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
 
   const alumnosAlDia = inscripciones.filter(i => !alumnosConMora[i.alumno?.id]).length
 
+  // ─── Embudo Prueba → Activa ───
+  const embudo = useMemo(() => {
+    const enPrueba = inscripciones.filter(i => i.estado === 'prueba').length
+    const activos = inscripciones.filter(i => i.estado === 'activa').length
+    // Convertidos: inscripciones activas que tienen registro de conversión desde prueba
+    const convertidos = inscripciones.filter(i => i.convertida_at).length
+    return { enPrueba, activos, convertidos }
+  }, [inscripciones])
+
   // ─── Inscripciones filtradas ───
   const inscripcionesFiltradas = useMemo(() => {
     if (!filtroNivel) return inscripciones
@@ -131,6 +140,20 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
     } finally {
       setEnviandoContrato(null)
     }
+  }
+
+  // ─── Convertir clase de prueba en inscripción activa ───
+  async function handleConvertir(alumnoId: string, nombre: string) {
+    if (!confirm(`¿Convertir a ${nombre} de clase de prueba a inscripción activa?`)) return
+    try {
+      const res = await fetch('/api/programas/inscripciones', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alumno_id: alumnoId, programa_id: programa.id, accion: 'convertir' }),
+      })
+      if (res.ok) { toast.success(`${nombre} ahora es inscripción activa`); router.refresh() }
+      else { const d = await res.json().catch(() => null); toast.error(d?.error || 'Error al convertir') }
+    } catch { toast.error('Error') }
   }
 
   async function handleInscribir() {
@@ -226,6 +249,37 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
             <div className="kpi-card"><div className="kpi-label">Contratos firmados</div><div className="kpi-value text-[#2D5A3F]">{matriculas.filter(m => m.firma_apoderado).length}</div></div>
             <div className="kpi-card"><div className="kpi-label">Pendientes firma</div><div className="kpi-value text-amber-600">{matriculas.filter(m => !m.firma_apoderado).length}</div></div>
             <div className="kpi-card"><div className="kpi-label">Al día en pagos</div><div className="kpi-value text-[#2D5A3F]">{alumnosAlDia}<span className="text-xs text-[var(--ar-muted)] font-normal">/{inscripciones.length}</span></div></div>
+          </div>
+
+          {/* ─── Embudo de seguimiento: Prueba → Activa ─── */}
+          <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5 mb-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <h3 className="text-xs font-bold text-[var(--ar-text)] mb-4">
+              <i className="ti ti-filter text-sm mr-1.5" aria-hidden="true"/>Seguimiento de inscripciones
+            </h3>
+            <div className="flex items-center gap-2">
+              {/* En prueba */}
+              <div className="flex-1 bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold text-amber-700">{embudo.enPrueba}</div>
+                <div className="text-[10px] text-amber-700/80 font-semibold uppercase tracking-wider mt-1">En prueba</div>
+              </div>
+              <i className="ti ti-arrow-right text-lg text-[var(--ar-muted)]" aria-hidden="true"/>
+              {/* Activos */}
+              <div className="flex-1 bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold text-emerald-700">{embudo.activos}</div>
+                <div className="text-[10px] text-emerald-700/80 font-semibold uppercase tracking-wider mt-1">Inscritos activos</div>
+              </div>
+              {/* Convertidos */}
+              <div className="flex-1 bg-[#f0f4f8] border border-[var(--ar-border)] rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold text-[#1B3A5C]">{embudo.convertidos}</div>
+                <div className="text-[10px] text-[var(--ar-muted)] font-semibold uppercase tracking-wider mt-1">Convertidos de prueba</div>
+              </div>
+            </div>
+            {embudo.enPrueba > 0 && (
+              <p className="text-[10px] text-[var(--ar-muted)] mt-3">
+                <i className="ti ti-info-circle mr-1" aria-hidden="true"/>
+                Hay {embudo.enPrueba} alumno{embudo.enPrueba > 1 ? 's' : ''} en clase de prueba. Conviértelos a inscripción activa desde la tabla cuando confirmen.
+              </p>
+            )}
           </div>
 
           {/* ─── Gráfico Asistencia últimas 4 semanas ─── */}
@@ -325,14 +379,14 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="bg-[#f9fafb] border-b border-[var(--ar-border)]">
-                  {['Alumno', 'Nivel', 'Horario', 'Inscrito', 'Estado', 'Acciones'].map(h => (
+                  {['Alumno', 'Nivel', 'Horario', 'Inscrito', 'Estado', 'Pago', 'Acciones'].map(h => (
                     <th key={h} className="text-[10px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider px-4 py-3 text-left">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {inscripcionesFiltradas.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-12 text-center">
+                  <tr><td colSpan={7} className="px-4 py-12 text-center">
                     <i className={`ti ${config.icon} text-3xl text-[#d1d5db] block mb-3`} aria-hidden="true"/>
                     <p className="text-[var(--ar-muted)] text-sm">
                       {filtroNivel ? `No hay inscritos en nivel "${filtroNivel}".` : `No hay inscritos en ${programa.nombre_corto}. Registra el primero.`}
@@ -351,12 +405,18 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
                       <td className="px-4 py-3.5 text-[var(--ar-muted)] text-xs">{new Date(ins.created_at).toLocaleDateString('es-CL')}</td>
                       <td className="px-4 py-3.5">
                         {ins.estado === 'prueba' ? (
-                          <span className="tag tag-pend">Prueba</span>
+                          <span className="tag tag-pend" title={ins.fecha_prueba ? `Prueba desde ${new Date(ins.fecha_prueba + 'T12:00').toLocaleDateString('es-CL')}` : undefined}>Prueba</span>
                         ) : (
                           <span className="tag tag-ok">Activo</span>
                         )}
-                        {alumnosConMora[ins.alumno?.id] && (
-                          <span className="ml-1 text-[9px] text-red-600 font-semibold" title={`Debe $${alumnosConMora[ins.alumno?.id].toLocaleString('es-CL')}`}>💰 Mora</span>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        {alumnosConMora[ins.alumno?.id] ? (
+                          <span className="text-[11px] font-semibold text-red-600" title="Cobros pendientes">
+                            Debe ${alumnosConMora[ins.alumno?.id].toLocaleString('es-CL')}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-medium text-[#2D5A3F]">Al día</span>
                         )}
                       </td>
                       <td className="px-4 py-3.5">
@@ -376,6 +436,12 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
                             }}
                             className="text-[10px] text-emerald-600 hover:underline font-medium"
                           >✓ Presente</button>
+                          {ins.estado === 'prueba' && (
+                            <button
+                              onClick={() => handleConvertir(ins.alumno?.id, `${ins.alumno?.nombre} ${ins.alumno?.apellido}`)}
+                              className="text-[10px] text-[#1B3A5C] hover:underline font-medium"
+                            >⤴ Convertir a activa</button>
+                          )}
                           {tieneMatricula ? (
                             contratoFirmado ? (
                               <span className="text-[10px] text-[#2D5A3F] font-medium">✓ Firmado</span>

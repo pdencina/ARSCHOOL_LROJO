@@ -42,10 +42,26 @@ export default async function InicioPage() {
   // Para inserts/props que requieren un colegio único, usar el primero (o el propio del usuario).
   const colegioId = scope.colegioId ?? usuario?.colegio_id ?? (colegioIds[0] ?? '')
 
-  const { data: ultimoCobro } = await admin
+  // Coordinador: acotar a los alumnos inscritos en sus programas.
+  // alumnoIdsCoord = null => sin filtro por alumno (roles no-coordinador).
+  let alumnoIdsCoord: string[] | null = null
+  if (rol === 'coordinador' && usuario.programa_ids?.length > 0) {
+    const { data: insc } = await admin
+      .from('inscripciones_programa')
+      .select('alumno_id')
+      .in('programa_id', usuario.programa_ids)
+      .in('colegio_id', colegioIdsSafe)
+      .in('estado', ['activa', 'prueba'])
+    alumnoIdsCoord = [...new Set((insc ?? []).map((i: any) => i.alumno_id))]
+    if (alumnoIdsCoord.length === 0) alumnoIdsCoord = ['__none__']
+  }
+  // Aplica filtro por alumno cuando el usuario es coordinador
+  const porAlumno = (q: any) => (alumnoIdsCoord ? q.in('alumno_id', alumnoIdsCoord) : q)
+
+  const { data: ultimoCobro } = await porAlumno(admin
     .from('cobros')
     .select('mes, anio')
-    .in('colegio_id', colegioIdsSafe)
+    .in('colegio_id', colegioIdsSafe))
     .order('anio', { ascending: false })
     .order('mes', { ascending: false })
     .limit(1)
@@ -62,10 +78,10 @@ export default async function InicioPage() {
     { data: notificaciones },
     { data: ultimosComunicados },
   ] = await Promise.all([
-    admin.from('alumnos').select('*', { count: 'exact', head: true }).in('colegio_id', colegioIdsSafe).eq('activo', true),
+    (alumnoIdsCoord ? admin.from('alumnos').select('*', { count: 'exact', head: true }).in('id', alumnoIdsCoord).eq('activo', true) : admin.from('alumnos').select('*', { count: 'exact', head: true }).in('colegio_id', colegioIdsSafe).eq('activo', true)),
     admin.from('comunicados').select('*', { count: 'exact', head: true }).in('colegio_id', colegioIdsSafe),
-    admin.from('cobros').select('estado, monto, monto_pagado').in('colegio_id', colegioIdsSafe).eq('mes', mes).eq('anio', anio),
-    admin.from('asistencias').select('estado').in('colegio_id', colegioIdsSafe).eq('fecha', hoy),
+    porAlumno(admin.from('cobros').select('estado, monto, monto_pagado').in('colegio_id', colegioIdsSafe).eq('mes', mes).eq('anio', anio)),
+    porAlumno(admin.from('asistencias').select('estado').in('colegio_id', colegioIdsSafe).eq('fecha', hoy)),
     admin.from('notificaciones').select('*').in('colegio_id', colegioIdsSafe).eq('leida', false).order('created_at', { ascending: false }).limit(10),
     admin.from('comunicados').select('*').in('colegio_id', colegioIdsSafe).order('created_at', { ascending: false }).limit(5),
   ])
@@ -241,10 +257,10 @@ export default async function InicioPage() {
 
   // Recaudado TOTAL histórico: incluye aporte inicial (matrícula), mensualidades y cualquier
   // pago parcial, de todos los meses/años (no solo el mes en curso).
-  const { data: todosCobros } = await admin
+  const { data: todosCobros } = await porAlumno(admin
     .from('cobros')
     .select('estado, monto, monto_pagado')
-    .in('colegio_id', colegioIdsSafe)
+    .in('colegio_id', colegioIdsSafe))
   const recaudado = (todosCobros ?? []).reduce((a: number, c: any) => {
     if (c.estado === 'pagado') return a + c.monto
     if (c.estado === 'parcial') return a + (c.monto_pagado ?? 0)
