@@ -19,7 +19,7 @@ export default async function AlumnosPage() {
   if (!user) redirect('/login')
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('colegio_id, rol').eq('id', user.id).single()
+  const { data: ur } = await admin.from('usuarios').select('colegio_id, rol, sedes_ids').eq('id', user.id).single()
   const usuario = ur as any
 
   // Alcance de sedes (super_admin: todas o una elegida)

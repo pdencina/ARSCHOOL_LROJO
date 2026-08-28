@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import ProgramaClient from '@/components/programas/ProgramaClient'
+import { getColegioScope } from '@/lib/colegioScope'
 
 export const metadata = { title: 'Lions Soccer School — AR School' }
 
@@ -35,12 +36,17 @@ export default async function LionsPage() {
     if (!['super_admin', 'admin', 'pastor_campus'].includes(usuario.rol)) redirect('/inicio')
   }
 
+  // Alcance de sedes: coordinador multi-sede ve todas sus sedes; super_admin según selección.
+  const scope = await getColegioScope(usuario)
+  const colegioIds = scope.all ? scope.colegioIds : (scope.colegioId ? [scope.colegioId] : [])
+  const colegioIdsSafe = colegioIds.length ? colegioIds : [usuario.colegio_id ?? '__none__']
+
   // Obtener inscripciones del programa
   const { data: inscripciones } = await admin
     .from('inscripciones_programa')
     .select('*, alumno:alumnos(id, nombre, apellido, rut, curso, fecha_nacimiento, sexo)')
     .eq('programa_id', programaId)
-    .eq('colegio_id', usuario.colegio_id)
+    .in('colegio_id', colegioIdsSafe)
     .in('estado', ['activa', 'prueba'])
     .order('created_at', { ascending: false })
 
@@ -49,7 +55,7 @@ export default async function LionsPage() {
     .from('matriculas')
     .select('*, alumno:alumnos(nombre, apellido, curso)')
     .eq('programa_id', programaId)
-    .eq('colegio_id', usuario.colegio_id)
+    .in('colegio_id', colegioIdsSafe)
     .order('created_at', { ascending: false })
 
   // Obtener asistencias últimas 4 semanas para gráfico + alertas
@@ -59,7 +65,7 @@ export default async function LionsPage() {
     .from('asistencias_sesion')
     .select('alumno_id, fecha, estado')
     .eq('programa_id', programaId)
-    .eq('colegio_id', usuario.colegio_id)
+    .in('colegio_id', colegioIdsSafe)
     .gte('fecha', hace4Semanas.toISOString().split('T')[0])
     .order('fecha', { ascending: true })
 
@@ -69,7 +75,7 @@ export default async function LionsPage() {
   const { data: cobrosPendientes } = await admin
     .from('cobros')
     .select('alumno_id, monto, mes, anio, pagado')
-    .eq('colegio_id', usuario.colegio_id)
+    .in('colegio_id', colegioIdsSafe)
     .eq('pagado', false)
     .lte('mes', mesActual)
     .lte('anio', anioActual)

@@ -106,13 +106,68 @@ export default function PreAdmisionForm() {
     setPaso((paso + 1) as Paso)
   }
 
-  function handleFile(key: string, file: File) {
+  // Comprime imágenes a un tamaño manejable (evita payloads gigantes que hacían
+  // fallar el envío). Los PDF se mantienen tal cual.
+  function comprimirImagen(file: File, maxDim = 1400, calidad = 0.6): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo'))
+      reader.onload = () => {
+        const img = new Image()
+        img.onerror = () => reject(new Error('No se pudo procesar la imagen'))
+        img.onload = () => {
+          let { width, height } = img
+          if (width > maxDim || height > maxDim) {
+            const escala = maxDim / Math.max(width, height)
+            width = Math.round(width * escala)
+            height = Math.round(height * escala)
+          }
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          if (!ctx) { reject(new Error('Canvas no soportado')); return }
+          ctx.drawImage(img, 0, 0, width, height)
+          resolve(canvas.toDataURL('image/jpeg', calidad))
+        }
+        img.src = reader.result as string
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  async function handleFile(key: string, file: File) {
     if (file.size > 10 * 1024 * 1024) { toast.error('Máximo 10 MB'); return }
     const tipos = ['image/jpeg','image/png','image/webp','application/pdf']
     if (!tipos.includes(file.type)) { toast.error('Solo JPG, PNG o PDF'); return }
-    const reader = new FileReader()
-    reader.onload = () => { setDocumentosAndSave(d => ({ ...d, [key]: reader.result as string })); toast.success('Adjuntado') }
-    reader.readAsDataURL(file)
+
+    const loadingToast = toast.loading('Procesando...')
+    try {
+      let dataUrl: string
+      if (file.type === 'application/pdf') {
+        // PDF: leer tal cual, pero validar tamaño para no reventar el envío
+        if (file.size > 4 * 1024 * 1024) {
+          toast.dismiss(loadingToast)
+          toast.error('El PDF supera 4 MB. Comprímelo o adjunta una foto.')
+          return
+        }
+        dataUrl = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader()
+          r.onerror = () => reject(new Error('No se pudo leer el archivo'))
+          r.onload = () => resolve(r.result as string)
+          r.readAsDataURL(file)
+        })
+      } else {
+        // Imagen: comprimir a JPEG
+        dataUrl = await comprimirImagen(file)
+      }
+      setDocumentosAndSave(d => ({ ...d, [key]: dataUrl }))
+      toast.dismiss(loadingToast)
+      toast.success('Adjuntado')
+    } catch (e: any) {
+      toast.dismiss(loadingToast)
+      toast.error(e?.message || 'No se pudo adjuntar el archivo')
+    }
   }
 
   async function enviar() {
@@ -140,13 +195,17 @@ export default function PreAdmisionForm() {
       const res = await fetch('/api/admision/pre-registro', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      // 413 = payload demasiado grande (documentos muy pesados)
+      if (res.status === 413) {
+        throw new Error('Los documentos son muy pesados. Adjunta fotos en vez de PDF, o vuelve a tomarlas con menor calidad.')
+      }
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'No se pudo enviar la solicitud. Revisa tu conexión e inténtalo de nuevo.')
       setCodigoSeguimiento(data.codigo_seguimiento)
       setEnviado(true)
       localStorage.removeItem('ar_admision_form')
       localStorage.removeItem('ar_admision_docs')
-    } catch (e: any) { toast.error(e.message) } finally { setLoading(false) }
+    } catch (e: any) { toast.error(e?.message || 'Error al enviar') } finally { setLoading(false) }
   }
 
   const edadInfo = form.alumno_fecha_nacimiento ? calcularEdad(form.alumno_fecha_nacimiento) : null

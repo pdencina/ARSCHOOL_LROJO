@@ -21,7 +21,7 @@ export default async function CobranzaPage() {
   if (!user) redirect('/login')
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids').eq('id', user.id).single()
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids, sedes_ids').eq('id', user.id).single()
   const usuario = ur as any
   if (!['super_admin', 'admin', 'pastor_campus', 'coordinador'].includes(usuario?.rol)) redirect('/inicio')
 

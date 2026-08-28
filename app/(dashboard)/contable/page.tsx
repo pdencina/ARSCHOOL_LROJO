@@ -21,7 +21,7 @@ export default async function ContablePage({ searchParams }: { searchParams: { m
   if (!user) redirect('/login')
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('colegio_id, rol, programa_ids').eq('id', user.id).single()
+  const { data: ur } = await admin.from('usuarios').select('colegio_id, rol, programa_ids, sedes_ids').eq('id', user.id).single()
   const usuario = ur as any
   // Control de acceso: solo roles con visibilidad financiera
   if (!['super_admin', 'admin', 'pastor_campus', 'coordinador'].includes(usuario?.rol)) redirect('/inicio')

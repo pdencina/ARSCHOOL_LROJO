@@ -32,11 +32,17 @@ export interface ColegioScope {
  *   let q = admin.from('cobros').select('*')
  *   q = aplicarScopeColegio(q, scope)
  */
-export async function getColegioScope(usuario: { rol?: string; colegio_id?: string | null }): Promise<ColegioScope> {
+export async function getColegioScope(usuario: { rol?: string; colegio_id?: string | null; sedes_ids?: string[] | null }): Promise<ColegioScope> {
   const rol = usuario?.rol
   const propio = usuario?.colegio_id ?? null
 
   if (rol !== 'super_admin') {
+    // Coordinador multi-sede: ve todas las sedes en sedes_ids (incluye su colegio_id).
+    const sedes = usuario?.sedes_ids
+    if (rol === 'coordinador' && Array.isArray(sedes) && sedes.length > 0) {
+      const ids = Array.from(new Set([...(propio ? [propio] : []), ...sedes]))
+      return { all: ids.length > 1, colegioIds: ids, colegioId: ids.length === 1 ? ids[0] : null }
+    }
     // Roles normales: solo su sede
     return { all: false, colegioIds: propio ? [propio] : [], colegioId: propio }
   }

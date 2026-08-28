@@ -10,6 +10,14 @@ function getAdmin() {
   )
 }
 
+// Lista de colegio_ids que puede ver el usuario (incluye sedes_ids de coordinador multi-sede).
+function sedesDelUsuario(usuario: any): string[] {
+  const propio = usuario?.colegio_id ? [usuario.colegio_id] : []
+  const extra = Array.isArray(usuario?.sedes_ids) ? usuario.sedes_ids : []
+  const ids = Array.from(new Set([...propio, ...extra]))
+  return ids.length ? ids : ['__none__']
+}
+
 // Deriva atributos estructurados desde el texto de `nivel`.
 // Ejemplos: "Ciclo 1 - Guitarra" | "Sub-12" | "Music and Play (0-4 años)"
 function parsearNivel(nivel: string): { instrumento?: string; ciclo?: string; categoria?: string; rango_edad?: string } {
@@ -106,7 +114,7 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids').eq('id', user.id).single()
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids, sedes_ids').eq('id', user.id).single()
   const usuario = ur as any
 
   const { searchParams } = new URL(request.url)
@@ -115,7 +123,7 @@ export async function GET(request: NextRequest) {
   let query = admin
     .from('inscripciones_programa')
     .select('*, alumno:alumnos(id, nombre, apellido, rut, curso, fecha_nacimiento, sexo), programa:programas(nombre, codigo, color, icono)')
-    .eq('colegio_id', usuario.colegio_id)
+    .in('colegio_id', sedesDelUsuario(usuario))
     .in('estado', ['activa', 'prueba'])
     .order('created_at', { ascending: false })
 
@@ -137,7 +145,7 @@ export async function PATCH(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids').eq('id', user.id).single()
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids, sedes_ids').eq('id', user.id).single()
   const usuario = ur as any
 
   if (!['super_admin', 'admin', 'pastor_campus', 'coordinador'].includes(usuario?.rol)) {
@@ -148,7 +156,7 @@ export async function PATCH(request: NextRequest) {
   const { inscripcion_id, alumno_id, programa_id, accion } = body // accion: 'convertir' | 'suspender' | 'reactivar'
 
   // Localizar inscripción
-  let query = admin.from('inscripciones_programa').select('id, alumno_id, programa_id, estado').eq('colegio_id', usuario.colegio_id)
+  let query = admin.from('inscripciones_programa').select('id, alumno_id, programa_id, estado').in('colegio_id', sedesDelUsuario(usuario))
   if (inscripcion_id) query = query.eq('id', inscripcion_id)
   else if (alumno_id && programa_id) query = query.eq('alumno_id', alumno_id).eq('programa_id', programa_id)
   else return NextResponse.json({ error: 'Se requiere inscripcion_id o alumno_id+programa_id' }, { status: 400 })
@@ -187,7 +195,7 @@ export async function DELETE(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids').eq('id', user.id).single()
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids, sedes_ids').eq('id', user.id).single()
   const usuario = ur as any
 
   if (!['super_admin', 'admin', 'pastor_campus', 'coordinador'].includes(usuario?.rol)) {
@@ -204,7 +212,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   // Buscar la inscripción
-  let query = admin.from('inscripciones_programa').select('id, alumno_id, programa_id').eq('colegio_id', usuario.colegio_id)
+  let query = admin.from('inscripciones_programa').select('id, alumno_id, programa_id').in('colegio_id', sedesDelUsuario(usuario))
   if (inscripcionId) {
     query = query.eq('id', inscripcionId)
   } else {

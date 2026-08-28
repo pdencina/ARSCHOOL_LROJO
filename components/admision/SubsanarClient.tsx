@@ -26,11 +26,65 @@ export default function SubsanarClient({ preAdmision: pa }: Props) {
 
   const docsFaltantes = DOCS_OBL.filter(d => !documentos[d.key])
 
-  function handleFile(key: string, file: File) {
+  // Comprime imágenes para evitar payloads gigantes que hacían fallar el envío.
+  function comprimirImagen(file: File, maxDim = 1400, calidad = 0.6): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo'))
+      reader.onload = () => {
+        const img = new Image()
+        img.onerror = () => reject(new Error('No se pudo procesar la imagen'))
+        img.onload = () => {
+          let { width, height } = img
+          if (width > maxDim || height > maxDim) {
+            const escala = maxDim / Math.max(width, height)
+            width = Math.round(width * escala)
+            height = Math.round(height * escala)
+          }
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          if (!ctx) { reject(new Error('Canvas no soportado')); return }
+          ctx.drawImage(img, 0, 0, width, height)
+          resolve(canvas.toDataURL('image/jpeg', calidad))
+        }
+        img.src = reader.result as string
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  async function handleFile(key: string, file: File) {
     if (file.size > 10 * 1024 * 1024) { toast.error('Máximo 10 MB'); return }
-    const reader = new FileReader()
-    reader.onload = () => { setDocumentos(d => ({ ...d, [key]: reader.result as string })); toast.success('Documento adjuntado') }
-    reader.readAsDataURL(file)
+    const tipos = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+    if (!tipos.includes(file.type)) { toast.error('Solo JPG, PNG o PDF'); return }
+
+    const loadingToast = toast.loading('Procesando...')
+    try {
+      let dataUrl: string
+      if (file.type === 'application/pdf') {
+        if (file.size > 4 * 1024 * 1024) {
+          toast.dismiss(loadingToast)
+          toast.error('El PDF supera 4 MB. Comprímelo o adjunta una foto.')
+          return
+        }
+        dataUrl = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader()
+          r.onerror = () => reject(new Error('No se pudo leer el archivo'))
+          r.onload = () => resolve(r.result as string)
+          r.readAsDataURL(file)
+        })
+      } else {
+        dataUrl = await comprimirImagen(file)
+      }
+      setDocumentos(d => ({ ...d, [key]: dataUrl }))
+      toast.dismiss(loadingToast)
+      toast.success('Documento adjuntado')
+    } catch (e: any) {
+      toast.dismiss(loadingToast)
+      toast.error(e?.message || 'No se pudo adjuntar el archivo')
+    }
   }
 
   async function enviar() {
@@ -49,10 +103,13 @@ export default function SubsanarClient({ preAdmision: pa }: Props) {
           observaciones_apoderado: observaciones || null,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      if (res.status === 413) {
+        throw new Error('Los documentos son muy pesados. Adjunta fotos en vez de PDF, o vuelve a tomarlas con menor calidad.')
+      }
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.')
       setEnviado(true)
-    } catch (e: any) { toast.error(e.message) }
+    } catch (e: any) { toast.error(e?.message || 'Error al enviar') }
     finally { setLoading(false) }
   }
 
