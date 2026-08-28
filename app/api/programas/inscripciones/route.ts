@@ -10,6 +10,31 @@ function getAdmin() {
   )
 }
 
+// Deriva atributos estructurados desde el texto de `nivel`.
+// Ejemplos: "Ciclo 1 - Guitarra" | "Sub-12" | "Music and Play (0-4 años)"
+function parsearNivel(nivel: string): { instrumento?: string; ciclo?: string; categoria?: string; rango_edad?: string } {
+  const out: { instrumento?: string; ciclo?: string; categoria?: string; rango_edad?: string } = {}
+  if (!nivel) return out
+
+  // AR Worship: "Ciclo 1 - Guitarra"
+  const cicloMatch = nivel.match(/Ciclo\s*(\d)/i)
+  if (cicloMatch) out.ciclo = `Ciclo ${cicloMatch[1]}`
+  const instrumentos = ['Guitarra', 'Bajo', 'Teclado', 'Batería', 'Bateria', 'Canto', 'Saxophone', 'Saxofón', 'Violín', 'Violin']
+  const instr = instrumentos.find(i => nivel.toLowerCase().includes(i.toLowerCase()))
+  if (instr) out.instrumento = instr
+
+  // Lions Soccer: "Sub-12", "Juvenil"
+  const subMatch = nivel.match(/Sub-?\s*(\d{1,2})/i)
+  if (subMatch) out.categoria = `Sub-${subMatch[1]}`
+  else if (/juvenil/i.test(nivel)) out.categoria = 'Juvenil'
+
+  // Music and Play: "(0-4 años)" / "(4-7 años)"
+  const edadMatch = nivel.match(/(\d\s*-\s*\d)\s*años/i)
+  if (edadMatch) out.rango_edad = `${edadMatch[1].replace(/\s/g, '')} años`
+
+  return out
+}
+
 // POST /api/programas/inscripciones — Inscribir alumno en un programa
 export async function POST(request: NextRequest) {
   const supabase = createClient()
@@ -50,12 +75,15 @@ export async function POST(request: NextRequest) {
     fecha_prueba: body.estado === 'prueba' ? new Date().toISOString().split('T')[0] : null,
   }
   // Atributos estructurados (migración 046). Opcionales y resilientes si faltan columnas.
+  // Si no vienen explícitos, se intentan derivar del texto de `nivel`
+  // (ej: "Ciclo 1 - Guitarra", "Sub-12", "Music and Play (0-4 años)").
+  const parsed = parsearNivel(nivel || '')
   const atributos: Record<string, any> = {
-    instrumento: body.instrumento || null,
-    ciclo: body.ciclo || null,
-    categoria: body.categoria || null,
+    instrumento: body.instrumento || parsed.instrumento || null,
+    ciclo: body.ciclo || parsed.ciclo || null,
+    categoria: body.categoria || parsed.categoria || null,
     posicion: body.posicion || null,
-    rango_edad: body.rango_edad || null,
+    rango_edad: body.rango_edad || parsed.rango_edad || null,
   }
 
   let { data, error } = await admin.from('inscripciones_programa')
