@@ -350,21 +350,21 @@ export default function PreAdmisionForm() {
         {/* PASO 4: Documentos */}
         {paso === 4 && (
           <section className="space-y-4 animate-[fadeIn_0.2s]">
-            <div className="mb-2"><h2 className="text-lg font-bold text-[#1B3A5C]">Documentos requeridos</h2><p className="text-xs text-gray-500">Adjunte fotos claras o archivos PDF (máx. 10 MB cada uno).</p></div>
+            <div className="mb-2"><h2 className="text-lg font-bold text-[#1B3A5C]">Documentos (opcional)</h2><p className="text-xs text-gray-500">Puede adjuntarlos ahora o entregarlos después. Fotos o PDF (máx. 10 MB cada uno).</p></div>
             <div className="flex items-center justify-between bg-[#f0f4f8] rounded-xl p-3 mb-2">
-              <span className="text-xs text-gray-600">Obligatorios completados</span>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${DOCS_OBL.filter(d=>documentos[d.key]).length === DOCS_OBL.length ? 'bg-[#EDF5F0] text-[#2D5A3F]' : 'bg-amber-50 text-amber-700'}`}>
-                {DOCS_OBL.filter(d=>documentos[d.key]).length} / {DOCS_OBL.length}
+              <span className="text-xs text-gray-600">Documentos adjuntados</span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-[#EDF5F0] text-[#2D5A3F]">
+                {[...DOCS_OBL, ...DOCS_OPT].filter(d=>documentos[d.key]).length} / {DOCS_OBL.length + DOCS_OPT.length}
               </span>
             </div>
             <div className="space-y-2">{DOCS_OBL.map(doc => <DocRow key={doc.key} doc={doc} uploaded={!!documentos[doc.key]} onSelect={f => handleFile(doc.key, f)} onRemove={() => setDocumentosAndSave(d => { const n={...d}; delete n[doc.key]; return n })}/>)}</div>
             <details className="group mt-4">
-              <summary className="text-xs font-semibold text-gray-500 cursor-pointer py-2 flex items-center gap-1"><svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>Documentos opcionales ({DOCS_OPT.length})</summary>
+              <summary className="text-xs font-semibold text-gray-500 cursor-pointer py-2 flex items-center gap-1"><svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>Otros documentos ({DOCS_OPT.length})</summary>
               <div className="space-y-2 mt-2">{DOCS_OPT.map(doc => <DocRow key={doc.key} doc={doc} uploaded={!!documentos[doc.key]} onSelect={f => handleFile(doc.key, f)} onRemove={() => setDocumentosAndSave(d => { const n={...d}; delete n[doc.key]; return n })}/>)}</div>
             </details>
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-2 mt-4">
               <span className="text-base">📱</span>
-              <p className="text-[11px] text-blue-700 leading-relaxed"><strong>Tip:</strong> Puede tomar fotos directamente con su cámara. Asegúrese de que el documento sea legible y esté completo.</p>
+              <p className="text-[11px] text-blue-700 leading-relaxed"><strong>Tip:</strong> Puede adjuntar los documentos ahora o coordinar su entrega con el equipo de admisión más adelante. La solicitud se puede enviar sin ellos.</p>
             </div>
           </section>
         )}
@@ -386,8 +386,8 @@ export default function PreAdmisionForm() {
         <div className="max-w-lg mx-auto flex gap-3">
           {paso > 1 && <button onClick={() => setPaso((paso-1) as Paso)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 active:scale-[0.98] transition-transform">Anterior</button>}
           {paso < 5 ? (
-            <button onClick={intentarAvanzar} disabled={paso === 4 && DOCS_OBL.some(d => !documentos[d.key])} className="flex-1 py-3 rounded-xl bg-[#1B3A5C] text-white text-sm font-semibold active:scale-[0.98] transition-transform disabled:opacity-50">
-              {paso === 4 && DOCS_OBL.some(d => !documentos[d.key]) ? 'Faltan documentos obligatorios' : 'Siguiente'}
+            <button onClick={intentarAvanzar} className="flex-1 py-3 rounded-xl bg-[#1B3A5C] text-white text-sm font-semibold active:scale-[0.98] transition-transform">
+              Siguiente
             </button>
           ) : (
             <button onClick={enviar} disabled={loading} className="flex-1 py-3 rounded-xl bg-[#2D5A3F] text-white text-sm font-semibold active:scale-[0.98] disabled:opacity-50 transition-transform">{loading ? 'Enviando...' : 'Enviar solicitud de admisión'}</button>
