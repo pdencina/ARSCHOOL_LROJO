@@ -11,6 +11,20 @@ function getAdmin() {
   )
 }
 
+const ROLES_ADMISION = ['super_admin', 'admin', 'pastor_campus', 'gestor_admision', 'coordinador']
+
+// Verifica que el usuario tenga acceso a esta pre-admisión (sede + programa para coordinador).
+function puedeAcceder(usuario: any, pa: any): boolean {
+  if (['super_admin', 'admin', 'pastor_campus', 'gestor_admision'].includes(usuario?.rol)) return true
+  if (usuario?.rol === 'coordinador') {
+    const sedes = [usuario.colegio_id, ...(usuario.sedes_ids || [])].filter(Boolean)
+    const sedeOk = sedes.length === 0 || sedes.includes(pa.colegio_id)
+    const progOk = !usuario.programa_ids?.length || (pa.programa_id && usuario.programa_ids.includes(pa.programa_id))
+    return sedeOk && progOk
+  }
+  return false
+}
+
 // GET /api/admision/[id] — Detalle completo de una pre-admisión
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -18,13 +32,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
-  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision'].includes((ur as any)?.rol)) {
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids, sedes_ids').eq('id', user.id).single()
+  const usuario = ur as any
+  if (!ROLES_ADMISION.includes(usuario?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
   const { data } = await admin.from('pre_admisiones').select('*').eq('id', params.id).single()
   if (!data) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
+  if (!puedeAcceder(usuario, data)) return NextResponse.json({ error: 'Sin acceso a esta solicitud' }, { status: 403 })
 
   return NextResponse.json(data)
 }
@@ -36,10 +52,16 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
-  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision'].includes((ur as any)?.rol)) {
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids, sedes_ids').eq('id', user.id).single()
+  const usuario = ur as any
+  if (!ROLES_ADMISION.includes(usuario?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
+
+  // Verificar acceso a esta pre-admisión (coordinador: su programa + sede)
+  const { data: paActual } = await admin.from('pre_admisiones').select('id, colegio_id, programa_id').eq('id', params.id).single()
+  if (!paActual) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
+  if (!puedeAcceder(usuario, paActual)) return NextResponse.json({ error: 'Sin acceso a esta solicitud' }, { status: 403 })
 
   const body = await request.json()
   const { accion, observaciones_admin, motivo_rechazo } = body

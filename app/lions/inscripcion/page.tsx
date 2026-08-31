@@ -63,6 +63,7 @@ export default function LionsInscripcionPage() {
           alumno_fecha_nacimiento: form.alumno_fecha_nacimiento,
           alumno_sexo: form.alumno_sexo,
           curso_solicitado: `Lions Soccer - ${form.categoria}`,
+          programa_codigo: 'lions_soccer',
           sede: form.sede,
           jornada: 'completa',
           apoderado_nombre: `${form.apoderado_nombre} ${form.apoderado_segundo_nombre || ''}`.trim(),

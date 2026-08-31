@@ -70,6 +70,7 @@ export default function WorshipInscripcionPage() {
           alumno_fecha_nacimiento: form.alumno_fecha_nacimiento,
           alumno_sexo: form.alumno_sexo,
           curso_solicitado: `AR Worship - ${nivel}`,
+          programa_codigo: 'ar_worship',
           sede: form.sede,
           jornada: 'completa',
           apoderado_nombre: `${form.apoderado_nombre} ${form.apoderado_segundo_nombre || ''}`.trim(),

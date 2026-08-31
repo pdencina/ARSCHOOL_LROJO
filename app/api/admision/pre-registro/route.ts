@@ -18,6 +18,22 @@ function generarCodigo(): string {
   return `ADM-${new Date().getFullYear()}-${parte1}${parte2}`
 }
 
+// Deriva el código de programa desde el texto del curso solicitado.
+function codigoProgramaDesdeCurso(curso: string): string {
+  const c = (curso || '').toLowerCase()
+  if (c.includes('lions') || c.includes('soccer')) return 'lions_soccer'
+  if (c.includes('worship') || c.includes('music')) return 'ar_worship'
+  if (c.includes('play') || c.includes('pre school')) return 'play_group'
+  return 'ar_school'
+}
+
+// Resuelve el programa_id a partir del curso (o de un programa_codigo explícito).
+async function resolverProgramaId(admin: any, curso: string, programaCodigo?: string): Promise<string | null> {
+  const codigo = programaCodigo || codigoProgramaDesdeCurso(curso)
+  const { data } = await admin.from('programas').select('id').eq('codigo', codigo).single()
+  return (data as any)?.id ?? null
+}
+
 // POST /api/admision/pre-registro — Público, sin auth
 // El apoderado envía todos los datos del alumno + familia + documentos
 export async function POST(request: NextRequest) {
@@ -62,6 +78,9 @@ export async function POST(request: NextRequest) {
   // Determinar colegio (default Santiago si no se especifica)
   const colegioIdFinal = colegio_id || '11111111-1111-1111-1111-111111111111'
 
+  // Resolver programa (para que coordinadores puedan ver/aprobar según su programa)
+  const programaId = await resolverProgramaId(admin, curso_solicitado, (body as any).programa_codigo)
+
   // Generar código de seguimiento único
   let codigo = generarCodigo()
   let intentos = 0
@@ -77,8 +96,9 @@ export async function POST(request: NextRequest) {
   const userAgent = request.headers.get('user-agent') ?? null
 
   // Insertar pre-admisión
-  const { data: preAdmision, error } = await admin.from('pre_admisiones').insert({
+  const insertData: Record<string, any> = {
     colegio_id: colegioIdFinal,
+    programa_id: programaId,
     codigo_seguimiento: codigo,
     // Alumno
     alumno_nombre: alumno_nombre.trim(),
@@ -136,7 +156,15 @@ export async function POST(request: NextRequest) {
     observaciones_apoderado: observaciones_apoderado || null,
     ip_envio: ip,
     user_agent_envio: userAgent,
-  }).select().single()
+  }
+
+  let { data: preAdmision, error } = await admin.from('pre_admisiones').insert(insertData).select().single()
+  // Reintento sin programa_id si la instancia aún no tiene la columna
+  if (error && /programa_id/.test(error.message)) {
+    const { programa_id, ...sinPrograma } = insertData
+    const retry = await admin.from('pre_admisiones').insert(sinPrograma).select().single()
+    preAdmision = retry.data; error = retry.error
+  }
 
   if (error) {
     console.error('Error pre-admisión:', error)

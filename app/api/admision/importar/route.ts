@@ -19,8 +19,9 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
-  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision'].includes((ur as any)?.rol)) {
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids, sedes_ids').eq('id', user.id).single()
+  const usuario = ur as any
+  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision', 'coordinador'].includes(usuario?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
@@ -30,6 +31,14 @@ export async function POST(request: NextRequest) {
   const { data: preAdm } = await admin.from('pre_admisiones').select('*').eq('id', pre_admision_id).single()
   if (!preAdm) return NextResponse.json({ error: 'Pre-admisión no encontrada' }, { status: 404 })
   const pa = preAdm as any
+
+  // Coordinador: solo sus programas y sedes
+  if (usuario.rol === 'coordinador') {
+    const sedes = [usuario.colegio_id, ...(usuario.sedes_ids || [])].filter(Boolean)
+    const sedeOk = sedes.length === 0 || sedes.includes(pa.colegio_id)
+    const progOk = !usuario.programa_ids?.length || (pa.programa_id && usuario.programa_ids.includes(pa.programa_id))
+    if (!sedeOk || !progOk) return NextResponse.json({ error: 'Sin acceso a esta solicitud' }, { status: 403 })
+  }
 
   // Acción: cambiar estado
   if (accion === 'aprobar') {
