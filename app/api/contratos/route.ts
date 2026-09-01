@@ -81,11 +81,26 @@ export async function GET(request: NextRequest) {
   // Datos comunes
   const anio = matricula?.anio_escolar ?? new Date().getFullYear()
 
-  // Detectar programa para defaults
+  // ─── Detectar programa para elegir la plantilla de contrato ───
+  // Fuente confiable: programa_id de la matrícula o del alumno.
+  // Si no existe (registros antiguos), se deduce del texto del curso.
+  let programaCodigo: string | null = null
+  const programaIdRef = matricula?.programa_id || alumno.programa_id || null
+  if (programaIdRef) {
+    const { data: prog } = await admin.from('programas').select('codigo').eq('id', programaIdRef).single()
+    programaCodigo = (prog as any)?.codigo ?? null
+  }
+
   const cursoLower = (alumno.curso || '').toLowerCase()
-  const esPreschool = cursoLower.includes('play') || cursoLower.includes('pre school')
-  const esLions = cursoLower.includes('lions') || cursoLower.includes('soccer')
-  const esWorship = cursoLower.includes('worship') || cursoLower.includes('música') || cursoLower.includes('music')
+  const esLions = programaCodigo
+    ? programaCodigo === 'lions_soccer'
+    : (cursoLower.includes('lions') || cursoLower.includes('soccer'))
+  const esWorship = programaCodigo
+    ? programaCodigo === 'ar_worship'
+    : (cursoLower.includes('worship') || cursoLower.includes('música') || cursoLower.includes('music'))
+  const esPreschool = programaCodigo
+    ? programaCodigo === 'play_group'
+    : (cursoLower.includes('play') || cursoLower.includes('pre school'))
 
   // Defaults por programa: Lions=45k/40k/12m, Worship=0/variable/9m, ARSchool=130k/275k/10m
   const defaultInicial = esLions ? 45000 : esWorship ? 0 : 130000
@@ -247,7 +262,13 @@ export async function GET(request: NextRequest) {
   } else if (esLions) {
     titulo = `Contrato Lions Soccer — ${alumno.nombre} ${alumno.apellido}`
     const { generarContratoLions } = await import('@/lib/contratos/lions')
-    contenido = generarContratoLions({ ...datosBase, categoria: alumno.curso?.split(' - ')[1] || 'General', horario: '' })
+    // Categoría: "Sub-12" / "Juvenil" en cualquier parte del curso
+    const cursoLions = alumno.curso || ''
+    const subMatch = cursoLions.match(/Sub-?\s*(\d{1,2})/i)
+    const categoriaLions = subMatch
+      ? `Sub-${subMatch[1]}`
+      : (/juvenil/i.test(cursoLions) ? 'Juvenil' : (cursoLions.split(' - ')[1] || 'General'))
+    contenido = generarContratoLions({ ...datosBase, categoria: categoriaLions, horario: '' })
   } else if (esWorship) {
     titulo = `Contrato AR Worship — ${alumno.nombre} ${alumno.apellido}`
     const { generarContratoWorship } = await import('@/lib/contratos/worship')
