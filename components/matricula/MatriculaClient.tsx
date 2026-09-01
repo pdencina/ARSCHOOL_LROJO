@@ -11,9 +11,16 @@ import PreAdmisionesQueue from '@/components/matricula/PreAdmisionesQueue'
 import EditarMatriculaModal from '@/components/matricula/EditarMatriculaModal'
 import EscanerCedula from '@/components/ui/EscanerCedula'
 
-interface Props { planes: any[]; matriculas: any[]; cursos: string[]; aportes: any[]; becasAprobadas: any[]; preAdmisiones?: any[]; puedeEliminar?: boolean }
+interface Props {
+  planes: any[]; matriculas: any[]; cursos: string[]; aportes: any[]; becasAprobadas: any[]
+  preAdmisiones?: any[]; puedeEliminar?: boolean
+  /** Programa al que pertenecen las matrículas (coordinador de Lions/Worship) */
+  programaId?: string | null
+  /** Nombre del programa para el título (ej: "Lions Soccer") */
+  programaNombre?: string | null
+}
 
-export default function MatriculaClient({ planes, matriculas, cursos, aportes, becasAprobadas, preAdmisiones = [], puedeEliminar = false }: Props) {
+export default function MatriculaClient({ planes, matriculas, cursos, aportes, becasAprobadas, preAdmisiones = [], puedeEliminar = false, programaId = null, programaNombre = null }: Props) {
   const router = useRouter()
   const [vista, setVista] = useState<'lista' | 'nueva'>('lista')
   const [saving, setSaving] = useState(false)
@@ -202,6 +209,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...form,
+        programa_id: programaId || undefined,
         documentos: {}, // Docs se suben después para evitar timeout
         descuento_contado: 0,
         monto_mensual_final: null,
@@ -227,6 +235,22 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
             })
           } catch { /* retry later */ }
         }
+      }
+
+      // Si es un programa (Lions/Worship), inscribir al alumno en el programa
+      if (programaId && data.alumno?.id) {
+        try {
+          await fetch('/api/programas/inscripciones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              alumno_id: data.alumno.id,
+              programa_id: programaId,
+              nivel: form.curso || null,
+              estado: 'activa',
+            }),
+          })
+        } catch { /* la matrícula ya quedó creada */ }
       }
 
       toast.success('Matrícula completada exitosamente')
@@ -256,8 +280,14 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="page-title">Matrícula {form.anio_escolar || new Date().getFullYear() + 1}</h1>
-          <p className="page-subtitle">Ingreso de nuevos alumnos con trazabilidad completa</p>
+          <h1 className="page-title">
+            {programaNombre ? `Matrículas ${programaNombre}` : `Matrícula ${form.anio_escolar || new Date().getFullYear() + 1}`}
+          </h1>
+          <p className="page-subtitle">
+            {programaNombre
+              ? 'Matrícula, contratos y firma electrónica del programa'
+              : 'Ingreso de nuevos alumnos con trazabilidad completa'}
+          </p>
         </div>
         {vista === 'lista' ? (
           <button onClick={() => setVista('nueva')} className="btn-primary">

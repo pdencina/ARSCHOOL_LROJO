@@ -12,8 +12,8 @@ interface NavItem {
 const NAV_PRINCIPAL: NavItem[] = [
   { label: 'Inicio',          href: '/inicio',          icon: 'ti-home',             roles: ['super_admin','admin','pastor_campus','gestor_admision','tutor','tutor_supervisor','coordinador'] },
   { label: 'Control',         href: '/control',         icon: 'ti-door-enter',       roles: ['super_admin','admin','pastor_campus','tutor_supervisor'] },
-  { label: 'Matrícula',       href: '/matricula',       icon: 'ti-user-plus',        roles: ['super_admin','admin','pastor_campus','gestor_admision'] },
   { label: 'Admisiones',      href: '/admisiones',      icon: 'ti-clipboard-list',   roles: ['super_admin','admin','pastor_campus','gestor_admision','coordinador'] },
+  { label: 'Matrículas',      href: '/matricula',       icon: 'ti-user-plus',        roles: ['super_admin','admin','pastor_campus','gestor_admision','coordinador'] },
   { label: 'Mis alumnos',     href: '/alumnos',         icon: 'ti-users',            roles: ['tutor'] },
   { label: 'Alumnos',         href: '/alumnos',         icon: 'ti-users',            roles: ['super_admin','admin','pastor_campus','gestor_admision','coordinador'] },
   { label: 'Planificación',   href: '/planificacion',   icon: 'ti-layout-board',     roles: ['super_admin','admin','pastor_campus','tutor'] },

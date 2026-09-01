@@ -251,7 +251,10 @@ export async function GET(request: NextRequest) {
   } else if (esWorship) {
     titulo = `Contrato AR Worship — ${alumno.nombre} ${alumno.apellido}`
     const { generarContratoWorship } = await import('@/lib/contratos/worship')
-    contenido = generarContratoWorship({ ...datosBase, instrumento: alumno.curso?.split(' - ')[1] || 'Por asignar', ciclo: alumno.curso?.includes('Ciclo 2') ? 'Ciclo 2' : 'Ciclo 1', horario: alumno.curso?.includes('Ciclo 2') ? 'Sábados 11:20-12:40' : 'Sábados 09:30-10:50' })
+    // El instrumento es el último segmento del curso (ej: "AR Worship - Ciclo 1 - Guitarra")
+    const INSTRUMENTOS_WORSHIP = ['Guitarra', 'Bajo', 'Teclado', 'Batería', 'Bateria', 'Canto', 'Saxophone', 'Saxofón', 'Violín', 'Violin']
+    const instrumentoDetectado = INSTRUMENTOS_WORSHIP.find(i => (alumno.curso || '').toLowerCase().includes(i.toLowerCase()))
+    contenido = generarContratoWorship({ ...datosBase, instrumento: instrumentoDetectado || 'Por asignar', ciclo: alumno.curso?.includes('Ciclo 2') ? 'Ciclo 2' : 'Ciclo 1', horario: alumno.curso?.includes('Ciclo 2') ? 'Sábados 11:20-12:40' : 'Sábados 09:30-10:50' })
   } else if (esPreschool) {
     titulo = `Contrato Preschool — ${alumno.nombre} ${alumno.apellido}`
     contenido = generarContratoPreschool(datosBase)
