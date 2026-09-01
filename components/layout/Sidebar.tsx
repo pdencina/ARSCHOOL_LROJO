@@ -82,7 +82,13 @@ const ROL_BADGE: Record<string, { label: string; color: string; icon: string; ac
   alumno:          { label: 'Alumno',          color: 'bg-[#F3EFFE] text-[#6B4C9A] border border-[#6B4C9A]/20', icon: 'ti-backpack',          accent: '#6B4C9A', activeBg: 'bg-[#6B4C9A]', activeIndicator: '#6B4C9A' },
 }
 
-interface Props { rol?: string; modulosHabilitados?: string[] | null }
+interface Props { rol?: string; modulosHabilitados?: string[] | null; programaCodigos?: string[] | null }
+
+// Programas del sidebar → código del programa en BD
+const HREF_TO_PROGRAMA: Record<string, string> = {
+  '/lions': 'lions_soccer',
+  '/worship': 'ar_worship',
+}
 
 // Mapeo: href del sidebar → key del módulo en BD
 const HREF_TO_MODULO: Record<string, string> = {
@@ -119,7 +125,7 @@ const HREF_TO_MODULO: Record<string, string> = {
   '/portal/tareas': 'tareas',
 }
 
-export default function Sidebar({ rol = 'admin', modulosHabilitados = null }: Props) {
+export default function Sidebar({ rol = 'admin', modulosHabilitados = null, programaCodigos = null }: Props) {
   const pathname  = usePathname()
   const rolTyped  = rol as Rol
   const badge     = ROL_BADGE[rolTyped]
@@ -156,6 +162,14 @@ export default function Sidebar({ rol = 'admin', modulosHabilitados = null }: Pr
         const modKey = HREF_TO_MODULO[i.href]
         if (!modKey) return true // Si no tiene mapeo, mostrar siempre
         return modulosHabilitados.includes(modKey)
+      })
+    }
+    // Mostrar solo los programas asignados (coordinador)
+    if (programaCodigos) {
+      visibles = visibles.filter(i => {
+        const progKey = HREF_TO_PROGRAMA[i.href]
+        if (!progKey) return true // No es un ítem de programa
+        return programaCodigos.includes(progKey)
       })
     }
     // Inyectar badge de mensajes no leídos

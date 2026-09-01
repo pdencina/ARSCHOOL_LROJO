@@ -6,9 +6,11 @@ import Sidebar from './Sidebar'
 interface Props {
   rol: string
   modulosHabilitadosInicial: string[] | null
+  /** Códigos de programa asignados (coordinador). null = todos */
+  programaCodigos?: string[] | null
 }
 
-export default function SidebarWrapper({ rol, modulosHabilitadosInicial }: Props) {
+export default function SidebarWrapper({ rol, modulosHabilitadosInicial, programaCodigos = null }: Props) {
   const [modulos, setModulos] = useState<string[] | null>(modulosHabilitadosInicial)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -58,7 +60,7 @@ export default function SidebarWrapper({ rol, modulosHabilitadosInicial }: Props
     <>
       {/* Desktop sidebar */}
       <div className="hidden lg:block">
-        <Sidebar rol={rol} modulosHabilitados={modulos} />
+        <Sidebar rol={rol} modulosHabilitados={modulos} programaCodigos={programaCodigos} />
       </div>
 
       {/* Mobile sidebar overlay */}
@@ -66,7 +68,7 @@ export default function SidebarWrapper({ rol, modulosHabilitadosInicial }: Props
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setMobileOpen(false)}/>
           <div className="absolute left-0 top-0 bottom-0 w-[260px] animate-[slideIn_0.2s_ease-out]">
-            <Sidebar rol={rol} modulosHabilitados={modulos} />
+            <Sidebar rol={rol} modulosHabilitados={modulos} programaCodigos={programaCodigos} />
           </div>
         </div>
       )}

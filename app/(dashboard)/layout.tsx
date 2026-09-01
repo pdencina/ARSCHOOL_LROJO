@@ -60,6 +60,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
     sedeActiva = cookies().get(SEDE_COOKIE)?.value ?? SEDE_TODAS
   }
 
+  // Coordinador: solo mostrar en el menú los programas que gestiona
+  let programaCodigos: string[] | null = null
+  if (usuario.rol === 'coordinador' && usuario.programa_ids?.length > 0) {
+    const { data: progs } = await admin
+      .from('programas')
+      .select('codigo')
+      .in('id', usuario.programa_ids)
+    programaCodigos = (progs ?? []).map((p: any) => p.codigo)
+  }
+
   return (
     <div className="min-h-screen bg-[var(--ar-bg)]">
       <Toaster position="top-right"/>
@@ -67,7 +77,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Topbar usuario={usuario} colegios={colegios} sedeActiva={sedeActiva}/>
       <AsistenciaBanner rol={usuario.rol} userId={user.id} colegioId={usuario.colegio_id}/>
       <div className="flex h-[calc(100vh-56px)]">
-        <SidebarWrapper rol={usuario.rol} modulosHabilitadosInicial={modulosHabilitados}/>
+        <SidebarWrapper rol={usuario.rol} modulosHabilitadosInicial={modulosHabilitados} programaCodigos={programaCodigos}/>
         <main className="flex-1 w-full h-[calc(100vh-56px)] overflow-auto animate-[fadeIn_0.2s_ease-out]">
           {children}
         </main>
