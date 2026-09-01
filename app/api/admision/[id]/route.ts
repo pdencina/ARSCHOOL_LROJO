@@ -111,6 +111,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     updates.observaciones_admin = observaciones_admin || null
   } else if (accion === 'observar') {
     updates.observaciones_admin = observaciones_admin
+  } else if (accion === 'matriculada') {
+    // Se completó la matrícula a partir de esta solicitud
+    updates.estado = 'matriculada'
   } else {
     return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
   }

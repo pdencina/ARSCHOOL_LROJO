@@ -128,6 +128,7 @@ export default function PreAdmisionesQueue({ preAdmisiones, onImportar, puedeEli
             window.location.reload()
           }}
           permitirEliminar={puedeEliminar}
+          permitirImportar
         />
       )}
     </>

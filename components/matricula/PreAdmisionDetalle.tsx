@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
+import MatricularDesdeAdmisionModal from '@/components/admision/MatricularDesdeAdmisionModal'
 
 interface Props {
   preAdmision: any
@@ -9,6 +10,8 @@ interface Props {
   onEstadoCambiado: () => void
   /** Permite eliminar definitivamente la solicitud (roles de administración) */
   permitirEliminar?: boolean
+  /** Muestra el botón "Importar a matrícula" (solo si el usuario tiene el módulo Matrícula) */
+  permitirImportar?: boolean
 }
 
 const DOCS_LABELS: Record<string, string> = {
@@ -26,12 +29,13 @@ const DOCS_LABELS: Record<string, string> = {
   notas_anteriores: 'Notas anteriores',
 }
 
-export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImportar, onEstadoCambiado, permitirEliminar = false }: Props) {
+export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImportar, onEstadoCambiado, permitirEliminar = false, permitirImportar = false }: Props) {
   const [loading, setLoading] = useState(false)
   const [observaciones, setObservaciones] = useState(pa.observaciones_admin || '')
   const [motivoRechazo, setMotivoRechazo] = useState('')
   const [mostrarRechazo, setMostrarRechazo] = useState(false)
   const [docPreview, setDocPreview] = useState<string | null>(null)
+  const [mostrarMatricular, setMostrarMatricular] = useState(false)
 
   const docs = pa.documentos || {}
   const docsSubidos = Object.keys(docs).filter(k => docs[k])
@@ -247,9 +251,15 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
                   </button>
                 )}
                 {pa.estado === 'aprobada' && (
-                  <button onClick={importar} disabled={loading}
+                  <button onClick={() => setMostrarMatricular(true)} disabled={loading}
                     className="flex-1 py-2.5 bg-[#1B3A5C] text-white text-xs font-semibold rounded-lg hover:bg-[#143050] disabled:opacity-50 transition-colors">
-                    Importar a matrícula
+                    Matricular y generar contrato
+                  </button>
+                )}
+                {pa.estado === 'aprobada' && permitirImportar && (
+                  <button onClick={importar} disabled={loading}
+                    className="px-4 py-2.5 bg-white border border-[#1B3A5C]/20 text-[#1B3A5C] text-xs font-semibold rounded-lg hover:bg-[#f0f4f8] disabled:opacity-50 transition-colors">
+                    Importar al formulario
                   </button>
                 )}
                 {!mostrarRechazo && pa.estado !== 'rechazada' && pa.estado !== 'matriculada' && (
@@ -304,6 +314,15 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal matricular desde la admisión */}
+      {mostrarMatricular && (
+        <MatricularDesdeAdmisionModal
+          preAdmision={pa}
+          onClose={() => setMostrarMatricular(false)}
+          onMatriculado={() => { setMostrarMatricular(false); onEstadoCambiado() }}
+        />
       )}
 
       <style jsx>{`

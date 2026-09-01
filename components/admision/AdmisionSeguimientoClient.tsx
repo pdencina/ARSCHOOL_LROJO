@@ -134,7 +134,7 @@ export default function AdmisionSeguimientoClient({ preAdmisiones, puedeEliminar
         <PreAdmisionDetalle
           preAdmision={detalle}
           onClose={() => setDetalle(null)}
-          onImportar={() => { setDetalle(null); window.location.href = '/matricula' }}
+          onImportar={() => setDetalle(null)}
           onEstadoCambiado={() => { setDetalle(null); window.location.reload() }}
           permitirEliminar={puedeEliminar}
         />
