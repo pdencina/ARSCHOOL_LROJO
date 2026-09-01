@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import BotonPagarWebpay from '@/components/shared/BotonPagarWebpay'
 
 interface Props {
   usuario: any
@@ -39,6 +40,13 @@ export default function PortalInicio({ usuario, alumno, rol, stats, comunicados,
           {esApoderado ? 'Portal familiar' : 'Portal del alumno'} · {usuario?.SEDE?.nombre}
         </p>
       </div>
+
+      {/* Link de pago Webpay — visible para todos los programas */}
+      {esApoderado && (
+        <div className="mb-6">
+          <BotonPagarWebpay variante="banner"/>
+        </div>
+      )}
 
       {/* Alerta firmas pendientes */}
       {pendientesFirma > 0 && (

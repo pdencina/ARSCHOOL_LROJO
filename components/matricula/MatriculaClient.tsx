@@ -11,9 +11,9 @@ import PreAdmisionesQueue from '@/components/matricula/PreAdmisionesQueue'
 import EditarMatriculaModal from '@/components/matricula/EditarMatriculaModal'
 import EscanerCedula from '@/components/ui/EscanerCedula'
 
-interface Props { planes: any[]; matriculas: any[]; cursos: string[]; aportes: any[]; becasAprobadas: any[]; preAdmisiones?: any[] }
+interface Props { planes: any[]; matriculas: any[]; cursos: string[]; aportes: any[]; becasAprobadas: any[]; preAdmisiones?: any[]; puedeEliminar?: boolean }
 
-export default function MatriculaClient({ planes, matriculas, cursos, aportes, becasAprobadas, preAdmisiones = [] }: Props) {
+export default function MatriculaClient({ planes, matriculas, cursos, aportes, becasAprobadas, preAdmisiones = [], puedeEliminar = false }: Props) {
   const router = useRouter()
   const [vista, setVista] = useState<'lista' | 'nueva'>('lista')
   const [saving, setSaving] = useState(false)
@@ -289,6 +289,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                 setVista('nueva')
                 toast.success('Datos importados. Complete el plan de cobro y envíe a firma.')
               }}
+              puedeEliminar={puedeEliminar}
             />
           )}
 

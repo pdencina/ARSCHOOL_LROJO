@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react'
 import toast from 'react-hot-toast'
 import PreAdmisionDetalle from '@/components/matricula/PreAdmisionDetalle'
 
-interface Props { preAdmisiones: any[] }
+interface Props { preAdmisiones: any[]; puedeEliminar?: boolean }
 
 const ESTADOS = [
   { value: '', label: 'Todas' },
@@ -22,7 +22,7 @@ const ESTADO_BADGE: Record<string, { label: string; class: string }> = {
   rechazada: { label: 'Rechazada', class: 'bg-red-50 text-red-700' },
 }
 
-export default function AdmisionSeguimientoClient({ preAdmisiones }: Props) {
+export default function AdmisionSeguimientoClient({ preAdmisiones, puedeEliminar = false }: Props) {
   const [filtro, setFiltro] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const [detalle, setDetalle] = useState<any>(null)
@@ -136,6 +136,7 @@ export default function AdmisionSeguimientoClient({ preAdmisiones }: Props) {
           onClose={() => setDetalle(null)}
           onImportar={() => { setDetalle(null); window.location.href = '/matricula' }}
           onEstadoCambiado={() => { setDetalle(null); window.location.reload() }}
+          permitirEliminar={puedeEliminar}
         />
       )}
     </div>

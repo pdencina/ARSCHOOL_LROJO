@@ -20,6 +20,8 @@ interface PreAdmision {
 interface Props {
   preAdmisiones: PreAdmision[]
   onImportar: (datos: any) => void
+  /** Permite eliminar solicitudes desde el detalle */
+  puedeEliminar?: boolean
 }
 
 const ESTADO_BADGE: Record<string, { label: string; class: string }> = {
@@ -28,7 +30,7 @@ const ESTADO_BADGE: Record<string, { label: string; class: string }> = {
   aprobada: { label: 'Aprobada', class: 'bg-[#EDF5F0] text-[#2D5A3F]' },
 }
 
-export default function PreAdmisionesQueue({ preAdmisiones, onImportar }: Props) {
+export default function PreAdmisionesQueue({ preAdmisiones, onImportar, puedeEliminar = false }: Props) {
   const [detalleAbierto, setDetalleAbierto] = useState<any>(null)
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
@@ -125,6 +127,7 @@ export default function PreAdmisionesQueue({ preAdmisiones, onImportar }: Props)
             // Recargar la página para refrescar la lista
             window.location.reload()
           }}
+          permitirEliminar={puedeEliminar}
         />
       )}
     </>

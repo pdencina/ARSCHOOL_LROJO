@@ -45,5 +45,13 @@ export default async function AdmisionPage() {
 
   const { data: preAdmisiones } = await query
 
-  return <AdmisionSeguimientoClient preAdmisiones={(preAdmisiones as any[]) ?? []} />
+  // Eliminar es destructivo: solo roles de administración y coordinador (de su programa)
+  const puedeEliminar = ['super_admin', 'admin', 'pastor_campus', 'coordinador'].includes(usuario.rol)
+
+  return (
+    <AdmisionSeguimientoClient
+      preAdmisiones={(preAdmisiones as any[]) ?? []}
+      puedeEliminar={puedeEliminar}
+    />
+  )
 }

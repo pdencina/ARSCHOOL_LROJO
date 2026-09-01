@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
+import BotonPagarWebpay from '@/components/shared/BotonPagarWebpay'
 
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 
@@ -170,6 +171,11 @@ export default function PortalPagosClient({ cobros }: Props) {
       <div className="mb-6">
         <h1 className="page-title">Estado de aportes</h1>
         <p className="page-subtitle">Detalle de aportes mensuales y opciones de pago</p>
+      </div>
+
+      {/* Link de pago Webpay — visible para todos los programas */}
+      <div className="mb-6">
+        <BotonPagarWebpay variante="banner"/>
       </div>
 
       {/* Resultado del pago */}

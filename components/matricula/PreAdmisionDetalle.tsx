@@ -7,6 +7,8 @@ interface Props {
   onClose: () => void
   onImportar: (datos: any) => void
   onEstadoCambiado: () => void
+  /** Permite eliminar definitivamente la solicitud (roles de administración) */
+  permitirEliminar?: boolean
 }
 
 const DOCS_LABELS: Record<string, string> = {
@@ -24,7 +26,7 @@ const DOCS_LABELS: Record<string, string> = {
   notas_anteriores: 'Notas anteriores',
 }
 
-export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImportar, onEstadoCambiado }: Props) {
+export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImportar, onEstadoCambiado, permitirEliminar = false }: Props) {
   const [loading, setLoading] = useState(false)
   const [observaciones, setObservaciones] = useState(pa.observaciones_admin || '')
   const [motivoRechazo, setMotivoRechazo] = useState('')
@@ -45,6 +47,19 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       toast.success(accion === 'aprobar' ? 'Solicitud aprobada' : accion === 'rechazar' ? 'Solicitud rechazada' : 'Estado actualizado')
+      onEstadoCambiado()
+    } catch (e: any) { toast.error(e.message) }
+    finally { setLoading(false) }
+  }
+
+  async function eliminar() {
+    if (!confirm(`¿Eliminar definitivamente la solicitud de ${pa.alumno_nombre} ${pa.alumno_apellido}?\n\nEsta acción no se puede deshacer.`)) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/admision/${pa.id}`, { method: 'DELETE' })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'No se pudo eliminar')
+      toast.success('Solicitud eliminada')
       onEstadoCambiado()
     } catch (e: any) { toast.error(e.message) }
     finally { setLoading(false) }
@@ -250,6 +265,17 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
                   </button>
                 )}
               </div>
+
+              {/* Eliminar definitivamente */}
+              {permitirEliminar && (
+                <div className="pt-3 mt-1 border-t border-gray-100">
+                  <button onClick={eliminar} disabled={loading}
+                    className="text-[11px] text-red-500 hover:text-red-700 hover:underline font-medium disabled:opacity-50">
+                    <i className="ti ti-trash text-xs mr-1" aria-hidden="true"/> Eliminar solicitud definitivamente
+                  </button>
+                  <p className="text-[9px] text-gray-400 mt-1">Borra la solicitud del sistema. No se puede deshacer.</p>
+                </div>
+              )}
             </div>
           </Section>
 

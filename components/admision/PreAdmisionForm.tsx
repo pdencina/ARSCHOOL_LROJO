@@ -7,6 +7,7 @@ import {
   validarEmail, calcularEdad, validarFormularioAdmision,
 } from '@/lib/validaciones'
 import { TODAS_COMUNAS, PREVISIONES_SALUD, NACIONALIDADES, PARENTESCOS } from '@/lib/comunas-chile'
+import BotonPagarWebpay from '@/components/shared/BotonPagarWebpay'
 
 const CURSOS = [
   'Play Group (2-3 años)', 'Pre School (3-4 años)', 'Kinder (Ciclo 0)',
@@ -225,6 +226,7 @@ export default function PreAdmisionForm() {
             <div className="text-2xl font-bold text-[#1B3A5C] tracking-wider font-mono">{codigoSeguimiento}</div>
           </div>
           <p className="text-xs text-gray-500 mb-4">Guarde este código. Recibirá un email de confirmación.</p>
+          <div className="mb-4"><BotonPagarWebpay variante="banner"/></div>
           <a href={`/admision/seguimiento?codigo=${codigoSeguimiento}`} className="inline-block bg-[#1B3A5C] text-white px-6 py-2.5 rounded-xl text-sm font-semibold">Ver estado</a>
         </div>
       </div>

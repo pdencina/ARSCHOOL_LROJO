@@ -58,6 +58,7 @@ export default async function MatriculaPage() {
       aportes={(aportes as any[]) ?? []}
       becasAprobadas={(becasAprobadas as any[]) ?? []}
       preAdmisiones={(preAdmisiones as any[]) ?? []}
+      puedeEliminar={['super_admin', 'admin', 'pastor_campus'].includes((ur as any)?.rol)}
     />
   )
 }

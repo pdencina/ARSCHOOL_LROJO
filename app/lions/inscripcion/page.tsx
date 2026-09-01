@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import toast, { Toaster } from 'react-hot-toast'
 import { formatearRut, validarRut } from '@/lib/validaciones'
+import BotonPagarWebpay from '@/components/shared/BotonPagarWebpay'
 
 const CATEGORIAS = [
   { value: 'Sub-6', label: 'Sub-6 (5-6 años)' },
@@ -105,6 +106,9 @@ export default function LionsInscripcionPage() {
           <div className="bg-[#0f1a13] rounded-xl p-3 mb-4">
             <div className="text-[10px] text-gray-500 mb-1">Código de seguimiento</div>
             <div className="text-lg font-bold text-[#5fd18a] tracking-wider font-mono">{codigo}</div>
+          </div>
+          <div className="mb-4">
+            <BotonPagarWebpay variante="banner" oscuro/>
           </div>
           <p className="text-xs text-gray-500">Revisa tu correo para más información. Recuerda tener a mano el certificado médico deportivo.</p>
         </div>

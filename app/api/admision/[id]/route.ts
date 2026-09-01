@@ -45,6 +45,30 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   return NextResponse.json(data)
 }
 
+// DELETE /api/admision/[id] — Eliminar definitivamente una solicitud de admisión
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const admin = getAdmin()
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids, sedes_ids').eq('id', user.id).single()
+  const usuario = ur as any
+  // Eliminar es destructivo: solo roles de administración (no gestor_admision)
+  if (!['super_admin', 'admin', 'pastor_campus', 'coordinador'].includes(usuario?.rol)) {
+    return NextResponse.json({ error: 'Sin permisos para eliminar' }, { status: 403 })
+  }
+
+  const { data: pa } = await admin.from('pre_admisiones').select('id, colegio_id, programa_id').eq('id', params.id).single()
+  if (!pa) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
+  if (!puedeAcceder(usuario, pa)) return NextResponse.json({ error: 'Sin acceso a esta solicitud' }, { status: 403 })
+
+  const { error } = await admin.from('pre_admisiones').delete().eq('id', params.id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ ok: true })
+}
+
 // PUT /api/admision/[id] — Actualizar estado (aprobar, rechazar, observar)
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
