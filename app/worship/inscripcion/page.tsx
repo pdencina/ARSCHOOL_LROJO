@@ -31,7 +31,6 @@ export default function WorshipInscripcionPage() {
     // Validar campos obligatorios
     const errores: string[] = []
     if (!form.alumno_nombre) errores.push('Primer nombre del alumno')
-    if (!form.alumno_segundo_nombre) errores.push('Segundo nombre del alumno')
     if (!form.alumno_apellido) errores.push('Apellido paterno del alumno')
     if (!form.alumno_apellido_materno) errores.push('Apellido materno del alumno')
     if (!form.alumno_rut || !validarRut(form.alumno_rut)) errores.push('RUT del alumno válido')
@@ -145,7 +144,7 @@ export default function WorshipInscripcionPage() {
             <div className="text-[10px] font-bold text-[#ff6b6b] uppercase tracking-wider">Datos del alumno</div>
             <div className="grid grid-cols-2 gap-3">
               <WInput label="Primer nombre *" value={form.alumno_nombre} onChange={v => set('alumno_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Benjamín"/>
-              <WInput label="Segundo nombre *" value={form.alumno_segundo_nombre || ''} onChange={v => set('alumno_segundo_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Ananías"/>
+              <WInput label="Segundo nombre" value={form.alumno_segundo_nombre || ''} onChange={v => set('alumno_segundo_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Opcional"/>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <WInput label="Apellido paterno *" value={form.alumno_apellido} onChange={v => set('alumno_apellido', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Pinto"/>

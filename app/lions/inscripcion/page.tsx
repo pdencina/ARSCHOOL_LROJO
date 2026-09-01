@@ -34,7 +34,6 @@ export default function LionsInscripcionPage() {
   async function enviar() {
     const errores: string[] = []
     if (!form.alumno_nombre) errores.push('Primer nombre del alumno')
-    if (!form.alumno_segundo_nombre) errores.push('Segundo nombre del alumno')
     if (!form.alumno_apellido) errores.push('Apellido paterno del alumno')
     if (!form.alumno_apellido_materno) errores.push('Apellido materno del alumno')
     if (!form.alumno_rut || !validarRut(form.alumno_rut)) errores.push('RUT del alumno válido')
@@ -136,7 +135,7 @@ export default function LionsInscripcionPage() {
             <div className="text-[10px] font-bold text-[#5fd18a] uppercase tracking-wider">Datos del jugador</div>
             <div className="grid grid-cols-2 gap-3">
               <LInput label="Primer nombre *" value={form.alumno_nombre} onChange={v => set('alumno_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Matías"/>
-              <LInput label="Segundo nombre *" value={form.alumno_segundo_nombre} onChange={v => set('alumno_segundo_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Andrés"/>
+              <LInput label="Segundo nombre" value={form.alumno_segundo_nombre} onChange={v => set('alumno_segundo_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Opcional"/>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <LInput label="Apellido paterno *" value={form.alumno_apellido} onChange={v => set('alumno_apellido', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: González"/>
