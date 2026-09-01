@@ -28,6 +28,8 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
   const [form, setForm] = useState({
     nombre: '', apellido: '', rut: '', fecha_nacimiento: '', sexo: '',
     nombre_apoderado: '', apellido_apoderado: '', email_apoderado: '', telefono_apoderado: '',
+    // Requeridos por el contrato: RUT, domicilio y comuna del apoderado
+    rut_apoderado: '', direccion_apoderado: '', comuna_apoderado: '',
     horario: '', nivel: '', observaciones: '', sede: 'santiago',
   })
 
@@ -161,6 +163,17 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
       toast.error('Nombre, apellido y email del apoderado son requeridos')
       return
     }
+    // Datos que exige el contrato (solo se validan al inscribir en firme, no en prueba)
+    if (!esPrueba) {
+      const faltan: string[] = []
+      if (!form.rut_apoderado || !validarRut(form.rut_apoderado)) faltan.push('RUT del apoderado válido')
+      if (!form.direccion_apoderado) faltan.push('Dirección del apoderado')
+      if (!form.comuna_apoderado) faltan.push('Comuna del apoderado')
+      if (faltan.length > 0) {
+        toast.error(`Para el contrato falta: ${faltan.join(', ')}`)
+        return
+      }
+    }
     setSaving(true)
     try {
       // Crear alumno + familia + inscripción
@@ -172,6 +185,9 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
           curso: `${programa.nombre_corto} - ${form.nivel || 'General'}`,
           jornada: 'completa',
           sede: form.sede,
+          // Domicilio del alumno = del apoderado (para el contrato)
+          comuna: form.comuna_apoderado || null,
+          direccion: form.direccion_apoderado || null,
           tipo_ingreso: 'nuevo',
           nacionalidad: 'Chilena',
           pais_natal: 'Chile',
@@ -572,7 +588,27 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
               <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Apellido</label><input value={form.apellido_apoderado} onChange={e => setForm(p => ({...p, apellido_apoderado: e.target.value.replace(/\b\w/g, c => c.toUpperCase())}))} className="input-base"/></div>
               <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Email *</label><input type="email" value={form.email_apoderado} onChange={e => setForm(p => ({...p, email_apoderado: e.target.value}))} className="input-base" placeholder="correo@email.com"/></div>
               <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Teléfono</label><input value={form.telefono_apoderado} onChange={e => setForm(p => ({...p, telefono_apoderado: e.target.value}))} className="input-base" placeholder="+56 9..."/></div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">RUT apoderado *</label>
+                <div className="relative">
+                  <input value={form.rut_apoderado} onChange={e => setForm(p => ({...p, rut_apoderado: formatearRut(e.target.value)}))} className="input-base pr-8" placeholder="12.345.678-9" maxLength={12}/>
+                  {form.rut_apoderado && form.rut_apoderado.length > 3 && (
+                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs ${validarRut(form.rut_apoderado) ? 'text-[#2D5A3F]' : 'text-red-500'}`}>
+                      {validarRut(form.rut_apoderado) ? '✓' : '✗'}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div><label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Comuna *</label><input value={form.comuna_apoderado} onChange={e => setForm(p => ({...p, comuna_apoderado: e.target.value}))} className="input-base" placeholder="Ej: Santiago"/></div>
             </div>
+            <div className="mt-3">
+              <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Dirección *</label>
+              <input value={form.direccion_apoderado} onChange={e => setForm(p => ({...p, direccion_apoderado: e.target.value}))} className="input-base" placeholder="Calle, número, depto"/>
+            </div>
+            <p className="text-[10px] text-[var(--ar-muted)] mt-2">
+              <i className="ti ti-info-circle mr-1" aria-hidden="true"/>
+              RUT, dirección y comuna son necesarios para generar el contrato.
+            </p>
           </div>
 
           <div className="bg-white border border-[var(--ar-border)] rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>

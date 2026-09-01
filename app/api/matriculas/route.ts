@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     // 2. Crear familia
     let familiaId = null
     if (nombre_apoderado && email_apoderado) {
-      const { data: familia, error: errFam } = await admin.from('familias').insert({
+      const familiaBase: Record<string, any> = {
         colegio_id: colegioId,
         alumno_id: (alumno as any).id,
         nombre_apoderado: nombre_apoderado.trim(),
@@ -132,7 +132,16 @@ export async function POST(request: NextRequest) {
         email_padre: body.email_padre || null,
         direccion_padre: body.direccion_padre || null,
         telefono_trabajo_padre: body.telefono_trabajo_padre || null,
-      }).select().single()
+      }
+      // La comuna del apoderado se usa en el contrato; algunas instancias
+      // pueden no tener la columna, así que se intenta y se reintenta sin ella.
+      const comunaApoderado = body.comuna_apoderado || body.apoderado_comuna || null
+      let { data: familia, error: errFam } = await admin.from('familias')
+        .insert({ ...familiaBase, comuna: comunaApoderado }).select().single()
+      if (errFam && /comuna/.test(errFam.message)) {
+        const retry = await admin.from('familias').insert(familiaBase).select().single()
+        familia = retry.data; errFam = retry.error
+      }
 
       if (!errFam) familiaId = (familia as any).id
     }
