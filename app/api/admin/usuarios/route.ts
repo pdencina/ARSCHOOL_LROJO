@@ -32,7 +32,8 @@ export async function POST(request: NextRequest) {
   const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
   if ((ur as any)?.rol !== 'super_admin') return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
 
-  const { nombre, apellido, email, rol, colegio_id } = await request.json()
+  const body = await request.json()
+  const { nombre, apellido, email, rol, colegio_id } = body
   if (!email || !nombre || !colegio_id) {
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
   }
@@ -43,11 +44,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Ya existe un usuario con ese email' }, { status: 400 })
   }
 
-  // 1. Crear usuario en Supabase Auth con password temporal
-  const tempPassword = crypto.randomUUID()
+  // 1. Crear usuario en Supabase Auth
+  // Si el admin definió una contraseña, se usa; si no, se genera temporal
+  // y el usuario la define con el link de acceso que recibe por email.
+  const passwordFinal = (body.password && String(body.password).length >= 6)
+    ? String(body.password)
+    : crypto.randomUUID()
   const { data: authData, error: authError } = await admin.auth.admin.createUser({
     email,
-    password: tempPassword,
+    password: passwordFinal,
     email_confirm: true,
   })
 
@@ -59,7 +64,10 @@ export async function POST(request: NextRequest) {
       if (existing) {
         const { data: nuevoUsuario, error: dbError } = await admin.from('usuarios').upsert({
           id: existing.id, email, nombre: nombre.trim(), apellido: apellido?.trim() ?? '',
-          rol, colegio_id, activo: true,
+          rol, colegio_id,
+          programa_ids: body.programa_ids?.length ? body.programa_ids : null,
+          sedes_ids: body.sedes_ids?.length ? body.sedes_ids : null,
+          activo: true,
         }, { onConflict: 'id' }).select().single()
         if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })
         return NextResponse.json(nuevoUsuario, { status: 201 })
@@ -76,8 +84,8 @@ export async function POST(request: NextRequest) {
     apellido: apellido?.trim() ?? '',
     rol,
     colegio_id,
-    programa_ids: body.programa_ids || null,
-    sedes_ids: body.sedes_ids || null,
+    programa_ids: body.programa_ids?.length ? body.programa_ids : null,
+    sedes_ids: body.sedes_ids?.length ? body.sedes_ids : null,
     activo: true,
   }, { onConflict: 'id' }).select().single()
 

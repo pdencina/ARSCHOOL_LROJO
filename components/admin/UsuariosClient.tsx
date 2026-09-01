@@ -61,8 +61,8 @@ export default function UsuariosClient({ usuarios, colegios, colegioFiltro, prog
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Error al guardar')
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error ?? `Error al guardar (${res.status})`)
       toast.success(editUsuario ? 'Usuario actualizado' : 'Usuario creado correctamente')
       setShowModal(false); router.refresh()
     } catch (e: any) {
