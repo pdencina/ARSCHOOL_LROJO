@@ -1,5 +1,8 @@
-// Link de pago oficial Webpay (Transbank) — válido para todos los programas:
-// AR School, Play and Group, AR Worship School y Lions Soccer School.
+// Landing propia de pago (branding AR School): el apoderado ingresa el RUT
+// del alumno, ve su deuda real y paga el monto exacto vía Webpay.
+export const LINK_PAGO_FACIL = '/pago'
+
+// Link genérico de Webpay (respaldo): requiere que el apoderado escriba el monto a mano.
 export const LINK_PAGO_WEBPAY = 'https://www.webpay.cl/company/41244?utm_source=transbank&utm_medium=portal3.0&utm_campaign=link_portal'
 
 interface Props {
@@ -7,15 +10,17 @@ interface Props {
   variante?: 'banner' | 'boton' | 'card'
   /** Tema oscuro para formularios públicos con fondo oscuro */
   oscuro?: boolean
+  /** Usar el link genérico de Webpay en vez de la landing propia */
+  externo?: boolean
   className?: string
 }
 
 /**
- * Botón/banner "Pagar aquí" que abre el portal de pago Webpay en una pestaña nueva.
+ * Botón/banner "Pagar aquí" que lleva a la landing de pago de AR School.
  * Sirve para cualquier programa: matrícula, aporte inicial o mensualidades.
  */
-export default function BotonPagarWebpay({ variante = 'banner', oscuro = false, className = '' }: Props) {
-  const href = LINK_PAGO_WEBPAY
+export default function BotonPagarWebpay({ variante = 'banner', oscuro = false, externo = false, className = '' }: Props) {
+  const href = externo ? LINK_PAGO_WEBPAY : LINK_PAGO_FACIL
 
   if (variante === 'boton') {
     return (
@@ -45,7 +50,7 @@ export default function BotonPagarWebpay({ variante = 'banner', oscuro = false, 
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-[13px] font-bold text-[var(--ar-text)]">Pagar aquí</div>
-            <div className="text-[11px] text-[var(--ar-muted)]">Paga con tarjeta de forma segura vía Webpay</div>
+            <div className="text-[11px] text-[var(--ar-muted)]">Consulta tu aporte con el RUT del alumno y paga vía Webpay</div>
           </div>
           <i className="ti ti-external-link text-sm text-[var(--ar-muted)]" aria-hidden="true"/>
         </div>
@@ -72,7 +77,7 @@ export default function BotonPagarWebpay({ variante = 'banner', oscuro = false, 
         <div className="flex-1 min-w-0">
           <div className="text-[14px] font-bold text-white">Pagar aquí</div>
           <div className="text-[11px] text-white/75 leading-snug">
-            Matrícula, aporte inicial o mensualidad · Tarjeta de crédito o débito vía Webpay
+            Ingresa el RUT del alumno, revisa tu aporte pendiente y paga con tarjeta vía Webpay
           </div>
         </div>
         <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 bg-white text-[#2D5A3F] text-[11px] font-bold rounded-lg flex-shrink-0">

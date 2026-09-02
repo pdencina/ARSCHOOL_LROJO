@@ -187,3 +187,80 @@ export function templateCumpleanos(nombre: string, apellido: string, edad: numbe
     </div>
   `
 }
+
+/**
+ * Comprobante de pago en línea (Webpay).
+ * Se envía al apoderado al confirmarse el pago.
+ */
+export function templateComprobantePago(d: {
+  pagador: string
+  alumno: string
+  concepto: string
+  monto: number
+  ordenCompra: string
+  codigoAutorizacion?: string | null
+  ultimosDigitos?: string | null
+  fecha: string
+  tipoPago?: string | null
+  cuotas?: number | null
+}) {
+  const fmt = (n: number) => `$${n.toLocaleString('es-CL')}`
+  const fila = (label: string, valor?: string | null) => valor
+    ? `<tr><td style="padding:7px 0;color:#6b7280;font-size:13px;">${label}</td><td style="padding:7px 0;text-align:right;font-size:13px;color:#1a2332;font-weight:600;">${valor}</td></tr>`
+    : ''
+
+  return `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:520px;margin:0 auto;padding:0;">
+      <!-- Header -->
+      <div style="background:#2D5A3F;padding:28px 24px;text-align:center;border-radius:12px 12px 0 0;">
+        <div style="color:#ffffff;font-size:16px;font-weight:700;letter-spacing:0.5px;">AR SCHOOL</div>
+        <div style="color:rgba(255,255,255,0.75);font-size:11px;margin-top:3px;">Fundación Educacional AR Ministries</div>
+        <div style="margin-top:16px;display:inline-block;background:rgba(255,255,255,0.15);padding:6px 14px;border-radius:20px;">
+          <span style="color:#ffffff;font-size:12px;font-weight:600;">✓ Pago confirmado</span>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div style="background:#ffffff;padding:28px 24px;border:1px solid #e5e7eb;border-top:none;">
+        <p style="margin:0 0 4px;color:#1a2332;font-size:15px;font-weight:600;">Hola ${d.pagador},</p>
+        <p style="margin:0 0 22px;color:#4b5563;font-size:13px;line-height:1.6;">
+          Recibimos tu pago correctamente. Este correo es tu comprobante.
+        </p>
+
+        <!-- Monto destacado -->
+        <div style="background:#EDF5F0;border:1px solid rgba(45,90,63,0.2);border-radius:12px;padding:20px;text-align:center;margin-bottom:22px;">
+          <div style="color:#2D5A3F;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Monto pagado</div>
+          <div style="color:#2D5A3F;font-size:30px;font-weight:700;margin-top:6px;">${fmt(d.monto)}</div>
+        </div>
+
+        <!-- Detalle -->
+        <table style="width:100%;border-collapse:collapse;">
+          ${fila('Alumno', d.alumno)}
+          ${fila('Concepto', d.concepto)}
+          ${fila('Fecha', d.fecha)}
+          ${fila('Medio de pago', 'Webpay (Transbank)')}
+          ${fila('Tipo', d.tipoPago)}
+          ${d.cuotas && d.cuotas > 1 ? fila('Cuotas', String(d.cuotas)) : ''}
+          ${fila('Tarjeta', d.ultimosDigitos ? `**** ${d.ultimosDigitos}` : null)}
+          ${fila('N° autorización', d.codigoAutorizacion)}
+          ${fila('Orden de compra', d.ordenCompra)}
+        </table>
+
+        <div style="margin-top:22px;padding-top:18px;border-top:1px solid #f3f4f6;">
+          <p style="margin:0;color:#6b7280;font-size:11px;line-height:1.6;">
+            Guarda este comprobante como respaldo de tu pago. Si tienes dudas sobre tu estado de cuenta,
+            comunícate con la administración del centro educativo.
+          </p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="background:#f9fafb;padding:16px 24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;text-align:center;">
+        <p style="margin:0;color:#9ca3af;font-size:10px;line-height:1.6;">
+          Fundación Educacional AR Ministries · RUT 65.168.392-0<br/>
+          Victoria 52, Santiago · Puente Alto · Punta Arenas
+        </p>
+      </div>
+    </div>
+  `
+}
