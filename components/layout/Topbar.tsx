@@ -49,7 +49,7 @@ export default function Topbar({ usuario, colegios = [], sedeActiva = 'todas' }:
           <div>
             <div className="font-semibold text-[var(--ar-text)] text-[13px] leading-none tracking-tight" style={{ fontFamily: 'DM Sans, sans-serif' }}>AR SCHOOL</div>
             <div className="text-[10px] text-[#b0b7c3] mt-[3px] leading-none tracking-wide">
-              {rol === 'super_admin' ? 'Gestión Educacional' : usuario?.SEDE?.nombre ?? 'Gestión Educacional'}
+              {rol === 'super_admin' ? 'Gestión Educacional' : usuario?.colegio?.nombre ?? 'Gestión Educacional'}
             </div>
           </div>
         </Link>

@@ -57,7 +57,7 @@ export default function PortalPerfilClient({ usuario, alumnos }: Props) {
         <div className="grid grid-cols-2 gap-4 border-t border-[#f3f4f6] pt-4">
           <div>
             <div className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider mb-0.5">SEDE</div>
-            <div className="text-[13px] text-[#1a2332]">{usuario?.SEDE?.nombre ?? '—'}</div>
+            <div className="text-[13px] text-[#1a2332]">{usuario?.colegio?.nombre ?? '—'}</div>
           </div>
           <div>
             <div className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider mb-0.5">Email</div>

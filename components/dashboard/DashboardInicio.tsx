@@ -62,8 +62,8 @@ export default function DashboardInicio({ usuario, rol, stats, notificaciones, u
         </h1>
         <p className="text-[#6b7280] text-sm mt-1">
           {rol === 'super_admin' ? 'Gestión centralizada de campus AR School' :
-           rol === 'tutor'       ? `Docente · ${usuario?.SEDE?.nombre ?? ''}` :
-           `${usuario?.SEDE?.nombre ?? ''} · Panel de administración`}
+           rol === 'tutor'       ? `Docente · ${usuario?.colegio?.nombre ?? ''}` :
+           `${usuario?.colegio?.nombre ?? ''} · Panel de administración`}
         </p>
       </div>
 

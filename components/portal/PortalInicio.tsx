@@ -17,10 +17,25 @@ export default function PortalInicio({ usuario, alumno, rol, stats, comunicados,
   const HORA = new Date().getHours()
   const SALUDO = HORA < 12 ? 'Buenos días' : HORA < 19 ? 'Buenas tardes' : 'Buenas noches'
 
+  // Los programas definen qué módulos aplican (Lions y Worship no tienen
+  // evaluaciones, por ejemplo). Si no hay inscripciones cargadas, se muestran
+  // todos los indicadores como antes.
+  const programas = inscripcionesProgramas.map((i: any) => i.programa).filter(Boolean)
+  const sinDatosDeProgramas = programas.length === 0
+  const mostrarEvaluaciones = sinDatosDeProgramas || programas.some((p: any) => p.tiene_evaluaciones)
+  const mostrarAsistencia = sinDatosDeProgramas || programas.some((p: any) => p.tiene_asistencia !== false)
+
+  // Cantidad de tarjetas visibles para ajustar la grilla
+  const kpisVisibles = [mostrarAsistencia, mostrarEvaluaciones, esApoderado, true].filter(Boolean).length
+  const gridKpis = kpisVisibles >= 4 ? 'grid-cols-2 lg:grid-cols-4'
+    : kpisVisibles === 3 ? 'grid-cols-1 sm:grid-cols-3'
+    : 'grid-cols-1 sm:grid-cols-2'
+
   const accesos = esApoderado ? [
     { label: 'Comunicados',   href: '/portal/comunicados',   icon: 'ti-speakerphone',    color: 'text-blue-600',   bg: 'bg-blue-50' },
-    { label: 'Asistencias',   href: '/portal/asistencias',   icon: 'ti-clipboard-check', color: 'text-emerald-600',bg: 'bg-emerald-50' },
-    { label: 'Calificaciones',href: '/portal/calificaciones',icon: 'ti-chart-bar',       color: 'text-violet-600', bg: 'bg-violet-50' },
+    ...(mostrarAsistencia ? [{ label: 'Asistencias', href: '/portal/asistencias', icon: 'ti-clipboard-check', color: 'text-emerald-600', bg: 'bg-emerald-50' }] : []),
+    ...(mostrarEvaluaciones ? [{ label: 'Evaluaciones', href: '/portal/calificaciones', icon: 'ti-chart-bar', color: 'text-violet-600', bg: 'bg-violet-50' }] : []),
+    { label: 'Documentos',    href: '/portal/documentos',    icon: 'ti-file-certificate', color: 'text-slate-600', bg: 'bg-slate-50' },
     { label: 'Estado de pagos',href: '/portal/pagos',        icon: 'ti-cash',            color: 'text-amber-600',  bg: 'bg-amber-50' },
   ] : [
     { label: 'Mis notas',     href: '/portal/calificaciones',icon: 'ti-chart-bar',       color: 'text-violet-600', bg: 'bg-violet-50' },
@@ -37,7 +52,8 @@ export default function PortalInicio({ usuario, alumno, rol, stats, comunicados,
           {SALUDO}, {usuario?.nombre} 👋
         </h1>
         <p className="text-slate-500 mt-1">
-          {esApoderado ? 'Portal familiar' : 'Portal del alumno'} · {usuario?.SEDE?.nombre}
+          {esApoderado ? 'Portal familiar' : 'Portal del alumno'}
+          {usuario?.colegio?.nombre ? ` · ${usuario.colegio.nombre}` : ''}
         </p>
       </div>
 
@@ -86,21 +102,29 @@ export default function PortalInicio({ usuario, alumno, rol, stats, comunicados,
       )}
 
       {/* KPIs */}
-      <div className={`grid ${esApoderado ? 'grid-cols-4' : 'grid-cols-3'} gap-4 mb-8`}>
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Asistencia</div>
-          <div className={`font-display text-3xl font-bold ${stats.pctAsist != null && stats.pctAsist < 85 ? 'text-red-600' : 'text-emerald-600'}`}>
-            {stats.pctAsist != null ? `${stats.pctAsist}%` : '—'}
+      <div className={`grid ${gridKpis} gap-4 mb-8`}>
+        {mostrarAsistencia && (
+          <div className="bg-white border border-slate-200 rounded-xl p-4">
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Asistencia</div>
+            <div className={`font-display text-3xl font-bold ${stats.pctAsist != null && stats.pctAsist < 85 ? 'text-red-600' : 'text-emerald-600'}`}>
+              {stats.pctAsist != null ? `${stats.pctAsist}%` : '—'}
+            </div>
+            <div className="text-xs text-slate-400">
+              {stats.totalAsistencias > 0 ? `${stats.totalAsistencias} días registrados` : 'Aún sin registros'}
+            </div>
           </div>
-          <div className="text-xs text-slate-400">{stats.totalAsistencias} días registrados</div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Promedio general</div>
-          <div className={`font-display text-3xl font-bold ${stats.promedio && parseFloat(stats.promedio) >= 4 ? 'text-emerald-600' : stats.promedio ? 'text-red-600' : 'text-slate-400'}`}>
-            {stats.promedio ?? '—'}
+        )}
+        {mostrarEvaluaciones && (
+          <div className="bg-white border border-slate-200 rounded-xl p-4">
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Promedio general</div>
+            <div className={`font-display text-3xl font-bold ${stats.promedio && parseFloat(stats.promedio) >= 4 ? 'text-emerald-600' : stats.promedio ? 'text-red-600' : 'text-slate-400'}`}>
+              {stats.promedio ?? '—'}
+            </div>
+            <div className="text-xs text-slate-400">
+              {stats.totalNotas > 0 ? `${stats.totalNotas} evaluaciones` : 'Aún sin evaluaciones'}
+            </div>
           </div>
-          <div className="text-xs text-slate-400">{stats.totalNotas} evaluaciones</div>
-        </div>
+        )}
         {esApoderado && (
           <div className="bg-white border border-slate-200 rounded-xl p-4">
             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Deuda este mes</div>

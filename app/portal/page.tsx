@@ -76,7 +76,7 @@ export default async function PortalPage() {
       // Obtener inscripciones a programas de todos los hijos
       const { data: inscs } = await admin
         .from('inscripciones_programa')
-        .select('*, alumno:alumnos(nombre, apellido), programa:programas(nombre, nombre_corto, codigo, color, icono)')
+        .select('*, alumno:alumnos(nombre, apellido), programa:programas(nombre, nombre_corto, codigo, color, icono, tiene_evaluaciones, tiene_asistencia)')
         .in('alumno_id', ids)
         .eq('estado', 'activa')
       inscripcionesProgramas = (inscs as any[]) ?? []
