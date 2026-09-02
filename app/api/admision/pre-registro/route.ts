@@ -75,8 +75,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Nombre, apellido y email del apoderado son obligatorios' }, { status: 400 })
   }
 
-  // Determinar colegio (default Santiago si no se especifica)
-  const colegioIdFinal = colegio_id || '11111111-1111-1111-1111-111111111111'
+  // Determinar colegio según la sede elegida (para que quede en la sede correcta)
+  const SEDE_A_COLEGIO: Record<string, string> = {
+    santiago: '11111111-1111-1111-1111-111111111111',
+    puente_alto: '22222222-2222-2222-2222-222222222222',
+    punta_arenas: '33333333-3333-3333-3333-333333333333',
+  }
+  const colegioIdFinal = SEDE_A_COLEGIO[(sede as string) || ''] || colegio_id || '11111111-1111-1111-1111-111111111111'
 
   // Resolver programa (para que coordinadores puedan ver/aprobar según su programa)
   const programaId = await resolverProgramaId(admin, curso_solicitado, (body as any).programa_codigo)

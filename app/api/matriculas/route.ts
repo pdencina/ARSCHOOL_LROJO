@@ -22,7 +22,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
-  const colegioId = (ur as any).colegio_id
   const body = await request.json()
   const {
     // Datos alumno
@@ -40,6 +39,15 @@ export async function POST(request: NextRequest) {
   if (!nombre || !apellido || !curso) {
     return NextResponse.json({ error: 'Nombre, apellido y curso son requeridos' }, { status: 400 })
   }
+
+  // El alumno pertenece a la SEDE elegida en el formulario, no a la del usuario
+  // que matricula. Se traduce el texto de sede al colegio_id correspondiente.
+  const SEDE_A_COLEGIO: Record<string, string> = {
+    santiago: '11111111-1111-1111-1111-111111111111',
+    puente_alto: '22222222-2222-2222-2222-222222222222',
+    punta_arenas: '33333333-3333-3333-3333-333333333333',
+  }
+  const colegioId = SEDE_A_COLEGIO[sede as string] || (ur as any).colegio_id || SEDE_A_COLEGIO.santiago
 
   try {
     // Verificar duplicado por RUT
