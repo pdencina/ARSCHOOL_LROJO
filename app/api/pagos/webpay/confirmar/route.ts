@@ -63,10 +63,15 @@ async function enviarComprobante(admin: any, pago: any, result: any, meta: any) 
         ? `Aporte mensual ${MESES[c.mes] ?? c.mes} ${c.anio}`
         : `Aporte ${c.mes}/${c.anio}`
 
-    const { enviarEmail, templateComprobantePago } = await import('@/lib/email')
+    const { enviarEmail, templateComprobantePago, detectarPrograma } = await import('@/lib/email')
+    // Identidad del programa según el curso del alumno
+    const { data: al } = await admin.from('alumnos').select('curso').eq('id', c.alumno_id).single()
+    const prog = detectarPrograma((al as any)?.curso)
+
     await enviarEmail({
       to: email,
-      subject: `AR School — Comprobante de pago ${`$${pago.monto.toLocaleString('es-CL')}`}`,
+      programa: prog,
+      subject: `Comprobante de pago ${`$${pago.monto.toLocaleString('es-CL')}`}`,
       html: templateComprobantePago({
         pagador: pagador || 'Apoderado',
         alumno: alumnoNombre,
@@ -78,6 +83,7 @@ async function enviarComprobante(admin: any, pago: any, result: any, meta: any) 
         fecha: new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }),
         tipoPago: TIPO_PAGO[result.payment_type_code] ?? null,
         cuotas: result.installments_number ?? null,
+        programa: prog,
       }),
     })
   } catch (e) {

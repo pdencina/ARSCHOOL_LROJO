@@ -102,9 +102,13 @@ export async function GET(request: NextRequest) {
     ? programaCodigo === 'play_group'
     : (cursoLower.includes('play') || cursoLower.includes('pre school'))
 
-  // Defaults por programa: Lions=45k/40k/12m, Worship=0/variable/9m, ARSchool=130k/275k/10m
-  const defaultInicial = esLions ? 45000 : esWorship ? 0 : 130000
-  const defaultMensual = esLions ? 40000 : esWorship ? 0 : 275000
+  // Aranceles oficiales 2026:
+  //   Music & Play (0-7 años): matrícula $25.000 · mensual $40.000 (beca 30% => $28.000)
+  //   AR Worship School (8-99): matrícula $50.000 · mensual $60.000 (beca 20% => $48.000)
+  //   Lions Soccer: matrícula $45.000 · mensual $40.000
+  const esMusicAndPlay = esWorship && cursoLower.includes('music')
+  const defaultInicial = esLions ? 45000 : esMusicAndPlay ? 25000 : esWorship ? 50000 : 130000
+  const defaultMensual = esLions ? 40000 : esMusicAndPlay ? 40000 : esWorship ? 60000 : 275000
   const defaultMeses = esLions ? 12 : esWorship ? 9 : 10
 
   const montoInicial = matricula?.monto_matricula ?? defaultInicial

@@ -4,25 +4,32 @@ import toast, { Toaster } from 'react-hot-toast'
 import { formatearRut, validarRut } from '@/lib/validaciones'
 import BotonPagarWebpay from '@/components/shared/BotonPagarWebpay'
 
+// Categorías oficiales Lions Soccer School (4 tramos de edad)
 const CATEGORIAS = [
-  { value: 'Sub-6', label: 'Sub-6 (5-6 años)' },
-  { value: 'Sub-8', label: 'Sub-8 (7-8 años)' },
-  { value: 'Sub-10', label: 'Sub-10 (9-10 años)' },
-  { value: 'Sub-12', label: 'Sub-12 (11-12 años)' },
-  { value: 'Sub-14', label: 'Sub-14 (13-14 años)' },
-  { value: 'Sub-16', label: 'Sub-16 (15-16 años)' },
-  { value: 'Juvenil', label: 'Juvenil (17+ años)' },
+  { value: 'Categoría 4-6', label: '4, 5 y 6 años' },
+  { value: 'Categoría 7-9', label: '7, 8 y 9 años' },
+  { value: 'Categoría 10-12', label: '10, 11 y 12 años' },
+  { value: 'Categoría 13-16', label: '13, 14, 15 y 16 años' },
 ]
 
 const POSICIONES = ['Arquero', 'Defensa', 'Mediocampista', 'Delantero', 'Sin definir']
+
+// Documentos obligatorios para Lions Soccer
+const DOCS_LIONS = [
+  { key: 'cedula_alumno_frente_lions', label: 'Cédula alumno — Frente' },
+  { key: 'cedula_alumno_dorso_lions', label: 'Cédula alumno — Dorso' },
+  { key: 'cedula_apoderado_frente_lions', label: 'Cédula apoderado — Frente' },
+  { key: 'cedula_apoderado_dorso_lions', label: 'Cédula apoderado — Dorso' },
+]
 
 export default function LionsInscripcionPage() {
   const [loading, setLoading] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [codigo, setCodigo] = useState('')
+  const [documentos, setDocumentos] = useState<Record<string, string>>({})
   const [form, setForm] = useState({
     alumno_nombre: '', alumno_segundo_nombre: '', alumno_apellido: '', alumno_apellido_materno: '',
-    alumno_rut: '', alumno_fecha_nacimiento: '', alumno_sexo: '', alumno_telefono: '', alumno_email: '',
+    alumno_rut: '', alumno_fecha_nacimiento: '', alumno_sexo: '', alumno_telefono: '',
     categoria: '', posicion: '', experiencia_previa: '', club_anterior: '',
     apoderado_nombre: '', apoderado_segundo_nombre: '', apoderado_apellido: '', apoderado_apellido_materno: '',
     apoderado_rut: '', apoderado_email: '', apoderado_telefono: '', apoderado_direccion: '',
@@ -30,6 +37,58 @@ export default function LionsInscripcionPage() {
   })
 
   function set(field: string, value: string) { setForm(f => ({ ...f, [field]: value })) }
+
+  // Comprime imágenes para que el envío no falle por tamaño
+  function comprimirImagen(file: File, maxDim = 1400, calidad = 0.6): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo'))
+      reader.onload = () => {
+        const img = new Image()
+        img.onerror = () => reject(new Error('No se pudo procesar la imagen'))
+        img.onload = () => {
+          let { width, height } = img
+          if (width > maxDim || height > maxDim) {
+            const escala = maxDim / Math.max(width, height)
+            width = Math.round(width * escala); height = Math.round(height * escala)
+          }
+          const canvas = document.createElement('canvas')
+          canvas.width = width; canvas.height = height
+          const ctx = canvas.getContext('2d')
+          if (!ctx) { reject(new Error('Canvas no soportado')); return }
+          ctx.drawImage(img, 0, 0, width, height)
+          resolve(canvas.toDataURL('image/jpeg', calidad))
+        }
+        img.src = reader.result as string
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  async function handleFile(key: string, file: File) {
+    if (file.size > 10 * 1024 * 1024) { toast.error('Máximo 10 MB'); return }
+    const tipos = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+    if (!tipos.includes(file.type)) { toast.error('Solo JPG, PNG o PDF'); return }
+    const t = toast.loading('Procesando...')
+    try {
+      let dataUrl: string
+      if (file.type === 'application/pdf') {
+        if (file.size > 4 * 1024 * 1024) { toast.dismiss(t); toast.error('El PDF supera 4 MB. Adjunta una foto.'); return }
+        dataUrl = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader()
+          r.onerror = () => reject(new Error('No se pudo leer el archivo'))
+          r.onload = () => resolve(r.result as string)
+          r.readAsDataURL(file)
+        })
+      } else {
+        dataUrl = await comprimirImagen(file)
+      }
+      setDocumentos(d => ({ ...d, [key]: dataUrl }))
+      toast.dismiss(t); toast.success('Adjuntado')
+    } catch (e: any) {
+      toast.dismiss(t); toast.error(e?.message || 'No se pudo adjuntar')
+    }
+  }
 
   async function enviar() {
     const errores: string[] = []
@@ -45,6 +104,9 @@ export default function LionsInscripcionPage() {
     if (!form.apoderado_email) errores.push('Email del apoderado')
     if (!form.apoderado_telefono) errores.push('Teléfono del apoderado')
     if (form.apoderado_rut && !validarRut(form.apoderado_rut)) errores.push('RUT apoderado válido')
+    // Cédulas obligatorias
+    const docsFaltantes = DOCS_LIONS.filter(d => !documentos[d.key])
+    if (docsFaltantes.length > 0) errores.push(`Cédulas (${docsFaltantes.length} pendientes)`)
 
     if (errores.length > 0) {
       toast.error(`Campos obligatorios: ${errores.slice(0, 3).join(', ')}${errores.length > 3 ? ` (+${errores.length - 3} más)` : ''}`)
@@ -81,11 +143,13 @@ export default function LionsInscripcionPage() {
             form.como_se_entero ? `Cómo se enteró: ${form.como_se_entero}` : '',
             form.observaciones || '',
           ].filter(Boolean).join('\n'),
+          documentos,
           colegio_id: '11111111-1111-1111-1111-111111111111',
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      if (res.status === 413) throw new Error('Las imágenes son muy pesadas. Vuelve a tomarlas con menor calidad.')
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'No se pudo enviar la solicitud')
       setCodigo(data.codigo_seguimiento)
       setEnviado(true)
     } catch (e: any) { toast.error(e.message) }
@@ -167,7 +231,6 @@ export default function LionsInscripcionPage() {
               </div>
               <LInput label="Teléfono jugador" value={form.alumno_telefono} onChange={v => set('alumno_telefono', v)} placeholder="+56 9 1234 5678"/>
             </div>
-            <LInput label="Email jugador" type="email" value={form.alumno_email} onChange={v => set('alumno_email', v)} placeholder="correo@ejemplo.com"/>
 
             {/* Categoría + posición */}
             <div className="bg-[#0f1a13] border border-[#2a3d30] rounded-xl p-4 space-y-3">
@@ -242,6 +305,32 @@ export default function LionsInscripcionPage() {
                 <LInput label="Email apoderado *" type="email" value={form.apoderado_email} onChange={v => set('apoderado_email', v)} placeholder="correo@ejemplo.com"/>
                 <LInput label="Teléfono apoderado *" value={form.apoderado_telefono} onChange={v => set('apoderado_telefono', v)} placeholder="+56 9 1234 5678"/>
                 <LInput label="Dirección *" value={form.apoderado_direccion} onChange={v => set('apoderado_direccion', v)} placeholder="Calle, número, comuna"/>
+              </div>
+            </div>
+
+            {/* Documentos: cédulas de identidad */}
+            <div className="border-t border-[#2a3d30] pt-4 mt-4">
+              <div className="text-[10px] font-bold text-[#5fd18a] uppercase tracking-wider mb-1">Cédulas de identidad *</div>
+              <p className="text-[10px] text-gray-500 mb-3">Adjunta ambos lados de la cédula del jugador y del apoderado.</p>
+              <div className="space-y-2">
+                {DOCS_LIONS.map(doc => {
+                  const subido = !!documentos[doc.key]
+                  return (
+                    <div key={doc.key} className={`flex items-center gap-2 p-2.5 rounded-xl border ${subido ? 'bg-[#2D5A3F]/15 border-[#5fd18a]/40' : 'bg-[#0f1a13] border-[#2a3d30]'}`}>
+                      <span className={`text-sm ${subido ? 'text-[#5fd18a]' : 'text-gray-600'}`}>{subido ? '✓' : '○'}</span>
+                      <span className="flex-1 text-[11px] text-gray-300">{doc.label}</span>
+                      {subido && (
+                        <button type="button" onClick={() => setDocumentos(d => { const n = { ...d }; delete n[doc.key]; return n })}
+                          className="text-[10px] text-red-400 hover:text-red-300">Quitar</button>
+                      )}
+                      <label className={`px-2.5 py-1.5 rounded-lg text-[10px] font-semibold cursor-pointer transition-colors ${subido ? 'bg-[#16241b] border border-[#2a3d30] text-gray-300' : 'bg-[#2D5A3F] text-white hover:bg-[#245234]'}`}>
+                        {subido ? 'Cambiar' : 'Adjuntar'}
+                        <input type="file" accept="image/*,.pdf" className="hidden"
+                          onChange={e => { if (e.target.files?.[0]) handleFile(doc.key, e.target.files[0]); e.target.value = '' }}/>
+                      </label>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 

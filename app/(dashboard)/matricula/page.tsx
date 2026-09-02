@@ -36,9 +36,10 @@ const CURSOS_AR_SCHOOL = [
 // Importante: el curso debe incluir el nombre del programa porque /api/contratos
 // detecta la plantilla de contrato (Lions / Worship / AR School) desde ese texto.
 const CURSOS_LIONS = [
-  'Lions Soccer - Sub-6', 'Lions Soccer - Sub-8', 'Lions Soccer - Sub-10',
-  'Lions Soccer - Sub-12', 'Lions Soccer - Sub-14', 'Lions Soccer - Sub-16',
-  'Lions Soccer - Juvenil',
+  'Lions Soccer - Categoría 4-6 (4, 5 y 6 años)',
+  'Lions Soccer - Categoría 7-9 (7, 8 y 9 años)',
+  'Lions Soccer - Categoría 10-12 (10, 11 y 12 años)',
+  'Lions Soccer - Categoría 13-16 (13, 14, 15 y 16 años)',
 ]
 
 const INSTRUMENTOS = ['Guitarra', 'Bajo', 'Teclado', 'Batería', 'Canto', 'Saxophone', 'Violín']

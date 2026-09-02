@@ -176,37 +176,32 @@ export async function POST(request: NextRequest) {
   const seguimientoUrl = `${baseUrl}/admision/seguimiento?codigo=${codigo}`
 
   try {
+    const { detectarPrograma, layoutEmail, BRANDING } = await import('@/lib/email')
+    const prog = detectarPrograma(curso_solicitado)
+    const b = BRANDING[prog]
+
     await enviarEmail({
       to: apoderado_email.trim(),
-      subject: `AR School — Solicitud de admisión recibida (${codigo})`,
-      html: `
-        <div style="font-family:-apple-system,sans-serif;max-width:550px;margin:0 auto;padding:30px 20px;">
-          <div style="text-align:center;margin-bottom:24px;">
-            <strong style="font-size:16px;color:#1B3A5C;">AR SCHOOL</strong>
-            <div style="font-size:11px;color:#9ca3af;margin-top:2px;">Fundación Educacional AR Ministries</div>
-          </div>
-          <h2 style="color:#1B3A5C;font-size:18px;text-align:center;margin-bottom:16px;">Solicitud recibida</h2>
-          <p style="color:#4b5563;font-size:14px;">Estimado/a <strong>${apoderado_nombre} ${apoderado_apellido}</strong>,</p>
-          <p style="color:#4b5563;font-size:13px;line-height:1.6;">
-            Hemos recibido la solicitud de admisión para <strong>${alumno_nombre} ${alumno_apellido}</strong> al curso <strong>${curso_solicitado}</strong>.
-          </p>
-          <div style="background:#f0f4f8;border-radius:12px;padding:16px;margin:20px 0;text-align:center;">
-            <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Código de seguimiento</div>
-            <div style="font-size:22px;font-weight:bold;color:#1B3A5C;letter-spacing:2px;font-family:monospace;">${codigo}</div>
-          </div>
-          <p style="color:#4b5563;font-size:13px;line-height:1.6;">
-            Nuestro equipo de admisión revisará su solicitud y se pondrá en contacto con usted. 
-            Puede consultar el estado en cualquier momento:
-          </p>
-          <div style="text-align:center;margin:20px 0;">
-            <a href="${seguimientoUrl}" style="display:inline-block;background:#1B3A5C;color:white;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:13px;font-weight:600;">
-              Ver estado de mi solicitud
-            </a>
-          </div>
-          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;"/>
-          <p style="font-size:11px;color:#9ca3af;text-align:center;">Fundación Educacional AR Ministries · RUT 65.168.392-0</p>
+      programa: prog,
+      subject: `${b.nombre === 'AR SCHOOL' ? 'AR School' : b.nombre} — Solicitud recibida (${codigo})`,
+      html: layoutEmail(prog, `
+        <p style="margin:0 0 4px;color:#1a2332;font-size:15px;font-weight:600;">Estimado/a ${apoderado_nombre} ${apoderado_apellido},</p>
+        <p style="margin:0 0 20px;color:#4b5563;font-size:13px;line-height:1.6;">
+          Hemos recibido la solicitud de inscripción para <strong>${alumno_nombre} ${alumno_apellido}</strong> en <strong>${curso_solicitado}</strong>.
+        </p>
+        <div style="background:${b.fondoSuave};border-radius:12px;padding:18px;margin:0 0 20px;text-align:center;">
+          <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Código de seguimiento</div>
+          <div style="font-size:22px;font-weight:bold;color:${b.primario};letter-spacing:2px;font-family:monospace;">${codigo}</div>
         </div>
-      `,
+        <p style="margin:0 0 20px;color:#4b5563;font-size:13px;line-height:1.6;">
+          Nuestro equipo revisará la solicitud y se pondrá en contacto contigo. Puedes consultar el estado en cualquier momento:
+        </p>
+        <div style="text-align:center;">
+          <a href="${seguimientoUrl}" style="display:inline-block;background:${b.primario};color:white;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:13px;font-weight:600;">
+            Ver estado de mi solicitud
+          </a>
+        </div>
+      `, '✓ Solicitud recibida'),
     })
   } catch (e) {
     console.error('Error enviando email confirmación:', e)

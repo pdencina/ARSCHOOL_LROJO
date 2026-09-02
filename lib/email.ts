@@ -11,19 +11,97 @@ function getResend() {
 
 const FROM_EMAIL = 'AR School <notificaciones@arschoolglobal.com>'
 
+/** Programas con identidad propia en los correos */
+export type ProgramaEmail = 'ar_school' | 'lions_soccer' | 'ar_worship'
+
+/**
+ * Branding por programa: nombre visible, colores y remitente.
+ * El dominio del remitente se mantiene (arschoolglobal.com) porque es el
+ * verificado en Resend; solo cambia el nombre visible del remitente.
+ */
+export const BRANDING: Record<ProgramaEmail, {
+  nombre: string
+  bajada: string
+  from: string
+  primario: string
+  secundario: string
+  fondoSuave: string
+}> = {
+  ar_school: {
+    nombre: 'AR SCHOOL',
+    bajada: 'Fundación Educacional AR Ministries',
+    from: 'AR School <notificaciones@arschoolglobal.com>',
+    primario: '#1B3A5C',
+    secundario: '#2c4a6e',
+    fondoSuave: '#f0f4f8',
+  },
+  lions_soccer: {
+    nombre: 'LIONS SOCCER SCHOOL',
+    bajada: 'Formación deportiva · Disciplina · Trabajo en equipo',
+    from: 'Lions Soccer School <notificaciones@arschoolglobal.com>',
+    primario: '#2D5A3F',
+    secundario: '#245234',
+    fondoSuave: '#EDF5F0',
+  },
+  ar_worship: {
+    nombre: 'AR WORSHIP SCHOOL',
+    bajada: 'Desarrolla tu talento · Eleva tu adoración',
+    from: 'AR Worship School <notificaciones@arschoolglobal.com>',
+    primario: '#6B4C9A',
+    secundario: '#553c7b',
+    fondoSuave: '#F3EFFE',
+  },
+}
+
+/** Detecta el programa a partir del curso o del código de programa */
+export function detectarPrograma(texto?: string | null): ProgramaEmail {
+  const t = (texto || '').toLowerCase()
+  if (t.includes('lions') || t.includes('soccer')) return 'lions_soccer'
+  if (t.includes('worship') || t.includes('music')) return 'ar_worship'
+  return 'ar_school'
+}
+
+/**
+ * Envuelve contenido en el layout de email del programa (header + footer).
+ */
+export function layoutEmail(programa: ProgramaEmail, contenido: string, badge?: string): string {
+  const b = BRANDING[programa]
+  return `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:520px;margin:0 auto;padding:0;">
+      <div style="background:${b.primario};padding:28px 24px;text-align:center;border-radius:12px 12px 0 0;">
+        <div style="color:#ffffff;font-size:16px;font-weight:700;letter-spacing:0.5px;">${b.nombre}</div>
+        <div style="color:rgba(255,255,255,0.75);font-size:11px;margin-top:3px;">${b.bajada}</div>
+        ${badge ? `<div style="margin-top:16px;display:inline-block;background:rgba(255,255,255,0.15);padding:6px 14px;border-radius:20px;"><span style="color:#ffffff;font-size:12px;font-weight:600;">${badge}</span></div>` : ''}
+      </div>
+      <div style="background:#ffffff;padding:28px 24px;border:1px solid #e5e7eb;border-top:none;">
+        ${contenido}
+      </div>
+      <div style="background:#f9fafb;padding:16px 24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;text-align:center;">
+        <p style="margin:0;color:#9ca3af;font-size:10px;line-height:1.6;">
+          Fundación Educacional AR Ministries · RUT 65.168.392-0<br/>
+          Victoria 52, Santiago · Puente Alto · Punta Arenas
+        </p>
+      </div>
+    </div>
+  `
+}
+
 export async function enviarEmail({
   to,
   subject,
   html,
+  programa,
 }: {
   to: string | string[]
   subject: string
   html: string
+  /** Remitente con la identidad del programa (Lions / Worship / AR School) */
+  programa?: ProgramaEmail
 }) {
   try {
     const resend = getResend()
     const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL,
+      from: programa ? BRANDING[programa].from : FROM_EMAIL,
       to: Array.isArray(to) ? to : [to],
       subject,
       html,
@@ -203,7 +281,9 @@ export function templateComprobantePago(d: {
   fecha: string
   tipoPago?: string | null
   cuotas?: number | null
+  programa?: ProgramaEmail
 }) {
+  const b = BRANDING[d.programa ?? 'ar_school']
   const fmt = (n: number) => `$${n.toLocaleString('es-CL')}`
   const fila = (label: string, valor?: string | null) => valor
     ? `<tr><td style="padding:7px 0;color:#6b7280;font-size:13px;">${label}</td><td style="padding:7px 0;text-align:right;font-size:13px;color:#1a2332;font-weight:600;">${valor}</td></tr>`
@@ -212,9 +292,9 @@ export function templateComprobantePago(d: {
   return `
     <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:520px;margin:0 auto;padding:0;">
       <!-- Header -->
-      <div style="background:#2D5A3F;padding:28px 24px;text-align:center;border-radius:12px 12px 0 0;">
-        <div style="color:#ffffff;font-size:16px;font-weight:700;letter-spacing:0.5px;">AR SCHOOL</div>
-        <div style="color:rgba(255,255,255,0.75);font-size:11px;margin-top:3px;">Fundación Educacional AR Ministries</div>
+      <div style="background:${b.primario};padding:28px 24px;text-align:center;border-radius:12px 12px 0 0;">
+        <div style="color:#ffffff;font-size:16px;font-weight:700;letter-spacing:0.5px;">${b.nombre}</div>
+        <div style="color:rgba(255,255,255,0.75);font-size:11px;margin-top:3px;">${b.bajada}</div>
         <div style="margin-top:16px;display:inline-block;background:rgba(255,255,255,0.15);padding:6px 14px;border-radius:20px;">
           <span style="color:#ffffff;font-size:12px;font-weight:600;">✓ Pago confirmado</span>
         </div>
@@ -228,9 +308,9 @@ export function templateComprobantePago(d: {
         </p>
 
         <!-- Monto destacado -->
-        <div style="background:#EDF5F0;border:1px solid rgba(45,90,63,0.2);border-radius:12px;padding:20px;text-align:center;margin-bottom:22px;">
-          <div style="color:#2D5A3F;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Monto pagado</div>
-          <div style="color:#2D5A3F;font-size:30px;font-weight:700;margin-top:6px;">${fmt(d.monto)}</div>
+        <div style="background:${b.fondoSuave};border:1px solid rgba(0,0,0,0.06);border-radius:12px;padding:20px;text-align:center;margin-bottom:22px;">
+          <div style="color:${b.primario};font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Monto pagado</div>
+          <div style="color:${b.primario};font-size:30px;font-weight:700;margin-top:6px;">${fmt(d.monto)}</div>
         </div>
 
         <!-- Detalle -->
