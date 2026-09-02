@@ -36,7 +36,7 @@ export default function PortalDocumentosClient({ matriculas, documentos, fichas 
                 {pendientesFirma.map(m => (
                   <a
                     key={m.id}
-                    href={`/matricula/firmar/${m.id}`}
+                    href={`/portal/firmar/${m.id}`}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-[11px] font-semibold rounded-lg hover:bg-amber-700 transition-colors"
                   >
                     <i className="ti ti-pencil text-xs" aria-hidden="true"/>
@@ -117,7 +117,7 @@ export default function PortalDocumentosClient({ matriculas, documentos, fichas 
                     </a>
                     {!firmado && (
                       <a
-                        href={`/matricula/firmar/${m.id}`}
+                        href={`/portal/firmar/${m.id}`}
                         className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#1a2332] text-white text-[11px] font-medium rounded-lg hover:bg-[#2a3342] transition-colors"
                       >
                         <i className="ti ti-pencil text-xs" aria-hidden="true"/> Firmar
