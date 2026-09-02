@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import toast, { Toaster } from 'react-hot-toast'
 import { formatearRut, validarRut } from '@/lib/validaciones'
-import BotonPagarWebpay from '@/components/shared/BotonPagarWebpay'
 
 // Categorías oficiales Lions Soccer School (4 tramos de edad)
 const CATEGORIAS = [
@@ -170,8 +169,17 @@ export default function LionsInscripcionPage() {
             <div className="text-[10px] text-gray-500 mb-1">Código de seguimiento</div>
             <div className="text-lg font-bold text-[#5fd18a] tracking-wider font-mono">{codigo}</div>
           </div>
-          <div className="mb-4">
-            <BotonPagarWebpay variante="banner" oscuro/>
+          {/* Próximos pasos — en esta etapa no se paga */}
+          <div className="bg-[#0f1a13] border border-[#2a3d30] rounded-xl p-4 mb-4 text-left">
+            <div className="text-[10px] font-bold text-[#5fd18a] uppercase tracking-wider mb-2">¿Qué sigue ahora?</div>
+            <ol className="space-y-1.5">
+              <li className="text-[11px] text-gray-300 flex gap-2"><span className="text-[#5fd18a] font-bold">1.</span><span>Revisaremos tu inscripción.</span></li>
+              <li className="text-[11px] text-gray-300 flex gap-2"><span className="text-[#5fd18a] font-bold">2.</span><span>Te contactaremos para coordinar la clase de prueba.</span></li>
+              <li className="text-[11px] text-gray-300 flex gap-2"><span className="text-[#5fd18a] font-bold">3.</span><span>Luego se formaliza la matrícula y el contrato.</span></li>
+            </ol>
+            <p className="text-[10px] text-gray-400 mt-3 pt-3 border-t border-[#2a3d30]">
+              <strong className="text-gray-300">No debes pagar nada en esta etapa.</strong> Te indicaremos cuándo corresponda.
+            </p>
           </div>
           <p className="text-xs text-gray-500">Revisa tu correo para más información. Recuerda tener a mano el certificado médico deportivo.</p>
         </div>

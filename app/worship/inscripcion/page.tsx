@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import toast, { Toaster } from 'react-hot-toast'
 import { formatearRut, validarRut } from '@/lib/validaciones'
-import BotonPagarWebpay from '@/components/shared/BotonPagarWebpay'
 
 const INSTRUMENTOS = ['Guitarra', 'Bajo', 'Teclado', 'Batería', 'Canto', 'Saxophone', 'Violín']
 const PROGRAMAS = [
@@ -114,8 +113,17 @@ export default function WorshipInscripcionPage() {
             <div className="text-[10px] text-gray-500 mb-1">Código de seguimiento</div>
             <div className="text-lg font-bold text-[#ff6b6b] tracking-wider font-mono">{codigo}</div>
           </div>
-          <div className="mb-4">
-            <BotonPagarWebpay variante="banner" oscuro/>
+          {/* Próximos pasos — en esta etapa no se paga */}
+          <div className="bg-[#1a1a1a] border border-[#3a3a3a] rounded-xl p-4 mb-4 text-left">
+            <div className="text-[10px] font-bold text-[#ff6b6b] uppercase tracking-wider mb-2">¿Qué sigue ahora?</div>
+            <ol className="space-y-1.5">
+              <li className="text-[11px] text-gray-300 flex gap-2"><span className="text-[#ff6b6b] font-bold">1.</span><span>Revisaremos tu inscripción.</span></li>
+              <li className="text-[11px] text-gray-300 flex gap-2"><span className="text-[#ff6b6b] font-bold">2.</span><span>Te contactaremos para confirmar tu horario y ciclo.</span></li>
+              <li className="text-[11px] text-gray-300 flex gap-2"><span className="text-[#ff6b6b] font-bold">3.</span><span>Luego se formaliza la matrícula y el contrato.</span></li>
+            </ol>
+            <p className="text-[10px] text-gray-400 mt-3 pt-3 border-t border-[#3a3a3a]">
+              <strong className="text-gray-300">No debes pagar nada en esta etapa.</strong> Te indicaremos cuándo corresponda.
+            </p>
           </div>
           <p className="text-xs text-gray-500">Revisa tu correo para más información.</p>
         </div>

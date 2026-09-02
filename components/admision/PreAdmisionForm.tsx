@@ -7,7 +7,6 @@ import {
   validarEmail, calcularEdad, validarFormularioAdmision,
 } from '@/lib/validaciones'
 import { TODAS_COMUNAS, PREVISIONES_SALUD, NACIONALIDADES, PARENTESCOS } from '@/lib/comunas-chile'
-import BotonPagarWebpay from '@/components/shared/BotonPagarWebpay'
 
 const CURSOS = [
   'Play Group (2-3 años)', 'Pre School (3-4 años)', 'Kinder (Ciclo 0)',
@@ -225,9 +224,32 @@ export default function PreAdmisionForm() {
             <div className="text-[10px] text-gray-500 mb-1">Código de seguimiento</div>
             <div className="text-2xl font-bold text-[#1B3A5C] tracking-wider font-mono">{codigoSeguimiento}</div>
           </div>
-          <p className="text-xs text-gray-500 mb-4">Guarde este código. Recibirá un email de confirmación.</p>
-          <div className="mb-4"><BotonPagarWebpay variante="banner"/></div>
-          <a href={`/admision/seguimiento?codigo=${codigoSeguimiento}`} className="inline-block bg-[#1B3A5C] text-white px-6 py-2.5 rounded-xl text-sm font-semibold">Ver estado</a>
+          <p className="text-xs text-gray-500 mb-5">Guarde este código. Recibirá un email de confirmación.</p>
+
+          {/* Próximos pasos — aquí NO se paga nada todavía */}
+          <div className="bg-[#f8f9fb] border border-gray-200 rounded-xl p-4 mb-5 text-left">
+            <div className="text-[11px] font-bold text-[#1B3A5C] uppercase tracking-wider mb-2">¿Qué sigue ahora?</div>
+            <ol className="space-y-1.5">
+              <li className="text-[12px] text-gray-600 flex gap-2">
+                <span className="text-[#2D5A3F] font-bold">1.</span>
+                <span>Nuestro equipo de admisión revisará su solicitud.</span>
+              </li>
+              <li className="text-[12px] text-gray-600 flex gap-2">
+                <span className="text-[#2D5A3F] font-bold">2.</span>
+                <span>Nos pondremos en contacto con usted por correo o teléfono.</span>
+              </li>
+              <li className="text-[12px] text-gray-600 flex gap-2">
+                <span className="text-[#2D5A3F] font-bold">3.</span>
+                <span>Si es aprobada, coordinaremos la matrícula y la firma del contrato.</span>
+              </li>
+            </ol>
+            <p className="text-[11px] text-gray-500 mt-3 pt-3 border-t border-gray-200">
+              <i className="ti ti-info-circle mr-1" aria-hidden="true"/>
+              <strong>No debe realizar ningún pago en esta etapa.</strong> Le indicaremos cuándo y cómo hacerlo.
+            </p>
+          </div>
+
+          <a href={`/admision/seguimiento?codigo=${codigoSeguimiento}`} className="inline-block bg-[#1B3A5C] text-white px-6 py-2.5 rounded-xl text-sm font-semibold">Ver estado de mi solicitud</a>
         </div>
       </div>
     )
