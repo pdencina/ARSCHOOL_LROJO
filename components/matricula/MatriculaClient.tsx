@@ -353,8 +353,11 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                     <td className="px-4 py-3.5 text-[#1a2332] font-medium">${(m.monto_matricula ?? 0).toLocaleString('es-CL')}</td>
                     <td className="px-4 py-3.5">
                       <div className="flex gap-2">
-                        <a href={`/api/contratos?matricula_id=${m.id}`} target="_blank" className="text-[11px] text-[var(--ar-accent)] hover:underline font-medium">
+                        <a href={`/api/contratos?matricula_id=${m.id}&modalidad=completo`} target="_blank" className="text-[11px] text-[var(--ar-accent)] hover:underline font-medium">
                           Contrato
+                        </a>
+                        <a href={`/api/contratos?matricula_id=${m.id}&modalidad=hermanos_2x1`} target="_blank" className="text-[11px] text-[#7C5CBF] hover:underline font-medium" title="Contrato con matrícula exenta por promoción 2x1 de hermanos">
+                          Contrato 2x1
                         </a>
                         <a href={`/api/contratos?matricula_id=${m.id}&tipo=pagare`} target="_blank" className="text-[11px] text-[#5B8FA8] hover:underline font-medium">
                           Pagaré
@@ -369,19 +372,29 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                         {!m.firma_apoderado && (
                           <button
                             onClick={async () => {
+                              // Elegir qué contrato enviar a firma
+                              const es2x1 = confirm(
+                                `¿Qué contrato enviar a ${m.alumno?.nombre}?\n\n` +
+                                `OK = Contrato con MATRÍCULA EXENTA (promoción 2x1 hermanos)\n` +
+                                `Cancelar = Contrato con MONTO COMPLETO`
+                              )
                               try {
                                 const res = await fetch('/api/contratos/enviar-firma', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ matricula_id: m.id, tipo: 'contrato' }),
+                                  body: JSON.stringify({
+                                    matricula_id: m.id,
+                                    tipo: 'contrato',
+                                    modalidad: es2x1 ? 'hermanos_2x1' : 'completo',
+                                  }),
                                 })
                                 const data = await res.json()
                                 if (!res.ok) throw new Error(data.error)
-                                toast.success(`Contrato enviado a ${data.email_enviado_a}`)
+                                toast.success(`Contrato ${es2x1 ? '2x1 ' : ''}enviado a ${data.email_enviado_a}`)
                               } catch (e: any) { toast.error(e.message) }
                             }}
                             className="text-[11px] font-medium text-[var(--ar-accent)] hover:underline"
-                            title="Enviar contrato por email para firma remota"
+                            title="Enviar contrato por email para firma remota (elige monto completo o 2x1)"
                           >
                             📧 Contrato
                           </button>

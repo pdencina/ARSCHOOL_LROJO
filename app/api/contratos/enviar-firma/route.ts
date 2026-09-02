@@ -28,7 +28,15 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { matricula_id, tipo = 'contrato' } = body
+  const { matricula_id, tipo = 'contrato', modalidad } = body
+
+  // Guardar la modalidad elegida para que el documento firmado sea consistente
+  if (modalidad === 'completo' || modalidad === 'hermanos_2x1') {
+    await admin.from('matriculas')
+      .update({ modalidad_contrato: modalidad })
+      .eq('id', matricula_id)
+      .then(() => {}, () => {}) // si la columna no existe aún, se ignora
+  }
 
   if (!matricula_id) {
     return NextResponse.json({ error: 'matricula_id requerido' }, { status: 400 })

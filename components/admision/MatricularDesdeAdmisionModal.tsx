@@ -31,6 +31,8 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
   // Política de hermanos (matrícula 2x1 + descuento en el mensual)
   const [hermanos, setHermanos] = useState<any>(null)
   const [buscandoHermanos, setBuscandoHermanos] = useState(false)
+  // Modalidad del contrato a enviar: monto completo o matrícula exenta (2x1)
+  const [modalidadContrato, setModalidadContrato] = useState<'completo' | 'hermanos_2x1'>('completo')
 
   function set(k: string, v: any) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -70,6 +72,8 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
       monto_matricula: hermanos.montoMatriculaSugerido,
       monto_mensual: hermanos.montoMensualSugerido,
     }))
+    // Si queda exento de matrícula, el contrato debe ir en modalidad 2x1
+    if (!hermanos.pagaMatricula) setModalidadContrato('hermanos_2x1')
     toast.success('Montos actualizados con el descuento de hermanos')
   }
 
@@ -170,10 +174,12 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
     if (!matriculaId) return
     setEnviandoContrato(true)
     try {
+      // Si el hermano quedó exento de matrícula, el contrato va en modalidad 2x1
+      const modalidad = modalidadContrato
       const res = await fetch('/api/contratos/enviar-firma', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matricula_id: matriculaId, tipo: 'contrato' }),
+        body: JSON.stringify({ matricula_id: matriculaId, tipo: 'contrato', modalidad }),
       })
       const data = await res.json().catch(() => null)
       if (!res.ok) throw new Error(data?.error || 'Error al enviar contrato')
@@ -226,10 +232,37 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
                 <p className="text-[11px] text-gray-500 mb-3">
                   Envía el contrato y el pagaré al apoderado ({pa.apoderado_email}) para su firma electrónica.
                 </p>
-                <button onClick={enviarContrato} disabled={enviandoContrato}
-                  className="w-full py-2.5 bg-[#1B3A5C] text-white text-xs font-bold rounded-lg hover:bg-[#143050] disabled:opacity-50 transition-colors">
-                  {enviandoContrato ? 'Enviando...' : '📧 Enviar contrato y pagaré a firma'}
-                </button>
+
+                {/* Qué contrato enviar */}
+                <div className="mb-3">
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Tipo de contrato</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => setModalidadContrato('completo')}
+                      className={`py-2.5 px-2 rounded-lg text-[11px] font-semibold border transition-all ${modalidadContrato === 'completo' ? 'bg-[#1B3A5C] text-white border-[#1B3A5C]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>
+                      Monto completo
+                    </button>
+                    <button type="button" onClick={() => setModalidadContrato('hermanos_2x1')}
+                      className={`py-2.5 px-2 rounded-lg text-[11px] font-semibold border transition-all ${modalidadContrato === 'hermanos_2x1' ? 'bg-[#7C5CBF] text-white border-[#7C5CBF]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>
+                      Matrícula 2x1
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1.5">
+                    {modalidadContrato === 'hermanos_2x1'
+                      ? 'El contrato indicará la matrícula como EXENTA por promoción de hermanos.'
+                      : 'El contrato incluirá la matrícula y el aporte mensual completos.'}
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <a href={`/api/contratos?matricula_id=${matriculaId}&modalidad=${modalidadContrato}`} target="_blank"
+                    className="px-3 py-2.5 bg-white border border-gray-200 text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-50 transition-colors">
+                    Previsualizar
+                  </a>
+                  <button onClick={enviarContrato} disabled={enviandoContrato}
+                    className="flex-1 py-2.5 bg-[#1B3A5C] text-white text-xs font-bold rounded-lg hover:bg-[#143050] disabled:opacity-50 transition-colors">
+                    {enviandoContrato ? 'Enviando...' : '📧 Enviar a firma'}
+                  </button>
+                </div>
               </div>
 
               <button onClick={onMatriculado} className="w-full py-2.5 bg-white border border-gray-200 text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-50">

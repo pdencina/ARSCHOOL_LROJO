@@ -111,7 +111,14 @@ export async function GET(request: NextRequest) {
   const defaultMensual = esLions ? 40000 : esMusicAndPlay ? 40000 : esWorship ? 60000 : 275000
   const defaultMeses = esLions ? 12 : esWorship ? 9 : 10
 
-  const montoInicial = matricula?.monto_matricula ?? defaultInicial
+  // Modalidad del contrato: parámetro de la URL o lo guardado en la matrícula.
+  // 'hermanos_2x1' => matrícula exenta por promoción de hermanos.
+  const modalidadParam = searchParams.get('modalidad')
+  const modalidad = modalidadParam || matricula?.modalidad_contrato || 'completo'
+  const esHermanos2x1 = modalidad === 'hermanos_2x1'
+
+  const montoInicialBase = matricula?.monto_matricula ?? defaultInicial
+  const montoInicial = esHermanos2x1 ? 0 : montoInicialBase
   const montoMensual = matricula?.monto_mensual ?? defaultMensual
   const porcentajeBeca = matricula?.porcentaje_beca ?? 0
   const fechaMat = matricula?.fecha_matricula ?? new Date().toISOString().split('T')[0]
@@ -148,7 +155,10 @@ export async function GET(request: NextRequest) {
 
   // Agregar aporte inicial como primera línea (siempre si > 0)
   const fechaInicioDisplay = `${new Date(fechaInicioContrato + 'T12:00').getDate()}-${String(new Date(fechaInicioContrato + 'T12:00').getMonth() + 1).padStart(2, '0')}-${new Date(fechaInicioContrato + 'T12:00').getFullYear()}`
-  if (montoInicial > 0) {
+  if (esHermanos2x1) {
+    // Matrícula exenta: se deja constancia en la tabla de aportes
+    tablaAportes = `<tr style="background:#EDF5F0;"><td><strong>Matrícula — ${fechaInicioDisplay}</strong></td><td><strong>EXENTA</strong> <span style="font-size:10px;">(promoción 2x1 hermanos)</span></td><td></td><td></td></tr>`
+  } else if (montoInicial > 0) {
     tablaAportes = `<tr style="background:#f8f9fb;"><td><strong>Aporte inicial — ${fechaInicioDisplay}</strong></td><td><strong>$${montoInicial.toLocaleString('es-CL')} CLP</strong></td><td></td><td></td></tr>`
   }
 
