@@ -28,7 +28,50 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
     crear_cuenta_apoderado: true,
   })
 
+  // Política de hermanos (matrícula 2x1 + descuento en el mensual)
+  const [hermanos, setHermanos] = useState<any>(null)
+  const [buscandoHermanos, setBuscandoHermanos] = useState(false)
+
   function set(k: string, v: any) { setForm(f => ({ ...f, [k]: v })) }
+
+  // Consulta hermanos ya matriculados y sugiere los montos con descuento
+  async function revisarHermanos() {
+    if (!form.monto_matricula && !form.monto_mensual) {
+      toast.error('Ingresa primero los montos base del programa')
+      return
+    }
+    setBuscandoHermanos(true)
+    try {
+      const res = await fetch('/api/matriculas/hermanos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rut_apoderado: pa.apoderado_rut,
+          email_apoderado: pa.apoderado_email,
+          monto_matricula: Number(form.monto_matricula) || 0,
+          monto_mensual: Number(form.monto_mensual) || 0,
+        }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'No se pudo consultar')
+      setHermanos(data)
+      if (data.yaMatriculados === 0) {
+        toast('Es el primer hermano: paga matrícula y aporte completo', { icon: 'ℹ️' })
+      }
+    } catch (e: any) { toast.error(e.message) }
+    finally { setBuscandoHermanos(false) }
+  }
+
+  // Aplica los montos sugeridos por la política de hermanos
+  function aplicarDescuento() {
+    if (!hermanos) return
+    setForm(f => ({
+      ...f,
+      monto_matricula: hermanos.montoMatriculaSugerido,
+      monto_mensual: hermanos.montoMensualSugerido,
+    }))
+    toast.success('Montos actualizados con el descuento de hermanos')
+  }
 
   async function matricular() {
     if (!form.curso.trim()) { toast.error('El curso/nivel es obligatorio'); return }
@@ -81,7 +124,10 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
           fecha_inicio_contrato: form.fecha_inicio_contrato || null,
           // Config
           crear_cuenta_apoderado: form.crear_cuenta_apoderado,
-          observaciones: form.observaciones || null,
+          observaciones: [
+            form.observaciones || '',
+            hermanos ? `[Hermanos] ${hermanos.detalle}` : '',
+          ].filter(Boolean).join(' · ') || null,
           documentos: pa.documentos || {},
         }),
       })
@@ -218,6 +264,59 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
                   <input type="number" value={form.monto_mensual} onChange={e => set('monto_mensual', e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B3A5C]" min={0}/>
                 </div>
+              </div>
+
+              {/* Descuento por hermanos */}
+              <div className="bg-[#f0f4f8] border border-[#1B3A5C]/10 rounded-xl p-3">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="text-[11px] font-bold text-[#1B3A5C]">Descuento por hermanos</div>
+                  <button type="button" onClick={revisarHermanos} disabled={buscandoHermanos}
+                    className="text-[10px] font-semibold text-[#1B3A5C] hover:underline disabled:opacity-50">
+                    {buscandoHermanos ? 'Revisando...' : 'Revisar familia'}
+                  </button>
+                </div>
+                <p className="text-[10px] text-gray-500 leading-snug">
+                  Matrícula 2x1 por cada par de hermanos · 2° hermano 30% de descuento en el aporte · 3° y más, aporte fijo $40.000
+                </p>
+
+                {hermanos && (
+                  <div className="mt-2.5 pt-2.5 border-t border-[#1B3A5C]/10">
+                    <div className="text-[11px] text-gray-700 mb-1.5">
+                      <strong>{hermanos.orden === 1 ? 'Primer' : hermanos.orden === 2 ? 'Segundo' : `${hermanos.orden}°`} hermano</strong> de la familia
+                      {hermanos.yaMatriculados > 0 && ` (${hermanos.yaMatriculados} ya matriculado${hermanos.yaMatriculados > 1 ? 's' : ''})`}
+                    </div>
+                    {hermanos.hermanos.length > 0 && (
+                      <ul className="text-[10px] text-gray-500 mb-2 space-y-0.5">
+                        {hermanos.hermanos.map((h: any, i: number) => (
+                          <li key={i}>• {h.nombre}{h.curso ? ` — ${h.curso}` : ''}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="bg-white rounded-lg p-2.5 space-y-1 mb-2">
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-gray-500">Matrícula</span>
+                        <span className={`font-semibold ${hermanos.pagaMatricula ? 'text-gray-800' : 'text-[#2D5A3F]'}`}>
+                          {hermanos.pagaMatricula
+                            ? `$${hermanos.montoMatriculaSugerido.toLocaleString('es-CL')}`
+                            : 'Exenta (2x1)'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-gray-500">Aporte mensual</span>
+                        <span className="font-semibold text-gray-800">
+                          ${hermanos.montoMensualSugerido.toLocaleString('es-CL')}
+                          {hermanos.descuentoMensual > 0 && (
+                            <span className="text-[#2D5A3F] font-normal"> (−{hermanos.descuentoMensual}%)</span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <button type="button" onClick={aplicarDescuento}
+                      className="w-full py-2 bg-[#1B3A5C] text-white text-[11px] font-bold rounded-lg hover:bg-[#143050] transition-colors">
+                      Aplicar estos montos
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
