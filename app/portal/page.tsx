@@ -66,6 +66,8 @@ export default async function PortalPage() {
   // Check for pending signatures
   let pendientesFirma = 0
   let inscripcionesProgramas: any[] = []
+  // Checklist del proceso de matrícula por cada hijo
+  let checklist: any[] = []
   if (rol === 'apoderado') {
     const { data: vinculos } = await admin.from('tutor_alumnos').select('alumno_id').eq('tutor_id', user.id)
     const ids = (vinculos ?? []).map((v: any) => v.alumno_id)
@@ -80,6 +82,44 @@ export default async function PortalPage() {
         .in('alumno_id', ids)
         .eq('estado', 'activa')
       inscripcionesProgramas = (inscs as any[]) ?? []
+
+      // ─── Checklist: estado real del proceso de cada hijo ───
+      const [{ data: matsFull }, { data: cobrosTodos }, { data: docsMat }] = await Promise.all([
+        admin.from('matriculas')
+          .select('id, alumno_id, firma_apoderado, firma_pagare, alumno:alumnos(nombre, apellido, curso)')
+          .in('alumno_id', ids)
+          .order('created_at', { ascending: false }),
+        admin.from('cobros')
+          .select('alumno_id, estado, monto, monto_pagado, tipo_concepto')
+          .in('alumno_id', ids),
+        admin.from('documentos_matricula')
+          .select('matricula_id, tipo')
+          .in('matricula_id', (await admin.from('matriculas').select('id').in('alumno_id', ids)).data?.map((m: any) => m.id) ?? ['__none__']),
+      ])
+
+      // Documentos obligatorios esperados por matrícula
+      const DOCS_ESPERADOS = 6
+
+      checklist = (matsFull ?? []).map((m: any) => {
+        const cobrosAlumno = (cobrosTodos ?? []).filter((c: any) => c.alumno_id === m.alumno_id)
+        const inicial = cobrosAlumno.find((c: any) => c.tipo_concepto === 'aporte_inicial')
+        const docsSubidos = new Set((docsMat ?? []).filter((d: any) => d.matricula_id === m.id).map((d: any) => d.tipo)).size
+
+        return {
+          matricula_id: m.id,
+          alumno: `${m.alumno?.nombre ?? ''} ${m.alumno?.apellido ?? ''}`.trim(),
+          curso: m.alumno?.curso ?? null,
+          contratoFirmado: !!m.firma_apoderado,
+          pagareFirmado: !!m.firma_pagare,
+          // Aporte inicial: pagado, pendiente, o no aplica si no existe el cobro
+          aporteInicial: inicial
+            ? (inicial.estado === 'pagado' ? 'pagado' : 'pendiente')
+            : 'no_aplica',
+          montoAporteInicial: inicial ? (inicial.monto - (inicial.monto_pagado ?? 0)) : 0,
+          documentosSubidos: docsSubidos,
+          documentosEsperados: DOCS_ESPERADOS,
+        }
+      })
     }
   }
 
@@ -92,6 +132,7 @@ export default async function PortalPage() {
       comunicados={(comunicados as any[]) ?? []}
       pendientesFirma={pendientesFirma}
       inscripcionesProgramas={inscripcionesProgramas}
+      checklist={checklist}
     />
   )
 }

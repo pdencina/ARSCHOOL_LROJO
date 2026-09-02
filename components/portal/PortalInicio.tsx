@@ -10,9 +10,10 @@ interface Props {
   comunicados: any[]
   pendientesFirma?: number
   inscripcionesProgramas?: any[]
+  checklist?: any[]
 }
 
-export default function PortalInicio({ usuario, alumno, rol, stats, comunicados, pendientesFirma = 0, inscripcionesProgramas = [] }: Props) {
+export default function PortalInicio({ usuario, alumno, rol, stats, comunicados, pendientesFirma = 0, inscripcionesProgramas = [], checklist = [] }: Props) {
   const esApoderado = rol === 'apoderado'
   const HORA = new Date().getHours()
   const SALUDO = HORA < 12 ? 'Buenos días' : HORA < 19 ? 'Buenas tardes' : 'Buenas noches'
@@ -64,8 +65,87 @@ export default function PortalInicio({ usuario, alumno, rol, stats, comunicados,
         </div>
       )}
 
-      {/* Alerta firmas pendientes */}
-      {pendientesFirma > 0 && (
+      {/* Checklist del proceso de matrícula */}
+      {esApoderado && checklist.length > 0 && (
+        <div className="mb-6 space-y-3">
+          {checklist.map((c: any) => {
+            const pasos = [
+              {
+                label: 'Contrato firmado',
+                ok: c.contratoFirmado,
+                href: `/portal/firmar/${c.matricula_id}`,
+                accion: 'Firmar contrato',
+              },
+              {
+                label: 'Pagaré firmado',
+                ok: c.pagareFirmado,
+                href: `/portal/firmar/${c.matricula_id}`,
+                accion: 'Firmar pagaré',
+              },
+              ...(c.aporteInicial !== 'no_aplica' ? [{
+                label: c.aporteInicial === 'pagado'
+                  ? 'Aporte inicial pagado'
+                  : `Aporte inicial pendiente${c.montoAporteInicial > 0 ? ` · $${c.montoAporteInicial.toLocaleString('es-CL')}` : ''}`,
+                ok: c.aporteInicial === 'pagado',
+                href: '/portal/pagos',
+                accion: 'Pagar ahora',
+              }] : []),
+              {
+                label: `Documentos ${c.documentosSubidos}/${c.documentosEsperados}`,
+                ok: c.documentosSubidos >= c.documentosEsperados,
+                href: '/portal/documentos',
+                accion: 'Ver documentos',
+              },
+            ]
+            const completos = pasos.filter(p => p.ok).length
+            const todoListo = completos === pasos.length
+            const pct = Math.round((completos / pasos.length) * 100)
+
+            return (
+              <div key={c.matricula_id} className={`rounded-xl border p-4 ${todoListo ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-amber-200'}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-bold text-slate-800 truncate">
+                      {todoListo ? '✓ Proceso completo' : 'Tu proceso de matrícula'}
+                      {checklist.length > 1 && <span className="font-normal text-slate-500"> — {c.alumno}</span>}
+                    </div>
+                    {c.curso && <div className="text-[11px] text-slate-500">{c.curso}</div>}
+                  </div>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${todoListo ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {completos}/{pasos.length}
+                  </span>
+                </div>
+
+                {/* Barra de progreso */}
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3">
+                  <div className={`h-full rounded-full transition-all ${todoListo ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${pct}%` }}/>
+                </div>
+
+                <div className="space-y-1.5">
+                  {pasos.map((p, i) => (
+                    <div key={i} className="flex items-center gap-2.5">
+                      <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${p.ok ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                        {p.ok ? '✓' : ''}
+                      </span>
+                      <span className={`flex-1 text-[12px] ${p.ok ? 'text-slate-500 line-through' : 'text-slate-700 font-medium'}`}>
+                        {p.label}
+                      </span>
+                      {!p.ok && (
+                        <Link href={p.href} className="text-[11px] font-semibold text-[#1B3A5C] hover:underline flex-shrink-0">
+                          {p.accion} →
+                        </Link>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Alerta firmas pendientes (si no hay checklist disponible) */}
+      {esApoderado && checklist.length === 0 && pendientesFirma > 0 && (
         <Link href="/portal/documentos" className="block mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 hover:border-amber-300 transition-colors">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
