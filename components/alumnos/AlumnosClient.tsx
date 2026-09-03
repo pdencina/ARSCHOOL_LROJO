@@ -17,6 +17,8 @@ export default function AlumnosClient({ alumnos, cursos, colegioId }: Props) {
   const [alumnoDetalle, setAlumnoDetalle] = useState<any>(null)
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState<'lista'|'tarjetas'>('lista')
+  const [verRetirados, setVerRetirados] = useState(false)
+  const [alumnoRetiro, setAlumnoRetiro] = useState<any>(null)
   const todosLosCursos = cursos.length > 0 ? cursos : CURSOS_DEFAULT
   const [form, setForm] = useState({
     nombre: '', apellido: '', rut: '', curso: todosLosCursos[0] ?? '',
@@ -30,10 +32,25 @@ export default function AlumnosClient({ alumnos, cursos, colegioId }: Props) {
     alumnos.filter(a => {
       const matchCurso = !cursoBusq || a.curso === cursoBusq
       const matchText = !textBusq || `${a.nombre} ${a.apellido} ${a.rut ?? ''}`.toLowerCase().includes(textBusq.toLowerCase())
-      return matchCurso && matchText && a.activo
+      const matchEstado = verRetirados ? !a.activo : a.activo
+      return matchCurso && matchText && matchEstado
     }),
-    [alumnos, cursoBusq, textBusq]
+    [alumnos, cursoBusq, textBusq, verRetirados]
   )
+
+  async function reactivar(a: any) {
+    if (!confirm(`¿Reactivar a ${a.nombre} ${a.apellido}?`)) return
+    try {
+      const res = await fetch(`/api/alumnos/${a.id}/estado`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'reactivar' }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => null); throw new Error(d?.error || 'Error') }
+      toast.success('Alumno reactivado')
+      router.refresh()
+    } catch (e: any) { toast.error(e.message) }
+  }
 
   async function handleGuardar() {
     if (!form.nombre || !form.apellido || !form.curso) { toast.error('Nombre, apellido y curso son requeridos'); return }
@@ -129,7 +146,11 @@ export default function AlumnosClient({ alumnos, cursos, colegioId }: Props) {
             <i className="ti ti-x text-xs" aria-hidden="true"/> {cursoBusq}
           </button>
         )}
-        <span className="text-sm text-slate-400 ml-auto">{alumnosFiltrados.length} resultado{alumnosFiltrados.length !== 1 ? 's' : ''}</span>
+        <label className="flex items-center gap-1.5 text-xs text-slate-500 ml-auto cursor-pointer select-none">
+          <input type="checkbox" checked={verRetirados} onChange={e => setVerRetirados(e.target.checked)} className="w-3.5 h-3.5 rounded border-slate-300"/>
+          Ver retirados
+        </label>
+        <span className="text-sm text-slate-400">{alumnosFiltrados.length} resultado{alumnosFiltrados.length !== 1 ? 's' : ''}</span>
       </div>
 
       {/* Tabla */}
@@ -176,9 +197,20 @@ export default function AlumnosClient({ alumnos, cursos, colegioId }: Props) {
                     <span className={`tag ${a.activo ? 'tag-ok' : 'tag-gray'}`}>{a.activo ? 'Activo' : 'Inactivo'}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <a href={`/alumnos/${a.id}`} className="text-xs text-[var(--ar-accent)] hover:underline font-medium" onClick={e => e.stopPropagation()}>
-                      Ver ficha
-                    </a>
+                    <div className="flex items-center gap-3">
+                      <a href={`/alumnos/${a.id}`} className="text-xs text-[var(--ar-accent)] hover:underline font-medium" onClick={e => e.stopPropagation()}>
+                        Ver ficha
+                      </a>
+                      {a.activo ? (
+                        <button onClick={e => { e.stopPropagation(); setAlumnoRetiro(a) }} className="text-xs text-red-400 hover:text-red-600 hover:underline">
+                          Retirar
+                        </button>
+                      ) : (
+                        <button onClick={e => { e.stopPropagation(); reactivar(a) }} className="text-xs text-emerald-600 hover:underline">
+                          Reactivar
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )
@@ -186,6 +218,11 @@ export default function AlumnosClient({ alumnos, cursos, colegioId }: Props) {
           </tbody>
         </table>
       </div>
+
+      {/* Modal retirar alumno */}
+      {alumnoRetiro && (
+        <RetirarAlumnoModal alumno={alumnoRetiro} onClose={() => setAlumnoRetiro(null)} onDone={() => { setAlumnoRetiro(null); router.refresh() }}/>
+      )}
 
       {/* Panel detalle alumno */}
       {alumnoDetalle && (
@@ -328,6 +365,63 @@ export default function AlumnosClient({ alumnos, cursos, colegioId }: Props) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function RetirarAlumnoModal({ alumno, onClose, onDone }: { alumno: any; onClose: () => void; onDone: () => void }) {
+  const [motivo, setMotivo] = useState('')
+  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+  const [saving, setSaving] = useState(false)
+
+  async function retirar() {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/alumnos/${alumno.id}/estado`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'retirar', motivo, fecha }),
+      })
+      const d = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(d?.error || 'Error al retirar')
+      toast.success('Alumno retirado')
+      onDone()
+    } catch (e: any) { toast.error(e.message) }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
+        <h3 className="text-sm font-bold text-slate-800 mb-1">Retirar alumno</h3>
+        <p className="text-[12px] text-slate-500 mb-4">{alumno.nombre} {alumno.apellido}</p>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-[11px] text-amber-800 leading-snug">
+          Al retirar: el alumno queda inactivo, se finalizan sus inscripciones a programas y se
+          <strong> anulan sus cobros pendientes</strong> (los pagados no se tocan).
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Fecha de retiro</label>
+            <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B3A5C]"/>
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Motivo</label>
+            <input value={motivo} onChange={e => setMotivo(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1B3A5C]"
+              placeholder="Ej: cambio de ciudad, retiro voluntario..."/>
+          </div>
+        </div>
+
+        <div className="flex gap-2 mt-4">
+          <button onClick={onClose} className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-600 text-xs font-semibold rounded-lg">Cancelar</button>
+          <button onClick={retirar} disabled={saving} className="flex-1 py-2.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 disabled:opacity-50">
+            {saving ? 'Retirando...' : 'Confirmar retiro'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { formatMonto, formatFecha, ESTADO_CONFIG } from '@/lib/utils'
 import MorosidadChart from './MorosidadChart'
 import ModalPago from './ModalPago'
 import ModalPlan from './ModalPlan'
+import ModalEditarCobro from './ModalEditarCobro'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 
@@ -27,6 +28,7 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
   const router = useRouter()
   const [filtro, setFiltro] = useState<FiltroEstado>('todos')
   const [cobroModal, setCobroModal] = useState<CobroConFamilia | null>(null)
+  const [cobroEditar, setCobroEditar] = useState<any>(null)
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [vista, setVista] = useState<'cobros' | 'deudores' | 'planes'>('cobros')
   const [busqueda, setBusqueda] = useState('')
@@ -261,10 +263,15 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            {cobro.estado === 'pagado'
-                              ? <span className="text-xs text-slate-400">{cobro.fecha_pago ? `Pagado ${formatFecha(cobro.fecha_pago)}` : 'Pagado'}</span>
-                              : <button onClick={() => setCobroModal(cobro)} className="btn-primary text-xs py-1 px-3">Registrar pago</button>
-                            }
+                            <div className="flex items-center gap-2">
+                              {cobro.estado === 'pagado'
+                                ? <span className="text-xs text-slate-400">{cobro.fecha_pago ? `Pagado ${formatFecha(cobro.fecha_pago)}` : 'Pagado'}</span>
+                                : cobro.estado === 'anulado'
+                                  ? <span className="text-xs text-slate-400 italic">Anulado</span>
+                                  : <button onClick={() => setCobroModal(cobro)} className="btn-primary text-xs py-1 px-3">Registrar pago</button>
+                              }
+                              <button onClick={() => setCobroEditar(cobro)} className="text-[11px] text-[var(--ar-accent)] hover:underline" title="Editar o anular este cobro">Editar</button>
+                            </div>
                           </td>
                         </tr>
                       )
@@ -446,6 +453,7 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
       </div>
 
       {cobroModal && <ModalPago cobro={cobroModal} onClose={() => setCobroModal(null)}/>}
+      {cobroEditar && <ModalEditarCobro cobro={cobroEditar} onClose={() => setCobroEditar(null)}/>}
       {showPlanModal && <ModalPlan onClose={() => setShowPlanModal(false)} onGuardar={handleNuevoPlan}/>}
     </div>
   )
