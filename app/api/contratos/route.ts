@@ -123,11 +123,20 @@ export async function GET(request: NextRequest) {
   const porcentajeBeca = matricula?.porcentaje_beca ?? 0
   const fechaMat = matricula?.fecha_matricula ?? new Date().toISOString().split('T')[0]
   const fechaInicioContrato = matricula?.fecha_inicio_contrato || fechaMat
-  const sede = matricula?.sede
-    ? (matricula.sede === 'puente_alto' ? 'José Manuel Irarrázaval 0565, Comuna de Puente Alto'
-      : matricula.sede === 'punta_arenas' ? 'Chiloé 862, Comuna de Punta Arenas'
-      : 'Victoria 52, Comuna de Santiago')
-    : SEDES[colegio?.id] ?? 'Victoria 52, Comuna de Santiago'
+  // Sede efectiva: la de la matrícula o, si no, la que corresponde al colegio_id
+  const sedeCodigo = matricula?.sede
+    || (colegio?.id === '22222222-2222-2222-2222-222222222222' ? 'puente_alto'
+      : colegio?.id === '33333333-3333-3333-3333-333333333333' ? 'punta_arenas'
+      : 'santiago')
+
+  const sede = sedeCodigo === 'puente_alto' ? 'José Manuel Irarrázaval 0565, Comuna de Puente Alto'
+    : sedeCodigo === 'punta_arenas' ? 'Chiloé 862, Comuna de Punta Arenas'
+    : 'Victoria 52, Comuna de Santiago'
+
+  // Ciudad de la sede (para jurisdicción y defaults de domicilio)
+  const ciudadSede = sedeCodigo === 'punta_arenas' ? 'Punta Arenas'
+    : sedeCodigo === 'puente_alto' ? 'Puente Alto'
+    : 'Santiago'
   const firmaApoderado = matricula?.firma_apoderado ?? null
   const firmadoAt = matricula?.firmado_at ? new Date(matricula.firmado_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) : null
 
@@ -139,7 +148,9 @@ export async function GET(request: NextRequest) {
   const nombreApoderado = `${familia?.nombre_apoderado ?? '___'} ${familia?.apellido_apoderado ?? '___'}`
   const rutApoderado = familia?.rut ?? '___'
   const direccionApoderado = familia?.direccion ?? '___'
-  const comunaApoderado = familia?.comuna ?? 'Santiago'
+  // Comuna del domicilio del apoderado. Si no está registrada, se usa la
+  // ciudad de la sede (no siempre Santiago).
+  const comunaApoderado = familia?.comuna || ciudadSede
 
   // Cobros para tabla
   const { data: cobros } = await admin.from('cobros').select('monto, mes, anio, tipo_concepto').eq('alumno_id', alumno.id).order('anio').order('mes')
@@ -247,6 +258,7 @@ export async function GET(request: NextRequest) {
     rutApoderado,
     direccionApoderado,
     comunaApoderado,
+    ciudadSede,
     nombreAlumno: `${alumno.nombre} ${alumno.apellido}`,
     rutAlumno: alumno.rut ?? '___',
     fechaNacimiento: fechaNacDisplay,

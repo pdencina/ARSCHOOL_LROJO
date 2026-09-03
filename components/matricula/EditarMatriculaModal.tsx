@@ -18,6 +18,9 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
     porcentaje_beca: matricula.porcentaje_beca ?? 0,
     proporcional_primer_mes: 0,
     sede: matricula.sede || '',
+    // Domicilio del apoderado (aparece en el contrato)
+    direccion_apoderado: matricula.familia?.direccion || matricula.familias?.direccion || '',
+    comuna_apoderado: matricula.familia?.comuna || matricula.familias?.comuna || '',
     observaciones: matricula.observaciones || '',
   })
 
@@ -32,6 +35,9 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
       if (form.sede) payload.sede = form.sede
       if (form.fecha_inicio_contrato) payload.fecha_inicio_contrato = form.fecha_inicio_contrato
       if (form.porcentaje_beca > 0) payload.porcentaje_beca = form.porcentaje_beca
+      // Domicilio del apoderado (se guarda en la familia, se refleja en el contrato)
+      if (form.direccion_apoderado !== undefined) payload.direccion_apoderado = form.direccion_apoderado
+      if (form.comuna_apoderado !== undefined) payload.comuna_apoderado = form.comuna_apoderado
 
       // 1. Guardar matrícula
       const res = await fetch(`/api/matriculas/${matricula.id}`, {
@@ -154,6 +160,27 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
                 <option value="puente_alto">Sede Puente Alto — Irarrázaval 0565</option>
                 <option value="punta_arenas">Sede Punta Arenas — Chiloé 862</option>
               </select>
+            </div>
+
+            {/* Domicilio del apoderado — aparece en el contrato */}
+            <div>
+              <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Dirección del apoderado</label>
+              <input
+                value={form.direccion_apoderado}
+                onChange={e => setForm(p => ({...p, direccion_apoderado: e.target.value}))}
+                className="input-base"
+                placeholder="Calle, número, depto"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Comuna del apoderado</label>
+              <input
+                value={form.comuna_apoderado}
+                onChange={e => setForm(p => ({...p, comuna_apoderado: e.target.value}))}
+                className="input-base"
+                placeholder="Ej: Punta Arenas"
+              />
+              <p className="text-[10px] text-[var(--ar-muted)] mt-1">Aparece en el contrato como domicilio del apoderado.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

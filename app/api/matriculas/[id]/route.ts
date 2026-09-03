@@ -58,6 +58,22 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   const body = await request.json()
   const { id } = params
 
+  // Domicilio del apoderado se guarda en la familia (aparece en el contrato)
+  if (body.direccion_apoderado !== undefined || body.comuna_apoderado !== undefined) {
+    const { data: mat } = await admin.from('matriculas').select('familia_id, alumno_id').eq('id', id).single()
+    const famUpd: any = {}
+    if (body.direccion_apoderado !== undefined) famUpd.direccion = body.direccion_apoderado
+    if (body.comuna_apoderado !== undefined) famUpd.comuna = body.comuna_apoderado
+    if (Object.keys(famUpd).length > 0) {
+      const famId = (mat as any)?.familia_id
+      if (famId) {
+        await admin.from('familias').update(famUpd).eq('id', famId).then(() => {}, () => {})
+      } else if ((mat as any)?.alumno_id) {
+        await admin.from('familias').update(famUpd).eq('alumno_id', (mat as any).alumno_id).then(() => {}, () => {})
+      }
+    }
+  }
+
   // Campos editables de la matrícula (solo los que existen seguro en la tabla)
   const updates: any = {}
   if (body.monto_matricula !== undefined) updates.monto_matricula = Number(body.monto_matricula)

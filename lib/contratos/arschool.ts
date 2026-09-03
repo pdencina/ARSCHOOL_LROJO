@@ -6,6 +6,7 @@ interface DatosContrato {
   rutApoderado: string
   direccionApoderado: string
   comunaApoderado: string
+  ciudadSede?: string
   nombreAlumno: string
   rutAlumno: string
   fechaNacimiento: string
@@ -140,7 +141,7 @@ ${DATOS_BANCARIOS}
 </div>
 
 <div class="clausula">
-<p><span class="clausula-title">VIGÉSIMO PRIMERO</span>: Las partes firmantes fijan su domicilio en <strong class="highlight">${d.direccionApoderado}, ${d.comunaApoderado}</strong>, la ciudad de Santiago, sometiéndose a la jurisdicción de sus Tribunales Ordinarios de Justicia.</p>
+<p><span class="clausula-title">VIGÉSIMO PRIMERO</span>: Las partes firmantes fijan su domicilio en <strong class="highlight">${d.direccionApoderado}, ${d.comunaApoderado}</strong>, la ciudad de ${d.ciudadSede || 'Santiago'}, sometiéndose a la jurisdicción de sus Tribunales Ordinarios de Justicia.</p>
 <p>El presente contrato se firma en dos ejemplares, quedando cada uno en poder de las partes.</p>
 </div>
 

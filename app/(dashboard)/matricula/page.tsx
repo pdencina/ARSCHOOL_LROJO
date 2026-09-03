@@ -105,7 +105,7 @@ export default async function MatriculaPage() {
   // Incluye el año actual y el siguiente (los contratos se firman con anticipación)
   let matriculasQuery = admin
     .from('matriculas')
-    .select('*, alumno:alumnos(nombre, apellido, curso)')
+    .select('*, alumno:alumnos(nombre, apellido, curso), familia:familias(direccion, comuna)')
     .in('colegio_id', colegioIdsSafe)
     .in('anio_escolar', [anio, anio + 1])
     .order('created_at', { ascending: false })
