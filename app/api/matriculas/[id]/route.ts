@@ -58,18 +58,44 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   const body = await request.json()
   const { id } = params
 
-  // Domicilio del apoderado se guarda en la familia (aparece en el contrato)
-  if (body.direccion_apoderado !== undefined || body.comuna_apoderado !== undefined) {
+  // Datos que aparecen en el contrato: se guardan en familias y alumnos
+  const tocaFamilia = ['direccion_apoderado', 'comuna_apoderado', 'nombre_apoderado', 'apellido_apoderado', 'rut_apoderado', 'email_apoderado', 'telefono_apoderado']
+    .some(k => body[k] !== undefined)
+  const tocaAlumno = ['alumno_nombre', 'alumno_apellido', 'alumno_rut', 'alumno_fecha_nacimiento']
+    .some(k => body[k] !== undefined)
+
+  if (tocaFamilia || tocaAlumno) {
     const { data: mat } = await admin.from('matriculas').select('familia_id, alumno_id').eq('id', id).single()
-    const famUpd: any = {}
-    if (body.direccion_apoderado !== undefined) famUpd.direccion = body.direccion_apoderado
-    if (body.comuna_apoderado !== undefined) famUpd.comuna = body.comuna_apoderado
-    if (Object.keys(famUpd).length > 0) {
-      const famId = (mat as any)?.familia_id
-      if (famId) {
-        await admin.from('familias').update(famUpd).eq('id', famId).then(() => {}, () => {})
-      } else if ((mat as any)?.alumno_id) {
-        await admin.from('familias').update(famUpd).eq('alumno_id', (mat as any).alumno_id).then(() => {}, () => {})
+    const m = mat as any
+
+    // Familia (datos del apoderado)
+    if (tocaFamilia) {
+      const famUpd: any = {}
+      if (body.direccion_apoderado !== undefined) famUpd.direccion = body.direccion_apoderado
+      if (body.comuna_apoderado !== undefined) famUpd.comuna = body.comuna_apoderado
+      if (body.nombre_apoderado !== undefined) famUpd.nombre_apoderado = body.nombre_apoderado
+      if (body.apellido_apoderado !== undefined) famUpd.apellido_apoderado = body.apellido_apoderado
+      if (body.rut_apoderado !== undefined) famUpd.rut = body.rut_apoderado
+      if (body.email_apoderado !== undefined) famUpd.email = body.email_apoderado
+      if (body.telefono_apoderado !== undefined) famUpd.telefono = body.telefono_apoderado
+      if (Object.keys(famUpd).length > 0) {
+        if (m?.familia_id) {
+          await admin.from('familias').update(famUpd).eq('id', m.familia_id).then(() => {}, () => {})
+        } else if (m?.alumno_id) {
+          await admin.from('familias').update(famUpd).eq('alumno_id', m.alumno_id).then(() => {}, () => {})
+        }
+      }
+    }
+
+    // Alumno (datos que salen en el contrato)
+    if (tocaAlumno && m?.alumno_id) {
+      const alUpd: any = {}
+      if (body.alumno_nombre !== undefined) alUpd.nombre = body.alumno_nombre
+      if (body.alumno_apellido !== undefined) alUpd.apellido = body.alumno_apellido
+      if (body.alumno_rut !== undefined) alUpd.rut = body.alumno_rut
+      if (body.alumno_fecha_nacimiento !== undefined) alUpd.fecha_nacimiento = body.alumno_fecha_nacimiento || null
+      if (Object.keys(alUpd).length > 0) {
+        await admin.from('alumnos').update(alUpd).eq('id', m.alumno_id).then(() => {}, () => {})
       }
     }
   }
