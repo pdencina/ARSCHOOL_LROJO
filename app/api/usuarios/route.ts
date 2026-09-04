@@ -20,20 +20,25 @@ export async function GET(request: NextRequest) {
   const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
   const usuario = ur as any
 
-  if (!['super_admin', 'admin', 'pastor_campus'].includes(usuario?.rol)) {
-    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
-  }
-
-  // Búsqueda por email específico (para verificar si apoderado ya existe)
+  // Búsqueda por email específico (para verificar si el apoderado ya existe al matricular).
+  // La usan gestor_admision y coordinador desde el formulario de matrícula.
   const { searchParams } = new URL(request.url)
   const emailBuscar = searchParams.get('email')
   if (emailBuscar) {
+    if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision', 'coordinador'].includes(usuario?.rol)) {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+    }
     const { data: encontrado } = await admin
       .from('usuarios')
       .select('id, nombre, apellido, email, rol')
       .eq('email', emailBuscar)
       .single()
     return NextResponse.json(encontrado ?? null)
+  }
+
+  // Listado completo de usuarios: solo administración
+  if (!['super_admin', 'admin', 'pastor_campus'].includes(usuario?.rol)) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
   const { data } = await admin
