@@ -25,8 +25,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
   const { id } = params
 
-  // Obtener la matrícula para saber el alumno_id
-  const { data: matricula } = await admin.from('matriculas').select('alumno_id, familia_id, programa_id, colegio_id').eq('id', id).single()
+  // Obtener la matrícula para saber el alumno_id (y el RUT del alumno para revertir la admisión)
+  const { data: matricula } = await admin.from('matriculas').select('alumno_id, familia_id, programa_id, colegio_id, alumno:alumnos(rut, nombre, apellido)').eq('id', id).single()
   if (!matricula) return NextResponse.json({ error: 'Matrícula no encontrada' }, { status: 404 })
 
   const m = matricula as any
@@ -50,6 +50,28 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   // Eliminar la matrícula
   const { error } = await admin.from('matriculas').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Revertir la admisión: si este alumno venía de una pre-admisión marcada como
+  // 'matriculada', devolverla a 'aprobada' para que reaparezca el botón de matricular.
+  // Sin esto, la admisión queda en un limbo (marcada como matriculada sin matrícula).
+  const rutAlumno = m.alumno?.rut
+  const nombreAlumno = m.alumno?.nombre
+  const apellidoAlumno = m.alumno?.apellido
+  try {
+    if (rutAlumno) {
+      await admin.from('pre_admisiones')
+        .update({ estado: 'aprobada' })
+        .eq('alumno_rut', rutAlumno)
+        .eq('estado', 'matriculada')
+    } else if (nombreAlumno && apellidoAlumno) {
+      // Fallback para alumnos sin RUT (ej. Music & Play): match por nombre + apellido
+      await admin.from('pre_admisiones')
+        .update({ estado: 'aprobada' })
+        .eq('alumno_nombre', nombreAlumno)
+        .eq('alumno_apellido', apellidoAlumno)
+        .eq('estado', 'matriculada')
+    }
+  } catch { /* no bloquear el borrado si falla la reversión */ }
 
   return NextResponse.json({ ok: true })
 }
