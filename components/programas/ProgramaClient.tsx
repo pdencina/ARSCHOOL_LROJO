@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { PROGRAMA_CONFIG } from '@/lib/programas'
 import { formatearRut, validarRut } from '@/lib/validaciones'
+import { resolverArancel } from '@/lib/aranceles'
 import FichaAlumnoModal from './FichaAlumnoModal'
 
 interface Props {
@@ -176,13 +177,19 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
     }
     setSaving(true)
     try {
+      const cursoCompleto = `${programa.nombre_corto} - ${form.nivel || 'General'}`
+      // Resolver arancel del programa (Lions/Worship tienen montos fijos).
+      // En clase de prueba NO se generan cobros todavía (montos en 0).
+      const arancel = resolverArancel(programa.codigo, cursoCompleto)
+      const generarCobros = !esPrueba
+
       // Crear alumno + familia + inscripción
       const res = await fetch('/api/matriculas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
-          curso: `${programa.nombre_corto} - ${form.nivel || 'General'}`,
+          curso: cursoCompleto,
           jornada: 'completa',
           sede: form.sede,
           // Domicilio del alumno = del apoderado (para el contrato)
@@ -192,9 +199,9 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
           nacionalidad: 'Chilena',
           pais_natal: 'Chile',
           crear_cuenta_apoderado: true,
-          monto_matricula: 0,
-          monto_mensual: 0,
-          meses_cobro: programa.meses_cobro_default || 10,
+          monto_matricula: generarCobros ? arancel.montoInicial : 0,
+          monto_mensual: generarCobros ? arancel.montoMensual : 0,
+          meses_cobro: arancel.meses || programa.meses_cobro_default || 10,
           programa_id: programa.id,
         }),
       })

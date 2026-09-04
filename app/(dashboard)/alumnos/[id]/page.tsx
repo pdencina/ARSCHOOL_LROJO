@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { formatMonto } from '@/lib/utils'
 import EditarDatosMedicos from '@/components/alumnos/EditarDatosMedicos'
 import EditarApoderado from '@/components/alumnos/EditarApoderado'
+import EstadoCuentaResumen from '@/components/shared/EstadoCuentaResumen'
+import GenerarCobrosButton from '@/components/alumnos/GenerarCobrosButton'
 
 export const metadata = { title: 'Ficha del Alumno — AR School' }
 
@@ -38,7 +40,7 @@ export default async function FichaAlumnoPage({ params }: { params: { id: string
     admin.from('familias').select('*').eq('alumno_id', params.id).limit(1).single(),
     admin.from('asistencias').select('estado, fecha').eq('alumno_id', params.id).order('fecha', { ascending: false }).limit(30),
     admin.from('calificaciones').select('nota, evaluacion:evaluaciones(nombre, materia, fecha)').eq('alumno_id', params.id).order('created_at', { ascending: false }),
-    admin.from('cobros').select('estado, monto, monto_pagado, mes, anio').eq('alumno_id', params.id).order('anio', { ascending: false }).order('mes', { ascending: false }),
+    admin.from('cobros').select('id, estado, monto, monto_pagado, mes, anio, tipo_concepto, fecha_vencimiento, observaciones').eq('alumno_id', params.id).order('anio', { ascending: false }).order('mes', { ascending: false }),
     admin.from('matriculas').select('*').eq('alumno_id', params.id).order('anio_escolar', { ascending: false }).limit(1).single(),
     admin.from('reportes_diarios').select('fecha, estado_animo, publicado').eq('alumno_id', params.id).order('fecha', { ascending: false }).limit(5),
   ])
@@ -113,6 +115,13 @@ export default async function FichaAlumnoPage({ params }: { params: { id: string
           <div className="kpi-sub">{(matricula as any)?.anio_escolar ?? ''}</div>
         </div>
       </div>
+
+      {/* Estado de cuenta completo (aporte inicial + mensuales) */}
+      {totalCobros > 0 && (
+        <div className="mb-6">
+          <EstadoCuentaResumen cobros={cobros as any[]} variante="admin" titulo="Estado de cuenta del alumno" />
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-6">
         {/* Columna 1: Datos personales + apoderado */}
@@ -196,7 +205,15 @@ export default async function FichaAlumnoPage({ params }: { params: { id: string
           <div className="bg-white border border-[var(--ar-border)] rounded-xl p-4" style={{ boxShadow: 'var(--shadow-sm)' }}>
             <div className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider mb-3">Estado de pagos</div>
             {totalCobros === 0 ? (
-              <p className="text-[12px] text-[#9ca3af]">Sin cobros generados</p>
+              <div>
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-2.5 mb-1">
+                  <i className="ti ti-alert-triangle text-amber-600 text-sm mt-0.5" aria-hidden="true"/>
+                  <p className="text-[11px] text-amber-800">Este alumno no tiene cobros generados. Genera los aportes del programa.</p>
+                </div>
+                {matricula && (
+                  <GenerarCobrosButton matriculaId={(matricula as any).id} tieneCobros={false} />
+                )}
+              </div>
             ) : (
               <div className="space-y-1.5">
                 {(cobros as any[]).slice(0, 6).map((c: any, i: number) => (
@@ -209,6 +226,9 @@ export default async function FichaAlumnoPage({ params }: { params: { id: string
                   <div className="mt-2 pt-2 border-t border-[#f3f4f6] text-[12px] font-medium text-[#c53030]">
                     Deuda total: {formatMonto(totalDeuda)}
                   </div>
+                )}
+                {matricula && (
+                  <GenerarCobrosButton matriculaId={(matricula as any).id} tieneCobros={true} />
                 )}
               </div>
             )}

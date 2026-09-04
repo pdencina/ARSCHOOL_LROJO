@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import BotonPagarWebpay from '@/components/shared/BotonPagarWebpay'
+import EstadoCuentaResumen from '@/components/shared/EstadoCuentaResumen'
 
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 
@@ -172,6 +173,13 @@ export default function PortalPagosClient({ cobros }: Props) {
         <h1 className="page-title">Estado de aportes</h1>
         <p className="page-subtitle">Detalle de aportes mensuales y opciones de pago</p>
       </div>
+
+      {/* Estado de cuenta: total del año, pagado y saldo de un vistazo */}
+      {cobros.length > 0 && (
+        <div className="mb-6">
+          <EstadoCuentaResumen cobros={cobros} variante="apoderado" />
+        </div>
+      )}
 
       {/* Link de pago Webpay — visible para todos los programas */}
       <div className="mb-6">
