@@ -17,18 +17,29 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
-  if (!['super_admin', 'admin', 'pastor_campus'].includes((ur as any)?.rol)) {
+  const { data: ur } = await admin.from('usuarios').select('rol, programa_ids, colegio_id, sedes_ids').eq('id', user.id).single()
+  const usuario = ur as any
+  if (!['super_admin', 'admin', 'pastor_campus', 'coordinador'].includes(usuario?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
   const { id } = params
 
   // Obtener la matrícula para saber el alumno_id
-  const { data: matricula } = await admin.from('matriculas').select('alumno_id, familia_id').eq('id', id).single()
+  const { data: matricula } = await admin.from('matriculas').select('alumno_id, familia_id, programa_id, colegio_id').eq('id', id).single()
   if (!matricula) return NextResponse.json({ error: 'Matrícula no encontrada' }, { status: 404 })
 
   const m = matricula as any
+
+  // Coordinador: solo puede eliminar matrículas de su programa y sede
+  if (usuario.rol === 'coordinador') {
+    const progOk = !usuario.programa_ids?.length || (m.programa_id && usuario.programa_ids.includes(m.programa_id))
+    const sedes = [usuario.colegio_id, ...(usuario.sedes_ids || [])].filter(Boolean)
+    const sedeOk = sedes.length === 0 || sedes.includes(m.colegio_id)
+    if (!progOk || !sedeOk) {
+      return NextResponse.json({ error: 'Sin acceso a esta matrícula' }, { status: 403 })
+    }
+  }
 
   // Eliminar cobros asociados
   await admin.from('cobros').delete().eq('alumno_id', m.alumno_id)
