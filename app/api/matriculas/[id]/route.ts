@@ -183,6 +183,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (body.meses_cobro !== undefined && Number(body.meses_cobro) > 0) {
       await admin.from('matriculas').update({ duracion_contrato_meses: Number(body.meses_cobro) }).eq('id', id).then(() => {}).catch(() => {})
     }
+    // Modalidad del contrato: 'completo' o 'hermanos_2x1' (matrícula exenta).
+    if (body.modalidad_contrato !== undefined && ['completo', 'hermanos_2x1'].includes(body.modalidad_contrato)) {
+      await admin.from('matriculas').update({ modalidad_contrato: body.modalidad_contrato }).eq('id', id).then(() => {}).catch(() => {})
+    }
 
     return NextResponse.json(data)
   } catch (e: any) {

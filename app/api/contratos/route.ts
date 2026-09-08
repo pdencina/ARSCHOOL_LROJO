@@ -115,9 +115,16 @@ export async function GET(request: NextRequest) {
   // 'hermanos_2x1' => matrícula exenta por promoción de hermanos.
   const modalidadParam = searchParams.get('modalidad')
   const modalidad = modalidadParam || matricula?.modalidad_contrato || 'completo'
-  const esHermanos2x1 = modalidad === 'hermanos_2x1'
 
   const montoInicialBase = matricula?.monto_matricula ?? defaultInicial
+
+  // Red de seguridad contra datos incoherentes: una matrícula marcada como 2x1
+  // (matrícula exenta) NO debería tener un aporte inicial pactado > 0. Si lo tiene,
+  // se trata como contrato completo y se cobra el aporte real, salvo que el 2x1
+  // venga explícito en la URL (previsualización deliberada del gestor).
+  const esHermanos2x1 = modalidad === 'hermanos_2x1'
+    && (modalidadParam === 'hermanos_2x1' || !(montoInicialBase > 0))
+
   const montoInicial = esHermanos2x1 ? 0 : montoInicialBase
   const montoMensual = matricula?.monto_mensual ?? defaultMensual
   const porcentajeBeca = matricula?.porcentaje_beca ?? 0

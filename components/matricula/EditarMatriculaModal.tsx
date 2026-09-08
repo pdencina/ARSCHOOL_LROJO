@@ -20,6 +20,7 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
     porcentaje_beca: matricula.porcentaje_beca ?? 0,
     proporcional_primer_mes: 0,
     sede: matricula.sede || '',
+    modalidad_contrato: matricula.modalidad_contrato || 'completo',
     // Datos que aparecen en el contrato — Apoderado
     nombre_apoderado: matricula.familia?.nombre_apoderado || matricula.familias?.nombre_apoderado || '',
     apellido_apoderado: matricula.familia?.apellido_apoderado || matricula.familias?.apellido_apoderado || '',
@@ -51,6 +52,7 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
       if (form.porcentaje_beca > 0) payload.porcentaje_beca = form.porcentaje_beca
       if (form.anio_escolar) payload.anio_escolar = form.anio_escolar
       if (form.meses_cobro) payload.meses_cobro = form.meses_cobro
+      if (form.modalidad_contrato) payload.modalidad_contrato = form.modalidad_contrato
       // Datos del apoderado (se guardan en la familia, se reflejan en el contrato)
       payload.direccion_apoderado = form.direccion_apoderado
       payload.comuna_apoderado = form.comuna_apoderado
@@ -287,6 +289,19 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
                 <option value="puente_alto">Sede Puente Alto — Irarrázaval 0565</option>
                 <option value="punta_arenas">Sede Punta Arenas — Chiloé 862</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Modalidad del contrato</label>
+              <select
+                value={form.modalidad_contrato}
+                onChange={e => setForm(p => ({...p, modalidad_contrato: e.target.value}))}
+                className="select-base w-full"
+              >
+                <option value="completo">Contrato completo (paga aporte inicial)</option>
+                <option value="hermanos_2x1">Matrícula 2x1 (aporte inicial exento)</option>
+              </select>
+              <p className="text-[9px] text-[var(--ar-muted)] mt-0.5">Usa 2x1 solo para el hermano exento de matrícula por la promoción.</p>
             </div>
 
             {/* Domicilio del apoderado — aparece en el contrato */}
