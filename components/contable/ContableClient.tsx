@@ -9,6 +9,7 @@ import ModalPlan from './ModalPlan'
 import ModalEditarCobro from './ModalEditarCobro'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
+import { calcularEstadoCuenta } from '@/lib/estado-cuenta'
 
 interface Props {
   cobros: CobroConFamilia[]
@@ -19,12 +20,14 @@ interface Props {
   planes?: any[]
   mes?: number
   anio?: number
-  mesesDisponibles?: { mes: number; anio: number }[]
+  aniosDisponibles?: number[]
 }
 
 type FiltroEstado = 'todos' | 'pagado' | 'mora' | 'pendiente' | 'parcial'
 
-export default function ContableClient({ cobros, kpis, historico, ultimosPagos, mesActual, planes = [], mes, anio, mesesDisponibles = [] }: Props) {
+const MESES_CORTO = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+
+export default function ContableClient({ cobros, kpis, historico, ultimosPagos, mesActual, planes = [], mes, anio, aniosDisponibles = [] }: Props) {
   const router = useRouter()
   const [filtro, setFiltro] = useState<FiltroEstado>('todos')
   const [cobroModal, setCobroModal] = useState<CobroConFamilia | null>(null)
@@ -34,13 +37,41 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
   const [busqueda, setBusqueda] = useState('')
   const [loadingAvisos, setLoadingAvisos] = useState(false)
   const [planesData, setPlanesData] = useState(planes)
+  const [expandido, setExpandido] = useState<string | null>(null)
 
-  const cobrosVisibles = cobros
-    .filter(c => filtro === 'todos' || c.estado === filtro)
-    .filter(c => {
+  // ─── Estado de cuenta agrupado por ALUMNO (todas las cuotas del año) ───
+  // Una fila por alumno con total del año, pagado, saldo, cuotas y estado.
+  const cuentasPorAlumno = (() => {
+    const grupos = new Map<string, any>()
+    for (const c of cobros as any[]) {
+      const aid = c.alumno_id ?? c.familia_id ?? c.id
+      if (!grupos.has(aid)) {
+        const fam = c.familia as any
+        grupos.set(aid, {
+          alumnoId: aid,
+          familia: fam,
+          alumno: fam?.alumno,
+          apellidoApoderado: fam?.apellido_apoderado ?? '—',
+          cobros: [] as any[],
+        })
+      }
+      grupos.get(aid).cobros.push(c)
+    }
+    const hoy = new Date().toISOString().split('T')[0]
+    return [...grupos.values()].map(g => {
+      const resumen = calcularEstadoCuenta(g.cobros)
+      // Estado global del alumno para el badge y el filtro
+      const tieneVencido = g.cobros.some((c: any) => c.estado !== 'anulado' && (c.monto - (c.monto_pagado ?? 0)) > 0 && c.fecha_vencimiento && c.fecha_vencimiento < hoy)
+      const estadoGlobal = resumen.alDia ? 'pagado' : tieneVencido ? 'mora' : (resumen.totalPagado > 0 ? 'parcial' : 'pendiente')
+      return { ...g, resumen, estadoGlobal }
+    }).sort((a, b) => b.resumen.totalPendiente - a.resumen.totalPendiente)
+  })()
+
+  const cuentasVisibles = cuentasPorAlumno
+    .filter(g => filtro === 'todos' || g.estadoGlobal === filtro)
+    .filter(g => {
       if (!busqueda) return true
-      const fam = c.familia as any
-      return `${fam?.apellido_apoderado ?? ''} ${fam?.alumno?.nombre ?? ''} ${fam?.alumno?.apellido ?? ''}`.toLowerCase().includes(busqueda.toLowerCase())
+      return `${g.apellidoApoderado} ${g.alumno?.nombre ?? ''} ${g.alumno?.apellido ?? ''}`.toLowerCase().includes(busqueda.toLowerCase())
     })
 
   const deudores = cobros
@@ -49,8 +80,8 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
 
   const pctRecaudado = kpis.proyectado > 0 ? Math.round(kpis.recaudado / kpis.proyectado * 100) : 0
 
-  function cambiarMes(m: number, a: number) {
-    router.push(`/contable?mes=${m}&anio=${a}`)
+  function cambiarAnio(a: number) {
+    router.push(`/contable?anio=${a}`)
   }
 
   async function handleAvisos() {
@@ -65,7 +96,7 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
   }
 
   function handleExportar() {
-    window.open(`/api/cobros/exportar?mes=${mes}&anio=${anio}`, '_blank')
+    window.open(`/api/cobros/exportar?anio=${anio}`, '_blank')
     toast.success('Descargando...')
   }
 
@@ -80,9 +111,9 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
 
   const kpiData = [
     { label: 'Recaudado',    val: formatMonto(kpis.recaudado),  sub: `${pctRecaudado}% del proyectado`, color: 'text-emerald-400', pct: pctRecaudado, bar: 'bg-emerald-400' },
-    { label: 'Por cobrar',   val: formatMonto(kpis.enMora),     sub: `${deudores.length} familia${deudores.length !== 1 ? 's' : ''}`, color: 'text-amber-400', pct: kpis.proyectado > 0 ? Math.round(kpis.enMora/kpis.proyectado*100) : 0, bar: 'bg-amber-400' },
-    { label: 'Mora crítica', val: String(kpis.moraCritica),     sub: '+2 meses sin pagar', color: kpis.moraCritica > 0 ? 'text-red-400' : 'text-slate-400', pct: 0, bar: '' },
-    { label: 'Al día',       val: String(kpis.familiasAlDia),   sub: `de ${kpis.totalFamilias} familias`, color: 'text-blue-400', pct: kpis.totalFamilias > 0 ? Math.round(kpis.familiasAlDia/kpis.totalFamilias*100) : 0, bar: 'bg-blue-400' },
+    { label: 'Por cobrar',   val: formatMonto(kpis.enMora),     sub: `saldo del año ${anio}`, color: 'text-amber-400', pct: kpis.proyectado > 0 ? Math.round(kpis.enMora/kpis.proyectado*100) : 0, bar: 'bg-amber-400' },
+    { label: 'Mora crítica', val: String(kpis.moraCritica),     sub: '2+ cuotas vencidas', color: kpis.moraCritica > 0 ? 'text-red-400' : 'text-slate-400', pct: 0, bar: '' },
+    { label: 'Al día',       val: String(kpis.familiasAlDia),   sub: `de ${kpis.totalFamilias} alumnos`, color: 'text-blue-400', pct: kpis.totalFamilias > 0 ? Math.round(kpis.familiasAlDia/kpis.totalFamilias*100) : 0, bar: 'bg-blue-400' },
   ]
 
   const ESTADO_LABELS: Record<string, string> = {
@@ -101,24 +132,19 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
             <div className="flex items-center gap-3">
               <h2 className="font-display text-xl font-bold text-white">Gestión de cobranzas</h2>
               {/* Selector de mes */}
-              {mesesDisponibles.length > 0 && (
+              {aniosDisponibles.length > 0 && (
                 <select
-                  value={`${anio}-${mes}`}
-                  onChange={e => {
-                    const [a, m] = e.target.value.split('-')
-                    cambiarMes(parseInt(m), parseInt(a))
-                  }}
+                  value={anio}
+                  onChange={e => cambiarAnio(parseInt(e.target.value))}
                   className="bg-white/10 text-white text-xs border border-white/20 rounded-lg px-2 py-1 cursor-pointer"
                 >
-                  {mesesDisponibles.map(md => (
-                    <option key={`${md.anio}-${md.mes}`} value={`${md.anio}-${md.mes}`}>
-                      {['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][md.mes]} {md.anio}
-                    </option>
+                  {aniosDisponibles.map(a => (
+                    <option key={a} value={a}>Año {a}</option>
                   ))}
                 </select>
               )}
             </div>
-            <p className="text-white/50 text-sm mt-0.5">{mesActual} · {cobros.length} cobros registrados</p>
+            <p className="text-white/50 text-sm mt-0.5">{mesActual} · {cuentasPorAlumno.length} alumno{cuentasPorAlumno.length !== 1 ? 's' : ''} con cuenta</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <button onClick={() => setVista('deudores')} className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-400 hover:bg-amber-300 text-slate-900 text-xs font-semibold rounded-lg transition-colors">
@@ -181,99 +207,141 @@ export default function ContableClient({ cobros, kpis, historico, ultimosPagos, 
                   {(['todos','pagado','mora','pendiente','parcial'] as FiltroEstado[]).map(f => (
                     <button key={f} onClick={() => setFiltro(f)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filtro === f ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                      {f === 'todos' ? 'Todos' : ESTADO_LABELS[f] ?? f}
+                      {f === 'todos' ? 'Todos' : f === 'pagado' ? 'Al día' : ESTADO_LABELS[f] ?? f}
                       {f !== 'todos' && (
-                        <span className="ml-1 opacity-70">({cobros.filter(c => c.estado === f).length})</span>
+                        <span className="ml-1 opacity-70">({cuentasPorAlumno.filter(g => g.estadoGlobal === f).length})</span>
                       )}
                     </button>
                   ))}
                 </div>
-                <span className="text-xs text-slate-400 ml-auto">{cobrosVisibles.length} resultado{cobrosVisibles.length !== 1 ? 's' : ''}</span>
+                <span className="text-xs text-slate-400 ml-auto">{cuentasVisibles.length} alumno{cuentasVisibles.length !== 1 ? 's' : ''}</span>
               </div>
 
               <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">
-                      {['Familia / Alumno','Concepto','Monto','Vencimiento','Días mora','Estado','Acción'].map(h => (
+                      {['Familia / Alumno','Total año','Pagado','Saldo','Cuotas','Estado',''].map(h => (
                         <th key={h} className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3 text-left">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {cobrosVisibles.length === 0 ? (
+                    {cuentasVisibles.length === 0 ? (
                       <tr><td colSpan={7} className="px-4 py-14 text-center">
                         <i className="ti ti-inbox text-5xl text-slate-200 block mb-3" aria-hidden="true"/>
                         <p className="text-slate-400 font-medium">
                           {cobros.length === 0
-                            ? 'No hay cobros registrados para este mes.'
+                            ? `No hay cobros generados para el año ${anio}.`
                             : 'Sin resultados para ese filtro.'}
                         </p>
                         {cobros.length === 0 && (
                           <p className="text-slate-400 text-xs mt-1">
-                            Usa el selector de mes arriba para ver períodos anteriores.
+                            Prueba otro año en el selector, o genera los cobros desde la ficha del alumno.
                           </p>
                         )}
                       </td></tr>
-                    ) : cobrosVisibles.map((cobro: any) => {
-                      const fam = cobro.familia
-                      const alumno = fam?.alumno
-                      const diasMora = cobro.dias_mora ?? (
-                        ['mora','parcial','pendiente'].includes(cobro.estado) && cobro.fecha_vencimiento < new Date().toISOString().split('T')[0]
-                          ? Math.floor((Date.now() - new Date(cobro.fecha_vencimiento).getTime()) / 86400000)
-                          : 0
-                      )
-                      const pendiente = cobro.monto - cobro.monto_pagado
-
+                    ) : cuentasVisibles.map((g: any) => {
+                      const r = g.resumen
+                      const abierto = expandido === g.alumnoId
+                      const cuotas = [...g.cobros]
+                        .filter((c: any) => c.estado !== 'anulado')
+                        .sort((a: any, b: any) => {
+                          // Aporte inicial primero, luego por mes
+                          if (a.tipo_concepto === 'aporte_inicial' && b.tipo_concepto !== 'aporte_inicial') return -1
+                          if (b.tipo_concepto === 'aporte_inicial' && a.tipo_concepto !== 'aporte_inicial') return 1
+                          return (a.mes ?? 0) - (b.mes ?? 0)
+                        })
                       return (
-                        <tr key={cobro.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-600 flex-shrink-0">
-                                {fam?.apellido_apoderado?.[0] ?? '?'}
-                              </div>
-                              <div>
-                                <div className="font-semibold text-slate-800">Fam. {fam?.apellido_apoderado ?? '—'}</div>
-                                <div className="text-xs text-slate-400">
-                                  {alumno?.nombre} {alumno?.apellido} · {alumno?.curso ?? '—'}
+                        <>
+                          <tr key={g.alumnoId} className="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
+                            onClick={() => setExpandido(abierto ? null : g.alumnoId)}>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <i className={`ti ti-chevron-${abierto ? 'down' : 'right'} text-slate-400 text-sm`} aria-hidden="true"/>
+                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-600 flex-shrink-0">
+                                  {g.apellidoApoderado?.[0] ?? '?'}
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-slate-800">Fam. {g.apellidoApoderado}</div>
+                                  <div className="text-xs text-slate-400">
+                                    {g.alumno?.nombre} {g.alumno?.apellido} · {g.alumno?.curso ?? '—'}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-slate-600 text-xs">{cobro.concepto?.nombre ?? 'Mensualidad'}</td>
-                          <td className="px-4 py-3">
-                            <div className={`font-semibold font-display ${cobro.estado === 'pagado' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                              {formatMonto(cobro.monto)}
-                            </div>
-                            {cobro.estado === 'parcial' && (
-                              <div className="text-xs text-red-500">Pendiente: {formatMonto(pendiente)}</div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-slate-500">{formatFecha(cobro.fecha_vencimiento)}</td>
-                          <td className="px-4 py-3">
-                            {diasMora > 0 ? (
-                              <span className={`inline-flex items-center gap-1 text-xs font-semibold ${diasMora > 60 ? 'text-red-600' : diasMora > 30 ? 'text-amber-600' : 'text-slate-500'}`}>
-                                <i className="ti ti-clock text-xs" aria-hidden="true"/>{diasMora}d
+                            </td>
+                            <td className="px-4 py-3 font-display font-semibold text-slate-700">{formatMonto(r.totalAnual)}</td>
+                            <td className="px-4 py-3 font-display font-semibold text-emerald-600">{formatMonto(r.totalPagado)}</td>
+                            <td className="px-4 py-3 font-display font-semibold text-amber-600">{formatMonto(r.totalPendiente)}</td>
+                            <td className="px-4 py-3 text-xs text-slate-500">
+                              {r.mensual.cuotasPagadas}/{r.mensual.cuotas} mensuales
+                              {r.inicial.estado !== 'no_aplica' && (
+                                <div className="text-[10px] text-slate-400">Inicial: {r.inicial.estado === 'pagado' ? 'pagado' : 'pendiente'}</div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`tag ${g.estadoGlobal === 'pagado' ? 'tag-ok' : g.estadoGlobal === 'mora' ? 'tag-mora' : g.estadoGlobal === 'parcial' ? 'tag-par' : 'tag-pend'}`}>
+                                {g.estadoGlobal === 'pagado' ? 'Al día' : ESTADO_LABELS[g.estadoGlobal] ?? g.estadoGlobal}
                               </span>
-                            ) : <span className="text-slate-300 text-xs">—</span>}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`tag ${cobro.estado === 'pagado' ? 'tag-ok' : cobro.estado === 'mora' ? 'tag-mora' : cobro.estado === 'parcial' ? 'tag-par' : 'tag-pend'}`}>
-                              {ESTADO_LABELS[cobro.estado] ?? cobro.estado}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              {cobro.estado === 'pagado'
-                                ? <span className="text-xs text-slate-400">{cobro.fecha_pago ? `Pagado ${formatFecha(cobro.fecha_pago)}` : 'Pagado'}</span>
-                                : cobro.estado === 'anulado'
-                                  ? <span className="text-xs text-slate-400 italic">Anulado</span>
-                                  : <button onClick={() => setCobroModal(cobro)} className="btn-primary text-xs py-1 px-3">Registrar pago</button>
-                              }
-                              <button onClick={() => setCobroEditar(cobro)} className="text-[11px] text-[var(--ar-accent)] hover:underline" title="Editar o anular este cobro">Editar</button>
-                            </div>
-                          </td>
-                        </tr>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className="text-[10px] text-slate-400">{r.porcentajePagado}%</span>
+                            </td>
+                          </tr>
+                          {/* Detalle expandible: cuota por cuota */}
+                          {abierto && (
+                            <tr className="bg-slate-50/60">
+                              <td colSpan={7} className="px-4 py-3">
+                                <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+                                  <table className="w-full text-xs">
+                                    <thead>
+                                      <tr className="bg-slate-50 border-b border-slate-100 text-slate-400">
+                                        <th className="text-left font-semibold px-3 py-2 uppercase tracking-wider">Concepto</th>
+                                        <th className="text-left font-semibold px-3 py-2 uppercase tracking-wider">Vence</th>
+                                        <th className="text-left font-semibold px-3 py-2 uppercase tracking-wider">Monto</th>
+                                        <th className="text-left font-semibold px-3 py-2 uppercase tracking-wider">Estado</th>
+                                        <th className="px-3 py-2"></th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {cuotas.map((c: any) => {
+                                        const saldo = c.monto - (c.monto_pagado ?? 0)
+                                        const vencida = saldo > 0 && c.fecha_vencimiento && c.fecha_vencimiento < new Date().toISOString().split('T')[0]
+                                        const estadoCuota = saldo <= 0 ? 'pagado' : vencida ? 'mora' : (c.monto_pagado > 0 ? 'parcial' : 'pendiente')
+                                        const concepto = c.tipo_concepto === 'aporte_inicial'
+                                          ? 'Aporte inicial'
+                                          : `Aporte ${MESES_CORTO[(c.mes ?? 1) - 1]} ${c.anio}`
+                                        return (
+                                          <tr key={c.id} className="border-b border-slate-50 last:border-0">
+                                            <td className="px-3 py-2 text-slate-700 font-medium">{concepto}</td>
+                                            <td className="px-3 py-2 text-slate-500">{formatFecha(c.fecha_vencimiento)}</td>
+                                            <td className="px-3 py-2 text-slate-700">
+                                              {formatMonto(c.monto)}
+                                              {estadoCuota === 'parcial' && <span className="text-[10px] text-red-500 ml-1">(falta {formatMonto(saldo)})</span>}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                              <span className={`tag text-[9px] ${estadoCuota === 'pagado' ? 'tag-ok' : estadoCuota === 'mora' ? 'tag-mora' : estadoCuota === 'parcial' ? 'tag-par' : 'tag-pend'}`}>
+                                                {estadoCuota === 'pagado' ? 'Pagado' : ESTADO_LABELS[estadoCuota] ?? estadoCuota}
+                                              </span>
+                                            </td>
+                                            <td className="px-3 py-2 text-right">
+                                              <div className="flex items-center gap-2 justify-end">
+                                                {estadoCuota !== 'pagado' && (
+                                                  <button onClick={(e) => { e.stopPropagation(); setCobroModal(c) }} className="btn-primary text-[10px] py-1 px-2.5">Registrar pago</button>
+                                                )}
+                                                <button onClick={(e) => { e.stopPropagation(); setCobroEditar(c) }} className="text-[10px] text-[var(--ar-accent)] hover:underline">Editar</button>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        )
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
                       )
                     })}
                   </tbody>

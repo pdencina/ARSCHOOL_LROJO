@@ -8,13 +8,16 @@ export async function GET(request: NextRequest) {
   const { data: ur } = await supabase.from('usuarios').select('colegio_id').eq('id', user.id).single()
   const colegioId = (ur as any)?.colegio_id ?? ''
   const { searchParams } = new URL(request.url)
-  const mes = parseInt(searchParams.get('mes') ?? String(new Date().getMonth() + 1))
+  const mesParam = searchParams.get('mes')
   const anio = parseInt(searchParams.get('anio') ?? String(new Date().getFullYear()))
 
-  const { data: cobros } = await supabase
+  // Si viene 'mes' se exporta ese mes; si no, se exporta el año completo.
+  let query = supabase
     .from('cobros')
     .select('*, familia:familias(nombre_apoderado, apellido_apoderado, email, alumno:alumnos(nombre, apellido, curso)), concepto:conceptos_cobro(nombre)')
-    .eq('colegio_id', colegioId).eq('mes', mes).eq('anio', anio).order('estado')
+    .eq('colegio_id', colegioId).eq('anio', anio)
+  if (mesParam) query = query.eq('mes', parseInt(mesParam))
+  const { data: cobros } = await query.order('mes').order('estado')
 
   const headers = ['Familia','Alumno','Curso','Concepto','Monto','Monto Pagado','Vencimiento','Estado','Email']
   const rows = (cobros ?? []).map((c: any) => [

@@ -44,16 +44,16 @@ export default async function ContablePage({ searchParams }: { searchParams: { m
     alumnoIdsFilter = (inscripciones ?? []).map((i: any) => i.alumno_id)
   }
 
-  // Auto-detectar mes más reciente con datos
-  let mes: number, anio: number
-  if (searchParams.mes && searchParams.anio) {
-    mes = parseInt(searchParams.mes); anio = parseInt(searchParams.anio)
+  // El módulo ahora trabaja por AÑO completo (estado de cuenta anual por alumno),
+  // no por un solo mes. Se auto-detecta el año más reciente con datos.
+  let anio: number
+  if (searchParams.anio) {
+    anio = parseInt(searchParams.anio)
   } else {
-    const { data: ultimo } = await admin.from('cobros').select('mes, anio')
+    const { data: ultimo } = await admin.from('cobros').select('anio')
       .in('colegio_id', colegioIdsSafe)
-      .order('anio', { ascending: false }).order('mes', { ascending: false })
+      .order('anio', { ascending: false })
       .limit(1).single()
-    mes  = ultimo ? (ultimo as any).mes  : new Date().getMonth() + 1
     anio = ultimo ? (ultimo as any).anio : new Date().getFullYear()
   }
 
@@ -64,11 +64,11 @@ export default async function ContablePage({ searchParams }: { searchParams: { m
       .order('created_at', { ascending: false }).limit(8),
   ])
 
-  // Cobros filtrados por programa si es coordinador
+  // TODOS los cobros del año (no de un solo mes). Filtrado por programa si es coordinador.
   let cobrosQuery = admin.from('cobros')
     .select('*, familia:familias(*, alumno:alumnos(*)), concepto:conceptos_cobro(*)')
-    .in('colegio_id', colegioIdsSafe).eq('mes', mes).eq('anio', anio)
-    .order('estado')
+    .in('colegio_id', colegioIdsSafe).eq('anio', anio)
+    .order('mes')
 
   if (alumnoIdsFilter && alumnoIdsFilter.length > 0) {
     cobrosQuery = cobrosQuery.in('alumno_id', alumnoIdsFilter)
@@ -78,42 +78,57 @@ export default async function ContablePage({ searchParams }: { searchParams: { m
     ? { data: [] }
     : await cobrosQuery
 
-  const kpis: KpiContable = { recaudado: 0, enMora: 0, moraCritica: 0, familiasAlDia: 0, totalFamilias: cobros?.length ?? 0, proyectado: 0 }
-  cobros?.forEach((c: any) => {
+  const listaCobros = (cobros as any[]) ?? []
+
+  // ─── KPIs sobre el AÑO completo, contando ALUMNOS únicos ───
+  // recaudado = todo lo efectivamente pagado; porCobrar = saldo pendiente total.
+  const hoy = new Date().toISOString().split('T')[0]
+  const porAlumno = new Map<string, { pendiente: number; cuotasMora: number }>()
+  const kpis: KpiContable = { recaudado: 0, enMora: 0, moraCritica: 0, familiasAlDia: 0, totalFamilias: 0, proyectado: 0 }
+
+  listaCobros.forEach((c: any) => {
+    if (c.estado === 'anulado') return
+    const saldo = Math.max(0, c.monto - (c.monto_pagado ?? 0))
     kpis.proyectado += c.monto
-    if (c.estado === 'pagado')  { kpis.recaudado += c.monto; kpis.familiasAlDia++ }
-    if (c.estado === 'mora')    { kpis.enMora += (c.monto - c.monto_pagado) }
-    if (c.estado === 'parcial') { kpis.recaudado += c.monto_pagado; kpis.enMora += (c.monto - c.monto_pagado) }
-    if (c.estado === 'pendiente') { kpis.enMora += c.monto }
+    kpis.recaudado += Math.min(c.monto, c.monto_pagado ?? 0)
+    kpis.enMora += saldo
+
+    const aid = c.alumno_id ?? c.familia_id ?? 'sin_id'
+    const prev = porAlumno.get(aid) ?? { pendiente: 0, cuotasMora: 0 }
+    prev.pendiente += saldo
+    // Cuota vencida sin pagar del todo => cuenta para mora
+    if (saldo > 0 && c.fecha_vencimiento && c.fecha_vencimiento < hoy) prev.cuotasMora += 1
+    porAlumno.set(aid, prev)
   })
 
-  const { data: todasMoras } = await admin.from('cobros').select('familia_id').in('colegio_id', colegioIdsSafe).eq('estado', 'mora')
-  const conteo: Record<string, number> = {}
-  ;(todasMoras ?? []).forEach((c: any) => { conteo[c.familia_id] = (conteo[c.familia_id] ?? 0) + 1 })
-  kpis.moraCritica = Object.values(conteo).filter(v => v >= 2).length
+  kpis.totalFamilias = porAlumno.size
+  kpis.familiasAlDia = [...porAlumno.values()].filter(a => a.pendiente === 0).length
+  // Mora crítica: alumnos con 2 o más cuotas vencidas impagas
+  kpis.moraCritica = [...porAlumno.values()].filter(a => a.cuotasMora >= 2).length
 
+  // Histórico de morosidad: % de cuotas vencidas impagas por mes del año
   const historico: MorosidadMes[] = []
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(anio, mes - 1 - i, 1)
-    const m = d.getMonth() + 1; const a = d.getFullYear()
-    const { data: h } = await admin.from('cobros').select('estado, monto').in('colegio_id', colegioIdsSafe).eq('mes', m).eq('anio', a)
-    const mora = (h ?? []).filter((c: any) => c.estado === 'mora').length
-    const total = (h ?? []).length
-    historico.push({ mes: getMesNombre(m).slice(0, 3), porcentaje: total > 0 ? Math.round(mora/total*100) : 0, monto: 0 })
+  for (let m = 1; m <= 12; m++) {
+    const delMes = listaCobros.filter((c: any) => c.mes === m && c.estado !== 'anulado')
+    if (delMes.length === 0) continue
+    const vencidosImpagos = delMes.filter((c: any) => (c.monto - (c.monto_pagado ?? 0)) > 0 && c.fecha_vencimiento && c.fecha_vencimiento < hoy).length
+    historico.push({ mes: getMesNombre(m).slice(0, 3), porcentaje: Math.round(vencidosImpagos / delMes.length * 100), monto: 0 })
   }
 
-  const { data: mesesRaw } = await admin.from('cobros').select('mes, anio').in('colegio_id', colegioIdsSafe).order('anio', { ascending: false }).order('mes', { ascending: false })
-  const mesesDisponibles = [...new Map((mesesRaw ?? []).map((c: any) => [`${c.anio}-${c.mes}`, { mes: c.mes, anio: c.anio }])).values()].slice(0, 12)
+  // Años disponibles para el selector
+  const { data: aniosRaw } = await admin.from('cobros').select('anio').in('colegio_id', colegioIdsSafe).order('anio', { ascending: false })
+  const aniosDisponibles = [...new Set((aniosRaw ?? []).map((c: any) => c.anio))].slice(0, 6)
+  if (!aniosDisponibles.includes(anio)) aniosDisponibles.unshift(anio)
 
   return (
     <ContableClient
-      cobros={(cobros as any[]) ?? []}
+      cobros={listaCobros}
       kpis={kpis} historico={historico}
       ultimosPagos={(ultimosPagos as any[]) ?? []}
-      mesActual={`${getMesNombre(mes)} ${anio}`}
+      mesActual={`Año ${anio}`}
       planes={(planes as any[]) ?? []}
-      mes={mes} anio={anio}
-      mesesDisponibles={mesesDisponibles}
+      mes={new Date().getMonth() + 1} anio={anio}
+      aniosDisponibles={aniosDisponibles}
     />
   )
 }
