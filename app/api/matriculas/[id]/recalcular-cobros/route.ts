@@ -115,7 +115,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // Cobros mensuales
   for (let i = 0; i < mesesGenerar; i++) {
     const mes = ((mesInicio - 1 + i) % 12) + 1
-    const anioC = (mesInicio - 1 + i) >= 12 ? anio + 1 : anio
+    // El año avanza cada vez que el índice absoluto de mes cruza diciembre.
+    // Soporta contratos que pasan de un año a otro (Pre 12 meses) e incluso >12 meses.
+    const anioC = anio + Math.floor((mesInicio - 1 + i) / 12)
     const vencimiento = `${anioC}-${String(mes).padStart(2, '0')}-05`
 
     // Primer mes puede ser proporcional

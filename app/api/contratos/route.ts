@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
       // Play/Preschool: 12 meses corridos desde fecha inicio
       for (let i = 0; i < 12; i++) {
         const mesIdx = (inicioIdx + i) % 12
-        const anioMes = inicioIdx + i >= 12 ? anio + 1 : anio
+        const anioMes = anio + Math.floor((inicioIdx + i) / 12)
         mesesGenerados.push({ nombre: mesesNombres[mesIdx], anio: anioMes })
       }
     } else {
@@ -236,7 +236,7 @@ export async function GET(request: NextRequest) {
     if (esPreschool) {
       for (let i = 0; i < 12; i++) {
         const mesIdx = (inicioIdx + i) % 12
-        const anioMes = inicioIdx + i >= 12 ? anio + 1 : anio
+        const anioMes = anio + Math.floor((inicioIdx + i) / 12)
         mesesPagare.push({ nombre: mesesNombres[mesIdx], anio: anioMes })
       }
     } else {

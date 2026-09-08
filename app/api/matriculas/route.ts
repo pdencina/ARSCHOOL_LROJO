@@ -347,14 +347,17 @@ export async function POST(request: NextRequest) {
       fechaFinContrato = new Date(fechaIngreso)
       fechaFinContrato.setMonth(fechaFinContrato.getMonth() + 12)
     } else {
-      // Otros niveles: marzo a diciembre del año escolar
+      // Otros niveles: marzo a diciembre del año escolar (según la fecha de inicio)
       tipoContrato = 'anual'
       duracionMeses = meses_cobro || 10
-      fechaFinContrato = new Date(new Date().getFullYear(), 11, 31) // 31 dic
+      fechaFinContrato = new Date(fechaIngreso.getFullYear(), 11, 31) // 31 dic del año de inicio
     }
 
     if (monto_mensual && meses_cobro) {
-      const anio = new Date().getFullYear()
+      // El año base sale de la fecha de inicio del contrato (no del reloj del servidor).
+      // Así un contrato que arranca en 2027 genera cobros en 2027, y uno de Pre que
+      // cruza de año lleva ene/feb al año siguiente correctamente.
+      const anio = fechaIngreso.getFullYear()
       const mesInicio = fechaIngreso.getMonth() + 1
 
       // Cobro de aporte inicial (si aplica)
@@ -386,7 +389,11 @@ export async function POST(request: NextRequest) {
       const proporcionalPrimerMes = body.proporcional_primer_mes || 0
       for (let i = 0; i < mesesGenerar; i++) {
         const mes = ((mesInicio - 1 + i) % 12) + 1
-        const anioC = mesInicio + i > 12 ? anio + 1 : anio
+        // El año avanza cada vez que el índice absoluto de mes cruza diciembre.
+        // Para contratos que pasan de un año a otro (ej. Pre 12 meses desde marzo
+        // 2026 => llega hasta feb 2027), esto asegura que ene/feb queden en el año
+        // siguiente y no se pierdan.
+        const anioC = anio + Math.floor((mesInicio - 1 + i) / 12)
         const vencimiento = `${anioC}-${String(mes).padStart(2, '0')}-05`
         // Primer mes puede ser proporcional
         const montoCobro = (i === 0 && proporcionalPrimerMes > 0) ? proporcionalPrimerMes : montoMensFinal
