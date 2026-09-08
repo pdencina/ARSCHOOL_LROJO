@@ -21,7 +21,9 @@ interface DatosContrato {
 }
 
 export function generarContratoPreschool(d: DatosContrato): string {
-  const montoInicialFinal = Math.round(d.montoInicial * (1 - d.porcentajeBeca / 100))
+  // El APORTE INICIAL (matrícula) NO recibe la beca: se paga completo.
+  // La beca solo aplica al APORTE MENSUAL.
+  const montoInicialFinal = d.montoInicial
   const montoMensualFinal = Math.round(d.montoMensual * (1 - d.porcentajeBeca / 100))
 
   const jornadaTexto = d.jornada === 'completa'
