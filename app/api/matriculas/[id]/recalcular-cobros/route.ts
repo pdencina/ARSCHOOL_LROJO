@@ -97,7 +97,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   // Aporte inicial
   if (montoMatricula > 0) {
-    await admin.from('cobros').insert({
+    const baseInicial: any = {
       colegio_id: colegioId,
       familia_id: familiaId,
       alumno_id: alumnoId,
@@ -107,9 +107,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       fecha_vencimiento: new Date().toISOString().split('T')[0],
       estado: 'pendiente',
       tipo_concepto: 'aporte_inicial',
-      observaciones: `Aporte inicial ${anio} · ${arancel.etiqueta}`,
-    })
-    cobrosGenerados++
+    }
+    let insIni = await admin.from('cobros').insert({ ...baseInicial, observaciones: `Aporte inicial ${anio} · ${arancel.etiqueta}` })
+    // La columna 'observaciones' puede no existir en esta instancia: reintentar sin ella.
+    if (insIni.error && /observaciones/.test(insIni.error.message)) {
+      insIni = await admin.from('cobros').insert(baseInicial)
+    }
+    if (!insIni.error) cobrosGenerados++
   }
 
   // Cobros mensuales
@@ -123,7 +127,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Primer mes puede ser proporcional
     const montoCobro = (i === 0 && proporcional_primer_mes > 0) ? proporcional_primer_mes : montoMensFinal
 
-    await admin.from('cobros').insert({
+    const baseMensual: any = {
       colegio_id: colegioId,
       familia_id: familiaId,
       alumno_id: alumnoId,
@@ -133,10 +137,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       fecha_vencimiento: vencimiento,
       estado: 'pendiente',
       tipo_concepto: 'aporte_mensual',
-      observaciones: `Aporte mensual ${mes}/${anioC}${porcentaje_beca > 0 ? ` (beca ${porcentaje_beca}%)` : ''}`,
-    })
-    cobrosGenerados++
+    }
+    let insMens = await admin.from('cobros').insert({ ...baseMensual, observaciones: `Aporte mensual ${mes}/${anioC}${porcentaje_beca > 0 ? ` (beca ${porcentaje_beca}%)` : ''}` })
+    if (insMens.error && /observaciones/.test(insMens.error.message)) {
+      insMens = await admin.from('cobros').insert(baseMensual)
+    }
+    if (!insMens.error) cobrosGenerados++
   }
+
+  // Persistir la duración usada, para que el contrato PDF y el modal muestren lo mismo.
+  await admin.from('matriculas').update({ duracion_contrato_meses: mesesGenerar }).eq('id', id).then(() => {}, () => {})
 
   return NextResponse.json({
     ok: true,

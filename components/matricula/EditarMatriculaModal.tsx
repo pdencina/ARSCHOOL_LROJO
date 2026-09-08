@@ -50,6 +50,7 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
       if (form.fecha_inicio_contrato) payload.fecha_inicio_contrato = form.fecha_inicio_contrato
       if (form.porcentaje_beca > 0) payload.porcentaje_beca = form.porcentaje_beca
       if (form.anio_escolar) payload.anio_escolar = form.anio_escolar
+      if (form.meses_cobro) payload.meses_cobro = form.meses_cobro
       // Datos del apoderado (se guardan en la familia, se reflejan en el contrato)
       payload.direccion_apoderado = form.direccion_apoderado
       payload.comuna_apoderado = form.comuna_apoderado

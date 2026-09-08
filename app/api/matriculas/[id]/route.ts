@@ -178,6 +178,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (body.sede !== undefined) {
       await admin.from('matriculas').update({ sede: body.sede }).eq('id', id).then(() => {}).catch(() => {})
     }
+    // Duración del contrato (meses de cobro). Es la fuente que usa el contrato PDF
+    // para saber cuántos meses generar. Cada contrato es caso a caso.
+    if (body.meses_cobro !== undefined && Number(body.meses_cobro) > 0) {
+      await admin.from('matriculas').update({ duracion_contrato_meses: Number(body.meses_cobro) }).eq('id', id).then(() => {}).catch(() => {})
+    }
 
     return NextResponse.json(data)
   } catch (e: any) {

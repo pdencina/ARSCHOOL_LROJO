@@ -142,8 +142,13 @@ export async function GET(request: NextRequest) {
 
   // Calcular meses de cobro basado en fecha de inicio real
   const mesInicio = new Date(fechaInicioContrato + 'T12:00').getMonth() + 1 // 1-12
-  // Play/Preschool = 12 meses corridos, Lions = hasta enero siguiente, otros = hasta diciembre
-  const mesesCobro = esPreschool ? 12 : esLions ? Math.max(1, 13 - mesInicio) : Math.max(1, 12 - mesInicio + 1)
+  // Duración del contrato: cada caso es distinto. Se respeta la duración guardada
+  // en la matrícula (duracion_contrato_meses). Solo si no existe se usa el default
+  // por programa (Play/Preschool 12 corridos, Lions hasta enero, otros hasta diciembre).
+  const duracionMatricula = Number(matricula?.duracion_contrato_meses) || 0
+  const mesesCobro = duracionMatricula > 0
+    ? duracionMatricula
+    : (esPreschool ? 12 : esLions ? Math.max(1, 13 - mesInicio) : Math.max(1, 12 - mesInicio + 1))
 
   const nombreApoderado = `${familia?.nombre_apoderado ?? '___'} ${familia?.apellido_apoderado ?? '___'}`
   const rutApoderado = familia?.rut ?? '___'
@@ -186,26 +191,14 @@ export async function GET(request: NextRequest) {
       return `<tr><td>${fechaLabel}${notaProporcional}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td><td>${numCheque}</td><td>${banco}</td></tr>`
     }).join('')
   } else {
-    // Generar meses desde la fecha de inicio del contrato
+    // Generar exactamente `mesesCobro` meses corridos desde la fecha de inicio.
+    // mesesCobro respeta la duración guardada en la matrícula (caso a caso).
     const mesesGenerados: { nombre: string; anio: number }[] = []
     const inicioIdx = mesInicio - 1 // 0-indexed
-
-    if (esPreschool) {
-      // Play/Preschool: 12 meses corridos desde fecha inicio
-      for (let i = 0; i < 12; i++) {
-        const mesIdx = (inicioIdx + i) % 12
-        const anioMes = anio + Math.floor((inicioIdx + i) / 12)
-        mesesGenerados.push({ nombre: mesesNombres[mesIdx], anio: anioMes })
-      }
-    } else {
-      // Otros: desde mes inicio hasta diciembre
-      for (let i = inicioIdx; i < 12; i++) {
-        mesesGenerados.push({ nombre: mesesNombres[i], anio })
-      }
-      // Lions incluye enero del año siguiente
-      if (esLions && mesInicio <= 12) {
-        mesesGenerados.push({ nombre: 'enero', anio: anio + 1 })
-      }
+    for (let i = 0; i < mesesCobro; i++) {
+      const mesIdx = (inicioIdx + i) % 12
+      const anioMes = anio + Math.floor((inicioIdx + i) / 12)
+      mesesGenerados.push({ nombre: mesesNombres[mesIdx], anio: anioMes })
     }
 
     tablaAportes = mesesGenerados.map((m, idx) => {
@@ -229,21 +222,13 @@ export async function GET(request: NextRequest) {
       return `<tr><td>${fechaLabel}</td><td>$${c.monto.toLocaleString('es-CL')} CLP</td></tr>`
     }).join('')
   } else {
-    // Generar pagaré con misma lógica de meses
+    // Generar pagaré con la misma duración real del contrato (mesesCobro).
     const mesesPagare: { nombre: string; anio: number }[] = []
     const inicioIdx = mesInicio - 1
-
-    if (esPreschool) {
-      for (let i = 0; i < 12; i++) {
-        const mesIdx = (inicioIdx + i) % 12
-        const anioMes = anio + Math.floor((inicioIdx + i) / 12)
-        mesesPagare.push({ nombre: mesesNombres[mesIdx], anio: anioMes })
-      }
-    } else {
-      for (let i = inicioIdx; i < 12; i++) {
-        mesesPagare.push({ nombre: mesesNombres[i], anio })
-      }
-      if (esLions && mesInicio <= 12) mesesPagare.push({ nombre: 'enero', anio: anio + 1 })
+    for (let i = 0; i < mesesCobro; i++) {
+      const mesIdx = (inicioIdx + i) % 12
+      const anioMes = anio + Math.floor((inicioIdx + i) / 12)
+      mesesPagare.push({ nombre: mesesNombres[mesIdx], anio: anioMes })
     }
 
     tablaPagare = mesesPagare.map(m => `<tr><td>1 ${m.nombre} ${m.anio}</td><td>$${montoMensualReal.toLocaleString('es-CL')} CLP</td></tr>`).join('')
