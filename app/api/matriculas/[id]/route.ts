@@ -83,13 +83,27 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
-  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision'].includes((ur as any)?.rol)) {
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids, sedes_ids').eq('id', user.id).single()
+  const usuario = ur as any
+  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision', 'coordinador'].includes(usuario?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
   const body = await request.json()
   const { id } = params
+
+  // Coordinador: solo puede editar matrículas de su programa y sede
+  if (usuario?.rol === 'coordinador') {
+    const { data: matPerm } = await admin.from('matriculas').select('programa_id, colegio_id').eq('id', id).single()
+    const mp = matPerm as any
+    if (!mp) return NextResponse.json({ error: 'Matrícula no encontrada' }, { status: 404 })
+    const progOk = !usuario.programa_ids?.length || (mp.programa_id && usuario.programa_ids.includes(mp.programa_id))
+    const sedes = [usuario.colegio_id, ...(usuario.sedes_ids || [])].filter(Boolean)
+    const sedeOk = sedes.length === 0 || sedes.includes(mp.colegio_id)
+    if (!progOk || !sedeOk) {
+      return NextResponse.json({ error: 'Sin acceso a esta matrícula' }, { status: 403 })
+    }
+  }
 
   // Datos que aparecen en el contrato: se guardan en familias y alumnos
   const tocaFamilia = ['direccion_apoderado', 'comuna_apoderado', 'nombre_apoderado', 'apellido_apoderado', 'rut_apoderado', 'email_apoderado', 'telefono_apoderado']
