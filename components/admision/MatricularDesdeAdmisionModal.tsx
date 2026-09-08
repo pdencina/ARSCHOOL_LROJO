@@ -23,6 +23,9 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
     monto_matricula: 0,
     monto_mensual: 0,
     meses_cobro: 10,
+    anio_escolar: new Date().getFullYear(),
+    proporcional_primer_mes: 0,
+    porcentaje_beca: 0,
     fecha_inicio_contrato: new Date().toISOString().split('T')[0],
     observaciones: '',
     crear_cuenta_apoderado: true,
@@ -125,6 +128,9 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
           monto_matricula: Number(form.monto_matricula) || 0,
           monto_mensual: Number(form.monto_mensual) || 0,
           meses_cobro: Number(form.meses_cobro) || 10,
+          anio_escolar: Number(form.anio_escolar) || new Date().getFullYear(),
+          proporcional_primer_mes: Number(form.proporcional_primer_mes) || 0,
+          porcentaje_beca: Number(form.porcentaje_beca) || 0,
           fecha_inicio_contrato: form.fecha_inicio_contrato || null,
           // Config
           crear_cuenta_apoderado: form.crear_cuenta_apoderado,
@@ -357,11 +363,34 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
                   <label className="block text-[11px] font-semibold text-gray-600 mb-1">Meses de cobro</label>
                   <input type="number" value={form.meses_cobro} onChange={e => set('meses_cobro', e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B3A5C]" min={1} max={12}/>
+                  <p className="text-[9px] text-gray-400 mt-0.5">Libre: 2, 3, 4… hasta 12 meses.</p>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-600 mb-1">Año escolar</label>
+                  <select value={form.anio_escolar} onChange={e => set('anio_escolar', parseInt(e.target.value))}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B3A5C]">
+                    <option value={2026}>2026</option>
+                    <option value={2027}>2027</option>
+                    <option value={2028}>2028</option>
+                  </select>
+                  <p className="text-[9px] text-gray-400 mt-0.5">Aranceles distintos por año.</p>
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-600 mb-1">Inicio del contrato</label>
                   <input type="date" value={form.fecha_inicio_contrato} onChange={e => set('fecha_inicio_contrato', e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B3A5C]"/>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-600 mb-1">Beca / Descuento (%)</label>
+                  <input type="number" value={form.porcentaje_beca || ''} onChange={e => set('porcentaje_beca', parseInt(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B3A5C]" min={0} max={100} placeholder="0"/>
+                  <p className="text-[9px] text-gray-400 mt-0.5">% de descuento sobre el aporte mensual.</p>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-600 mb-1">Proporcional 1er mes ($)</label>
+                  <input type="number" value={form.proporcional_primer_mes || ''} onChange={e => set('proporcional_primer_mes', parseInt(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B3A5C]" min={0} placeholder="0"/>
+                  <p className="text-[9px] text-gray-400 mt-0.5">Si ingresa a mitad de mes. Vacío = mes completo.</p>
                 </div>
               </div>
 

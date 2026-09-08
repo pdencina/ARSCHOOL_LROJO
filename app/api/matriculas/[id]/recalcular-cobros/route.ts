@@ -36,7 +36,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const { id } = params
   const body = await request.json().catch(() => ({}))
-  const { monto_mensual, monto_matricula, fecha_inicio_contrato, porcentaje_beca = 0, proporcional_primer_mes = 0 } = body
+  const { monto_mensual, monto_matricula, fecha_inicio_contrato, porcentaje_beca = 0, proporcional_primer_mes = 0, meses_cobro, anio: anioManual } = body
 
   // Obtener matrícula
   const { data: matricula } = await admin.from('matriculas').select('*, alumno:alumnos(curso)').eq('id', id).single()
@@ -75,7 +75,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // Fecha inicio
   const fechaInicio = fecha_inicio_contrato || mat.fecha_inicio_contrato || mat.fecha_matricula || new Date().toISOString().split('T')[0]
   const mesInicio = new Date(fechaInicio + 'T12:00').getMonth() + 1
-  const anio = new Date(fechaInicio + 'T12:00').getFullYear()
+  // Año: manual si el gestor lo indica (contratos que cruzan de año), si no el de la fecha de inicio.
+  const anio = (anioManual && Number(anioManual) > 2000) ? Number(anioManual) : new Date(fechaInicio + 'T12:00').getFullYear()
 
   // Eliminar cobros pendientes (no pagados). Los pagados NUNCA se tocan.
   const { data: eliminados } = await admin
@@ -87,8 +88,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const countEliminados = eliminados?.length ?? 0
 
-  // Regenerar cobros: cantidad de meses según el programa
-  const mesesGenerar = mesesDesdeInicio(programaCodigo, curso, mesInicio)
+  // Cantidad de meses: manual si el gestor lo indica (1..N libre), si no el cálculo por programa.
+  // Esto permite contratos flexibles: 2 meses, 3, 4, 12, lo que decida admisión.
+  const mesesGenerar = (meses_cobro != null && Number(meses_cobro) > 0)
+    ? Number(meses_cobro)
+    : mesesDesdeInicio(programaCodigo, curso, mesInicio)
   let cobrosGenerados = 0
 
   // Aporte inicial

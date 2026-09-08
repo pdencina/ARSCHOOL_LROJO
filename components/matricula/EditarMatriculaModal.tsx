@@ -14,6 +14,8 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
   const [form, setForm] = useState({
     monto_matricula: matricula.monto_matricula ?? 0,
     monto_mensual: matricula.monto_mensual ?? 0,
+    meses_cobro: matricula.duracion_contrato_meses ?? matricula.meses_cobro ?? 10,
+    anio_escolar: matricula.anio_escolar ?? new Date().getFullYear(),
     fecha_inicio_contrato: matricula.fecha_inicio_contrato || matricula.fecha_matricula || '',
     porcentaje_beca: matricula.porcentaje_beca ?? 0,
     proporcional_primer_mes: 0,
@@ -47,6 +49,7 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
       if (form.sede) payload.sede = form.sede
       if (form.fecha_inicio_contrato) payload.fecha_inicio_contrato = form.fecha_inicio_contrato
       if (form.porcentaje_beca > 0) payload.porcentaje_beca = form.porcentaje_beca
+      if (form.anio_escolar) payload.anio_escolar = form.anio_escolar
       // Datos del apoderado (se guardan en la familia, se reflejan en el contrato)
       payload.direccion_apoderado = form.direccion_apoderado
       payload.comuna_apoderado = form.comuna_apoderado
@@ -82,6 +85,8 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
           fecha_inicio_contrato: form.fecha_inicio_contrato,
           porcentaje_beca: form.porcentaje_beca,
           proporcional_primer_mes: form.proporcional_primer_mes || 0,
+          meses_cobro: form.meses_cobro || undefined,
+          anio: form.anio_escolar || undefined,
         }),
       })
       if (res2.ok) {
@@ -109,6 +114,8 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
           fecha_inicio_contrato: form.fecha_inicio_contrato,
           porcentaje_beca: form.porcentaje_beca,
           proporcional_primer_mes: form.proporcional_primer_mes || 0,
+          meses_cobro: form.meses_cobro || undefined,
+          anio: form.anio_escolar || undefined,
         }),
       })
       if (!res.ok) {
@@ -225,6 +232,34 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
                   onChange={e => setForm(p => ({...p, monto_mensual: parseInt(e.target.value) || 0}))}
                   className="input-base"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Meses de cobro</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="12"
+                  value={form.meses_cobro}
+                  onChange={e => setForm(p => ({...p, meses_cobro: parseInt(e.target.value) || 1}))}
+                  className="input-base"
+                />
+                <p className="text-[9px] text-[var(--ar-muted)] mt-0.5">Libre: 2, 3, 4… hasta 12.</p>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Año escolar</label>
+                <select
+                  value={form.anio_escolar}
+                  onChange={e => setForm(p => ({...p, anio_escolar: parseInt(e.target.value)}))}
+                  className="select-base w-full"
+                >
+                  <option value={2026}>2026</option>
+                  <option value={2027}>2027</option>
+                  <option value={2028}>2028</option>
+                </select>
+                <p className="text-[9px] text-[var(--ar-muted)] mt-0.5">Aranceles distintos por año.</p>
               </div>
             </div>
 
