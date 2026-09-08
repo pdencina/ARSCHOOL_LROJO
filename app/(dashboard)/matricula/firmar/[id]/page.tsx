@@ -20,11 +20,21 @@ export default async function FirmarContratoPage({ params }: { params: { id: str
   const admin = getAdmin()
 
   // Verificar que el usuario tiene rol para gestionar firmas
-  const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
-  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision'].includes((ur as any)?.rol)) redirect('/inicio')
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids, sedes_ids').eq('id', user.id).single()
+  const usuario = ur as any
+  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision', 'coordinador'].includes(usuario?.rol)) redirect('/inicio')
 
   const { data: matricula } = await admin.from('matriculas').select('*, alumno:alumnos(nombre, apellido, curso)').eq('id', params.id).single()
   if (!matricula) redirect('/matricula')
+
+  // Coordinador: solo puede firmar matrículas de su programa y sede
+  if (usuario?.rol === 'coordinador') {
+    const m = matricula as any
+    const progOk = !usuario.programa_ids?.length || (m.programa_id && usuario.programa_ids.includes(m.programa_id))
+    const sedes = [usuario.colegio_id, ...(usuario.sedes_ids || [])].filter(Boolean)
+    const sedeOk = sedes.length === 0 || sedes.includes(m.colegio_id)
+    if (!progOk || !sedeOk) redirect('/inicio')
+  }
 
   const m = matricula as any
 

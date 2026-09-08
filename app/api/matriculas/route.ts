@@ -530,8 +530,9 @@ export async function PUT(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdmin()
-  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id').eq('id', user.id).single()
-  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision', 'coordinador'].includes((ur as any)?.rol)) {
+  const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids, sedes_ids').eq('id', user.id).single()
+  const usuario = ur as any
+  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision', 'coordinador'].includes(usuario?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
@@ -546,16 +547,24 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Medio de pago requerido' }, { status: 400 })
   }
 
-  // Verificar que la matrícula existe y pertenece al colegio
+  // Verificar que la matrícula existe y pertenece al alcance del usuario
   const { data: matricula } = await admin
     .from('matriculas')
-    .select('id, colegio_id, monto_mensual')
+    .select('id, colegio_id, programa_id, monto_mensual')
     .eq('id', matricula_id)
     .single()
 
   if (!matricula) return NextResponse.json({ error: 'Matrícula no encontrada' }, { status: 404 })
-  if ((matricula as any).colegio_id !== (ur as any).colegio_id && (ur as any).rol !== 'super_admin') {
-    return NextResponse.json({ error: 'Sin permisos sobre esta matrícula' }, { status: 403 })
+  const mat = matricula as any
+  // Alcance por sede: super_admin ve todo; los demás validan colegio_id + sedes_ids.
+  // Coordinador además valida programa.
+  if (usuario?.rol !== 'super_admin') {
+    const sedes = [usuario.colegio_id, ...(usuario.sedes_ids || [])].filter(Boolean)
+    const sedeOk = sedes.length === 0 || sedes.includes(mat.colegio_id)
+    const progOk = usuario.rol !== 'coordinador' || !usuario.programa_ids?.length || (mat.programa_id && usuario.programa_ids.includes(mat.programa_id))
+    if (!sedeOk || !progOk) {
+      return NextResponse.json({ error: 'Sin permisos sobre esta matrícula' }, { status: 403 })
+    }
   }
 
   // Calcular monto final con descuento

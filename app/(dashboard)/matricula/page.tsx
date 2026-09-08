@@ -103,9 +103,12 @@ export default async function MatriculaPage() {
 
   // Matrículas (filtradas por programa si es coordinador)
   // Incluye el año actual y el siguiente (los contratos se firman con anticipación)
+  // Columnas explícitas: NUNCA traer firma_apoderado/firma_pagare (son imágenes
+  // base64 pesadas) ni auditoria_* (jsonb). Se usan solo como flag "¿firmado?",
+  // que se deriva de los timestamps firmado_at / firmado_pagare_at (livianos).
   let matriculasQuery = admin
     .from('matriculas')
-    .select('*, alumno:alumnos(nombre, apellido, curso, rut, fecha_nacimiento), familia:familias(nombre_apoderado, apellido_apoderado, rut, email, telefono, direccion, comuna)')
+    .select('id, alumno_id, colegio_id, programa_id, estado, fecha_matricula, monto_matricula, monto_mensual, anio_escolar, modalidad_contrato, medio_pago_matricula, firmado_at, firmado_pagare_at, created_at, alumno:alumnos(nombre, apellido, curso, rut, fecha_nacimiento), familia:familias(nombre_apoderado, apellido_apoderado, rut, email, telefono, direccion, comuna)')
     .in('colegio_id', colegioIdsSafe)
     .in('anio_escolar', [anio, anio + 1])
     .order('created_at', { ascending: false })
@@ -132,10 +135,18 @@ export default async function MatriculaPage() {
     preAdmQuery,
   ])
 
+  // Derivar los flags de firma desde los timestamps (sin traer el base64).
+  // MatriculaClient usa m.firma_apoderado / m.firma_pagare solo como booleanos.
+  const matriculasLigeras = ((matriculas as any[]) ?? []).map(m => ({
+    ...m,
+    firma_apoderado: !!m.firmado_at,
+    firma_pagare: !!m.firmado_pagare_at,
+  }))
+
   return (
     <MatriculaClient
       planes={(planes as any[]) ?? []}
-      matriculas={(matriculas as any[]) ?? []}
+      matriculas={matriculasLigeras}
       cursos={cursosDePrograma(programaCodigo)}
       aportes={(aportes as any[]) ?? []}
       becasAprobadas={(becasAprobadas as any[]) ?? []}
