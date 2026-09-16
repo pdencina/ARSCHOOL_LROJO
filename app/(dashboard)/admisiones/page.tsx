@@ -34,7 +34,7 @@ export default async function AdmisionPage() {
 
   let query = admin
     .from('pre_admisiones')
-    .select('*')
+    .select('*, programa:programas(id, codigo, nombre, nombre_corto, color, icono)')
     .in('colegio_id', colegioIdsSafe)
     .order('created_at', { ascending: false })
 
