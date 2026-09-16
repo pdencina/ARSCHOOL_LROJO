@@ -109,9 +109,12 @@ export default async function MatriculaPage() {
   let matriculasQuery = admin
     .from('matriculas')
     .select('id, alumno_id, colegio_id, programa_id, estado, fecha_matricula, monto_matricula, monto_mensual, anio_escolar, modalidad_contrato, medio_pago_matricula, firmado_at, firmado_pagare_at, created_at, alumno:alumnos(nombre, apellido, curso, rut, fecha_nacimiento), familia:familias(nombre_apoderado, apellido_apoderado, rut, email, telefono, direccion, comuna)')
-    .in('colegio_id', colegioIdsSafe)
     .in('anio_escolar', [anio, anio + 1])
     .order('created_at', { ascending: false })
+  // super_admin con "Todas las sedes" ve TODO; el resto se acota a su(s) sede(s).
+  if (!scope.all) {
+    matriculasQuery = matriculasQuery.in('colegio_id', colegioIdsSafe)
+  }
   if (esCoordinador && usuario.programa_ids?.length > 0) {
     matriculasQuery = matriculasQuery.in('programa_id', usuario.programa_ids)
   }

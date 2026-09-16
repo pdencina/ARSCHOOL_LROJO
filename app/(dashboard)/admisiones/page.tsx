@@ -35,8 +35,13 @@ export default async function AdmisionPage() {
   let query = admin
     .from('pre_admisiones')
     .select('*, programa:programas(id, codigo, nombre, nombre_corto, color, icono)')
-    .in('colegio_id', colegioIdsSafe)
     .order('created_at', { ascending: false })
+
+  // super_admin con "Todas las sedes" ve TODO (sin filtro de colegio, incluso
+  // solicitudes con colegio_id nulo). El resto se acota a su(s) sede(s).
+  if (!scope.all) {
+    query = query.in('colegio_id', colegioIdsSafe)
+  }
 
   // Coordinador: acotar a las admisiones de sus programas
   if (usuario.rol === 'coordinador' && usuario.programa_ids?.length > 0) {

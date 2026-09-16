@@ -20,6 +20,28 @@ interface Props {
   programaNombre?: string | null
 }
 
+// Carpetas de programa (mismo criterio que Admisiones)
+const PROGRAMAS_ORDEN_MAT = [
+  { codigo: 'ar_school',    nombre: 'AR School',           icono: 'ti-school',        color: '#1B3A5C' },
+  { codigo: 'play_group',   nombre: 'Play Group',          icono: 'ti-baby-carriage', color: '#E8722A' },
+  { codigo: 'lions_soccer', nombre: 'Lions Soccer School', icono: 'ti-ball-football', color: '#2D5A3F' },
+  { codigo: 'ar_worship',   nombre: 'AR Worship School',   icono: 'ti-music',         color: '#7C5CBF' },
+]
+const PROGRAMA_ID_A_CODIGO_MAT: Record<string, string> = {
+  'fc78e2d0-922b-41f9-b4db-267a9af68d72': 'ar_school',
+  '30fc7885-7b68-49fd-a7d5-8585ef61d654': 'ar_worship',
+  '45681f94-ff27-48dc-a926-ff8eb046c872': 'lions_soccer',
+  '93fb9840-31a6-463a-8305-3a18d15b78cf': 'play_group',
+}
+function codigoProgramaMat(m: any): string {
+  if (m.programa_id && PROGRAMA_ID_A_CODIGO_MAT[m.programa_id]) return PROGRAMA_ID_A_CODIGO_MAT[m.programa_id]
+  const c = (m.alumno?.curso || '').toLowerCase()
+  if (c.includes('lions') || c.includes('soccer')) return 'lions_soccer'
+  if (c.includes('worship') || c.includes('music')) return 'ar_worship'
+  if (c.includes('play')) return 'play_group'
+  return 'ar_school'
+}
+
 export default function MatriculaClient({ planes, matriculas, cursos, aportes, becasAprobadas, preAdmisiones = [], puedeEliminar = false, programaId = null, programaNombre = null }: Props) {
   const router = useRouter()
   const [vista, setVista] = useState<'lista' | 'nueva'>('lista')
@@ -36,6 +58,26 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
   const [matriculaCompletada, setMatriculaCompletada] = useState<string | null>(null)
   const [enviandoFirma, setEnviandoFirma] = useState(false)
   const [mostrarScanner, setMostrarScanner] = useState<'alumno' | 'apoderado' | null>(null)
+  // Carpeta de programa abierta (solo aplica cuando NO es coordinador de un programa fijo).
+  const [carpetaMat, setCarpetaMat] = useState<string | null>(null)
+
+  // ¿Se muestran carpetas de programa? Solo si el usuario NO está acotado a un
+  // programa (coordinador de Lions/Worship llega con programaId y va directo).
+  const usaCarpetas = !programaId
+  const carpetasMat = PROGRAMAS_ORDEN_MAT.map(p => {
+    const items = matriculas.filter((m: any) => codigoProgramaMat(m) === p.codigo)
+    return {
+      ...p,
+      total: items.length,
+      activas: items.filter((m: any) => m.estado === 'activa').length,
+      pendientes: items.filter((m: any) => m.estado === 'pendiente').length,
+    }
+  })
+  const carpetaMatActual = carpetasMat.find(c => c.codigo === carpetaMat)
+  // Matrículas a mostrar en la tabla: si hay carpeta abierta (o el user está acotado), filtra.
+  const matriculasVisibles = usaCarpetas
+    ? (carpetaMat ? matriculas.filter((m: any) => codigoProgramaMat(m) === carpetaMat) : [])
+    : matriculas
 
   function esError(campo: string) {
     return camposError.includes(campo) ? 'border-red-400 ring-1 ring-red-200' : ''
@@ -279,20 +321,33 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
     <>
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="page-title">
-            {programaNombre ? `Matrículas ${programaNombre}` : `Matrícula ${form.anio_escolar || new Date().getFullYear() + 1}`}
-          </h1>
-          <p className="page-subtitle">
-            {programaNombre
-              ? 'Matrícula, contratos y firma electrónica del programa'
-              : 'Ingreso de nuevos alumnos con trazabilidad completa'}
-          </p>
+        <div className="flex items-center gap-3">
+          {vista === 'lista' && usaCarpetas && carpetaMat && (
+            <button
+              onClick={() => setCarpetaMat(null)}
+              className="w-8 h-8 rounded-lg border border-[var(--ar-border)] bg-white flex items-center justify-center hover:bg-slate-50 flex-shrink-0"
+              title="Volver a los programas"
+            >
+              <i className="ti ti-arrow-left text-sm text-[var(--ar-text)]" aria-hidden="true"/>
+            </button>
+          )}
+          <div>
+            <h1 className="page-title">
+              {programaNombre ? `Matrículas ${programaNombre}` : carpetaMatActual ? `Matrículas ${carpetaMatActual.nombre}` : 'Matrículas'}
+            </h1>
+            <p className="page-subtitle">
+              {programaNombre || carpetaMatActual
+                ? 'Matrícula, contratos y firma electrónica del programa'
+                : (usaCarpetas ? 'Elige un programa para ver sus matrículas' : 'Ingreso de nuevos alumnos con trazabilidad completa')}
+            </p>
+          </div>
         </div>
         {vista === 'lista' ? (
-          <button onClick={() => setVista('nueva')} className="btn-primary">
-            <i className="ti ti-user-plus text-sm" aria-hidden="true"/> Nueva matrícula
-          </button>
+          (!usaCarpetas || carpetaMat) ? (
+            <button onClick={() => setVista('nueva')} className="btn-primary">
+              <i className="ti ti-user-plus text-sm" aria-hidden="true"/> Nueva matrícula
+            </button>
+          ) : null
         ) : (
           <div className="flex gap-2">
             <button onClick={() => { if(confirm('¿Limpiar todo el formulario?')) { localStorage.removeItem('ar_matricula_form'); window.location.reload() } }} className="btn-secondary text-xs px-3">
@@ -305,8 +360,41 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
         )}
       </div>
 
-      {/* Lista de matrículas */}
-      {vista === 'lista' && (
+      {/* Vista de CARPETAS de programa (super_admin / admin sin programa fijo) */}
+      {vista === 'lista' && usaCarpetas && !carpetaMat && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {carpetasMat.map(c => (
+            <button
+              key={c.codigo}
+              onClick={() => setCarpetaMat(c.codigo)}
+              className="text-left bg-white border border-[var(--ar-border)] rounded-xl p-5 hover:shadow-md transition-shadow group"
+              style={{ boxShadow: 'var(--shadow-sm)', borderTop: `3px solid ${c.color}` }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: `${c.color}15` }}>
+                  <i className={`ti ${c.icono} text-xl`} style={{ color: c.color }} aria-hidden="true"/>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold" style={{ color: c.color, fontFamily: 'DM Sans' }}>{c.total}</div>
+                  <div className="text-[10px] text-[var(--ar-muted)] uppercase tracking-wider">matrículas</div>
+                </div>
+              </div>
+              <div className="text-[14px] font-bold text-[var(--ar-text)] mb-2">{c.nombre}</div>
+              <div className="flex flex-wrap gap-1.5">
+                {c.activas > 0 && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EDF5F0] text-[#2D5A3F]">{c.activas} activa{c.activas !== 1 ? 's' : ''}</span>}
+                {c.pendientes > 0 && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">{c.pendientes} pendiente{c.pendientes !== 1 ? 's' : ''}</span>}
+                {c.total === 0 && <span className="text-[10px] text-[var(--ar-muted)]">Sin matrículas aún</span>}
+              </div>
+              <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold group-hover:gap-2 transition-all" style={{ color: c.color }}>
+                Abrir <i className="ti ti-arrow-right text-xs" aria-hidden="true"/>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Lista de matrículas (dentro de una carpeta, o usuario acotado a un programa) */}
+      {vista === 'lista' && (!usaCarpetas || carpetaMat) && (
         <>
           {/* Cola de pre-admisiones */}
           {preAdmisiones.length > 0 && (
@@ -324,9 +412,9 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
           )}
 
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="kpi-card"><div className="kpi-label">Matriculados {new Date().getFullYear()}</div><div className="kpi-value">{matriculas.length}</div></div>
-            <div className="kpi-card"><div className="kpi-label">Activas</div><div className="kpi-value text-[#1a7a4c]">{matriculas.filter(m => m.estado === 'activa').length}</div></div>
-            <div className="kpi-card"><div className="kpi-label">Pendientes</div><div className="kpi-value text-[#b7791f]">{matriculas.filter(m => m.estado === 'pendiente').length}</div></div>
+            <div className="kpi-card"><div className="kpi-label">Matriculados {new Date().getFullYear()}</div><div className="kpi-value">{matriculasVisibles.length}</div></div>
+            <div className="kpi-card"><div className="kpi-label">Activas</div><div className="kpi-value text-[#1a7a4c]">{matriculasVisibles.filter((m: any) => m.estado === 'activa').length}</div></div>
+            <div className="kpi-card"><div className="kpi-label">Pendientes</div><div className="kpi-value text-[#b7791f]">{matriculasVisibles.filter((m: any) => m.estado === 'pendiente').length}</div></div>
           </div>
 
           <div className="bg-white border border-[var(--ar-border)] rounded-xl overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
@@ -339,12 +427,12 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                 </tr>
               </thead>
               <tbody>
-                {matriculas.length === 0 ? (
+                {matriculasVisibles.length === 0 ? (
                   <tr><td colSpan={6} className="px-4 py-12 text-center">
                     <i className="ti ti-user-plus text-3xl text-[#d1d5db] block mb-3" aria-hidden="true"/>
                     <p className="text-[#9ca3af] text-sm">No hay matrículas este año. Registra la primera.</p>
                   </td></tr>
-                ) : matriculas.map((m: any) => (
+                ) : matriculasVisibles.map((m: any) => (
                   <tr key={m.id} className="border-b border-[#f5f6f7] hover:bg-[#fafbfc]">
                     <td className="px-4 py-3.5 font-medium text-[#1a2332]">{m.alumno?.nombre} {m.alumno?.apellido}</td>
                     <td className="px-4 py-3.5 text-[#6b7280]">{m.alumno?.curso}</td>
