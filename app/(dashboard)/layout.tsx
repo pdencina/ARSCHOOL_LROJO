@@ -10,6 +10,7 @@ import CommandPalette from '@/components/layout/CommandPalette'
 import AsistenciaBanner from '@/components/layout/AsistenciaBanner'
 import { SEDE_COOKIE, SEDE_TODAS } from '@/lib/colegioScope'
 import { Toaster } from 'react-hot-toast'
+import PantallaCarga from '@/components/layout/PantallaCarga'
 
 function getAdmin() {
   return createAdminClient(
@@ -73,6 +74,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-[var(--ar-bg)]">
       <Toaster position="top-right"/>
+      {/* Solo en cargas completas (F5 / entrar): el layout no se remonta al navegar */}
+      <PantallaCarga nombre={usuario.nombre?.split(' ')[0]} rol={usuario.rol} fraseInicial={Math.floor(Math.random() * 1000)}/>
       <CommandPalette/>
       <Topbar usuario={usuario} colegios={colegios} sedeActiva={sedeActiva}/>
       <AsistenciaBanner rol={usuario.rol} userId={user.id} colegioId={usuario.colegio_id}/>
