@@ -160,7 +160,7 @@ export default function PermisosClient({ permisos: initialPermisos }: Props) {
       <div className="mt-4 bg-[var(--ar-accent-l)] border border-[#fde68a]/40 rounded-xl p-4 flex items-start gap-3">
         <i className="ti ti-info-circle text-[var(--ar-accent)] mt-0.5" aria-hidden="true"/>
         <div className="text-[12px] text-[#92400e]">
-          <strong>Nota:</strong> Los cambios se aplican en tiempo real. El Super Admin siempre tiene acceso a todos los módulos. Los permisos son globales (aplican a todos los colegios).
+          <strong>Nota:</strong> Los cambios se aplican en tiempo real. El Super Admin siempre tiene acceso a todos los módulos. Los permisos son globales (aplican a todos los Centros Educacionales).
         </div>
       </div>
     </div>

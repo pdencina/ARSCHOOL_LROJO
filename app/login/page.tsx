@@ -16,15 +16,15 @@ const TAREAS = [
 ]
 
 // Dibujos escolares a mano alzada (viewBox 48×48). Se trazan al cargar y luego flotan.
-const DOODLES: { d: string; x: string; y: string; size: number; rot: number; delay: number; float: number; op: number }[] = [
+const DOODLES: { d: string; x: string; y: string; size: number; rot: number; delay: number; float: number; op: number; movil?: boolean }[] = [
   // lápiz
-  { d: 'M10 38 L34 14 L40 20 L16 44 L8 46 Z M30 18 L36 24 M8 46 L12 42', x: '72%', y: '8%', size: 64, rot: 8, delay: 0.1, float: 7, op: 0.22 },
+  { d: 'M10 38 L34 14 L40 20 L16 44 L8 46 Z M30 18 L36 24 M8 46 L12 42', x: '72%', y: '8%', size: 64, rot: 8, delay: 0.1, float: 7, op: 0.22, movil: true },
   // libro abierto
   { d: 'M6 12 C14 8 20 10 24 14 C28 10 34 8 42 12 L42 38 C34 34 28 36 24 40 C20 36 14 34 6 38 Z M24 14 L24 40', x: '86%', y: '20%', size: 64, rot: -6, delay: 0.35, float: 8, op: 0.16 },
   // pelota (Lions)
   { d: 'M24 6 A18 18 0 1 1 23.9 6 M24 16 L31 21 L28 29 L20 29 L17 21 Z M24 16 L24 6.5 M31 21 L41 18 M28 29 L33 39 M20 29 L15 39 M17 21 L7 18', x: '64%', y: '58%', size: 58, rot: 0, delay: 0.6, float: 9, op: 0.16 },
   // nota musical (Worship)
-  { d: 'M13 36 A5 4 0 1 1 12.9 36 M18 36 L18 10 L38 6 L38 30 M33 30 A5 4 0 1 1 32.9 30 M18 16 L38 12', x: '86%', y: '72%', size: 50, rot: 10, delay: 0.85, float: 6.5, op: 0.2 },
+  { d: 'M13 36 A5 4 0 1 1 12.9 36 M18 36 L18 10 L38 6 L38 30 M33 30 A5 4 0 1 1 32.9 30 M18 16 L38 12', x: '86%', y: '72%', size: 50, rot: 10, delay: 0.85, float: 6.5, op: 0.2, movil: true },
   // estrella
   { d: 'M24 6 L29 18 L42 19 L32 27 L35 40 L24 33 L13 40 L16 27 L6 19 L19 18 Z', x: '58%', y: '20%', size: 36, rot: -12, delay: 1.05, float: 5.5, op: 0.24 },
   // avión de papel
@@ -110,7 +110,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
           {DOODLES.map((g, i) => (
             <svg key={i} viewBox="0 0 48 48" width={g.size} height={g.size}
-              className={`lg-doodle ${i > 3 ? 'hidden lg:block' : ''}`}
+              className={`lg-doodle ${g.movil ? '' : 'hidden lg:block'}`}
               style={{ left: g.x, top: g.y, opacity: g.op, ['--rot' as any]: `${g.rot}deg`, ['--delay' as any]: `${g.delay}s`, ['--float' as any]: `${g.float}s` }}>
               <path d={g.d} pathLength={100}/>
             </svg>
@@ -122,12 +122,12 @@ export default function LoginPage() {
             <Image src="/logo-fundacion.png" alt="Fundación ARM Global" width={160} height={50} className="h-9 lg:h-11 w-auto" priority/>
           </div>
 
-          <div className="mt-8 lg:mt-20 max-w-lg">
+          <div className="mt-8 lg:mt-20 max-w-xl">
             <p className="lg-entra text-[#F4B183] text-sm lg:text-base font-semibold tracking-wide" style={{ animationDelay: '.1s' }}>
               {saludo} 👋
             </p>
-            <h1 className="lg-entra mt-2 text-[28px] leading-[1.15] lg:text-[44px] font-bold" style={{ fontFamily: 'DM Sans, sans-serif', animationDelay: '.2s' }}>
-              Todo tu colegio,<br/>
+            <h1 className="lg-entra mt-2 text-[27px] leading-[1.15] lg:text-[40px] xl:text-[42px] font-bold" style={{ fontFamily: 'DM Sans, sans-serif', animationDelay: '.2s' }}>
+              Tu <span className="whitespace-nowrap">Centro Educacional,</span><br/>
               en{' '}
               <span className="relative inline-block whitespace-nowrap">
                 un solo lugar.

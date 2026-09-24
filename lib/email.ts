@@ -226,7 +226,7 @@ export function templatePagoMora(apoderado: string, alumno: string, monto: strin
       <p style="color: #4b5563; font-size: 14px;">Le recordamos que tiene un saldo pendiente de <strong style="color: #c53030;">${monto}</strong> correspondiente a ${alumno}.</p>
       <p style="color: #4b5563; font-size: 14px;">Por favor regularice su situación a la brevedad.</p>
       <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e8eaed; color: #9ca3af; font-size: 11px;">
-        Este es un mensaje automático. Para consultas contacte a la administración del colegio.
+        Este es un mensaje automático. Para consultas contacte a la administración del Centro Educacional.
       </div>
     </div>
   `

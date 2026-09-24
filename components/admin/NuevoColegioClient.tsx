@@ -15,7 +15,7 @@ export default function NuevoColegioClient() {
 
   async function handleGuardar() {
     if (!form.nombre || !form.admin_email || !form.admin_password) {
-      toast.error('Nombre del colegio, email y contraseña del admin son requeridos')
+      toast.error('Nombre del Centro Educacional, email y contraseña del admin son requeridos')
       return
     }
     setSaving(true)
@@ -27,7 +27,7 @@ export default function NuevoColegioClient() {
         body: JSON.stringify({ nombre: form.nombre, rut: form.rut, direccion: form.direccion, telefono: form.telefono, plan: form.plan }),
       })
       const colegio = await resColegio.json()
-      if (!resColegio.ok) throw new Error(colegio.error ?? 'Error al crear colegio')
+      if (!resColegio.ok) throw new Error(colegio.error ?? 'Error al crear Centro Educacional')
 
       // 2. Crear admin del colegio
       const resUser = await fetch('/api/admin/usuarios', {
@@ -60,7 +60,7 @@ export default function NuevoColegioClient() {
           <i className="ti ti-arrow-left text-lg" aria-hidden="true"/>
         </a>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 font-display">Nuevo colegio</h1>
+          <h1 className="text-2xl font-bold text-slate-900 font-display">Nuevo Centro Educacional</h1>
           <p className="text-sm text-slate-500 mt-0.5">Registrar un nuevo campus AR School Global</p>
         </div>
       </div>
@@ -69,7 +69,7 @@ export default function NuevoColegioClient() {
         {/* Datos del colegio */}
         <div className="bg-white border border-slate-200 rounded-xl p-5">
           <h2 className="font-display font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <i className="ti ti-building-school text-blue-500" aria-hidden="true"/> Datos del colegio
+            <i className="ti ti-building-school text-blue-500" aria-hidden="true"/> Datos del Centro Educacional
           </h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
@@ -102,7 +102,7 @@ export default function NuevoColegioClient() {
         {/* Admin del colegio */}
         <div className="bg-white border border-slate-200 rounded-xl p-5">
           <h2 className="font-display font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <i className="ti ti-user-cog text-blue-500" aria-hidden="true"/> Administrador del colegio
+            <i className="ti ti-user-cog text-blue-500" aria-hidden="true"/> Administrador del Centro Educacional
           </h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -130,7 +130,7 @@ export default function NuevoColegioClient() {
         <div className="flex gap-3 justify-end">
           <a href="/super-admin" className="btn-secondary">Cancelar</a>
           <button onClick={handleGuardar} disabled={saving} className="btn-primary disabled:opacity-60">
-            {saving ? 'Creando...' : 'Crear colegio'}
+            {saving ? 'Creando...' : 'Crear Centro Educacional'}
           </button>
         </div>
       </div>

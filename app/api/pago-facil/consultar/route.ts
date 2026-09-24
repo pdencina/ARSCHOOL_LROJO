@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
   const alumno = (alumnos ?? []).find((a: any) => limpiarRut(a.rut || '') === rutLimpio)
   if (!alumno) {
-    return NextResponse.json({ error: 'No encontramos un alumno con ese RUT. Verifica el número o contacta al colegio.' }, { status: 404 })
+    return NextResponse.json({ error: 'No encontramos un alumno con ese RUT. Verifica el número o contacta al Centro Educacional.' }, { status: 404 })
   }
 
   // Cobros pendientes / en mora / parciales de ese alumno

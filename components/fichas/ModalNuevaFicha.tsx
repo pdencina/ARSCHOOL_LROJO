@@ -188,7 +188,7 @@ export default function ModalNuevaFicha({ colegioId, userId, onClose }: Props) {
                     <input type="checkbox" checked={form.es_publica} onChange={e => setF('es_publica', e.target.checked)} className="w-4 h-4 accent-blue-600"/>
                     <div>
                       <div className="text-sm font-medium text-slate-700">Compartir con todos</div>
-                      <div className="text-xs text-slate-400">Visible para otros colegios</div>
+                      <div className="text-xs text-slate-400">Visible para otros Centros Educacionales</div>
                     </div>
                   </label>
                 </div>

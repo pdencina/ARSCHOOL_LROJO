@@ -74,7 +74,7 @@ export default function DocumentosClient({ documentos, recursos, rol, colegioId 
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="page-title">Documentos</h1>
-          <p className="page-subtitle">Repositorio centralizado del colegio</p>
+          <p className="page-subtitle">Repositorio centralizado del Centro Educacional</p>
         </div>
         {isAdmin && (
           <div className="flex gap-2">

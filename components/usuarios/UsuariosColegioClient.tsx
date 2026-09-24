@@ -101,7 +101,7 @@ export default function UsuariosColegioClient({ usuarios, alumnos, colegioId, ro
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 font-display">Usuarios del colegio</h1>
+          <h1 className="text-2xl font-bold text-slate-900 font-display">Usuarios del Centro Educacional</h1>
           <p className="text-sm text-slate-500 mt-0.5">{usuarios.length} usuarios · Gestiona profesores, apoderados y alumnos</p>
         </div>
         {rolActual === 'super_admin' && (

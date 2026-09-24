@@ -25,7 +25,7 @@ export default async function PortalComunicadosPage() {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-[#1a2332]" style={{ fontFamily: 'DM Sans, sans-serif' }}>Comunicados</h1>
-        <p className="text-sm text-[#6b7280] mt-0.5">Mensajes del colegio</p>
+        <p className="text-sm text-[#6b7280] mt-0.5">Mensajes del Centro Educacional</p>
       </div>
       {pendientes > 0 && (
         <div className="bg-[#fdf8ee] border border-[#fde68a]/50 rounded-xl p-4 mb-4 flex items-center gap-3">

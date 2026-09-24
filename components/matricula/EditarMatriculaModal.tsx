@@ -323,7 +323,7 @@ export default function EditarMatriculaModal({ matricula: matriculaLista, onClos
                 onChange={e => setForm(p => ({...p, sede: e.target.value}))}
                 className="select-base w-full"
               >
-                <option value="">Según colegio del usuario</option>
+                <option value="">Según el Centro Educacional del usuario</option>
                 <option value="santiago">Sede Santiago — Victoria 52</option>
                 <option value="puente_alto">Sede Puente Alto — Irarrázaval 0565</option>
                 <option value="punta_arenas">Sede Punta Arenas — Chiloé 862</option>

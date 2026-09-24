@@ -283,7 +283,7 @@ export default function ComunicadosClient({ comunicados, colegioId, cursos }: Pr
               <div className="space-y-2 text-sm text-slate-600">
                 <p><strong>Título:</strong> {form.titulo}</p>
                 <p><strong>Tipo:</strong> {form.urgente ? '🚨 Urgente' : TIPO_CONFIG[form.tipo]?.label ?? form.tipo}</p>
-                <p><strong>Destinatarios:</strong> {form.cursos.length > 0 ? `Apoderados de ${form.cursos.join(', ')}` : 'Todos los apoderados del colegio'}</p>
+                <p><strong>Destinatarios:</strong> {form.cursos.length > 0 ? `Apoderados de ${form.cursos.join(', ')}` : 'Todos los apoderados del Centro Educacional'}</p>
               </div>
               <div className={`mt-3 p-3 rounded-lg text-xs ${form.urgente ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
                 <i className="ti ti-info-circle mr-1" aria-hidden="true"/>

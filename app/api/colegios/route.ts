@@ -27,7 +27,7 @@ export async function PATCH(request: NextRequest) {
   const { nombre, rut, direccion, telefono } = body
 
   if (!usuario.colegio_id) {
-    return NextResponse.json({ error: 'No hay colegio asociado' }, { status: 400 })
+    return NextResponse.json({ error: 'No hay Centro Educacional asociado' }, { status: 400 })
   }
 
   const { data, error } = await admin.from('colegios').update({

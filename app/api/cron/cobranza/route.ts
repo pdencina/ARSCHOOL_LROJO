@@ -265,7 +265,7 @@ export async function POST(request: NextRequest) {
             <h2 style="color:#1a2332;">Contrato próximo a vencer</h2>
             <p>Estimado/a ${m.familia.nombre_apoderado ?? 'Apoderado'},</p>
             <p>Le informamos que el contrato de servicios educacionales del alumno <strong>${m.alumno?.nombre ?? ''} ${m.alumno?.apellido ?? ''}</strong> vence en <strong>${diasParaVencer} días</strong> (${new Date(m.fecha_fin_contrato).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}).</p>
-            <p>Para renovar, por favor contacte a la administración del colegio o espere indicaciones sobre el proceso de re-matrícula.</p>
+            <p>Para renovar, por favor contacte a la administración del Centro Educacional o espere indicaciones sobre el proceso de re-matrícula.</p>
             <p style="font-size:12px;color:#9ca3af;">Este es un recordatorio automático de AR School Global.</p>
           </div>
         `,
