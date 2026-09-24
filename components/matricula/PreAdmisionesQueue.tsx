@@ -27,6 +27,7 @@ interface Props {
 const ESTADO_BADGE: Record<string, { label: string; class: string }> = {
   pendiente: { label: 'Pendiente', class: 'bg-amber-50 text-amber-700' },
   en_revision: { label: 'En revisión', class: 'bg-blue-50 text-blue-700' },
+  observada: { label: 'Esperando apoderado', class: 'bg-orange-50 text-orange-700' },
   aprobada: { label: 'Aprobada', class: 'bg-[#EDF5F0] text-[#2D5A3F]' },
 }
 

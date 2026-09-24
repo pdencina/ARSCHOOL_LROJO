@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { enviarEmail } from '@/lib/email'
+import { registrarEventoAdmision } from '@/lib/admisionEventos'
 
 function getAdmin() {
   return createAdminClient(
@@ -176,6 +177,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Error al enviar solicitud. Intente nuevamente.' }, { status: 500 })
   }
 
+  await registrarEventoAdmision(admin, {
+    preAdmisionId: (preAdmision as any).id,
+    colegioId: colegioIdFinal,
+    accion: 'enviada',
+    estadoNuevo: 'pendiente',
+    comentario: observaciones_apoderado || null,
+  })
+
   // Enviar email de confirmación al apoderado
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
   const seguimientoUrl = `${baseUrl}/admision/seguimiento?codigo=${codigo}`
@@ -252,6 +261,7 @@ export async function GET(request: NextRequest) {
   const estadosMensaje: Record<string, string> = {
     pendiente: 'Su solicitud fue recibida y está en espera de revisión.',
     en_revision: 'Su solicitud está siendo revisada por nuestro equipo de admisión.',
+    observada: 'Su solicitud tiene observaciones. Por favor corrija o complete lo indicado para continuar.',
     aprobada: 'Su solicitud fue aprobada. Pronto recibirá instrucciones para completar la matrícula.',
     matriculada: 'El proceso de matrícula fue completado exitosamente.',
     rechazada: 'Lamentablemente su solicitud no fue aprobada.',
@@ -265,7 +275,10 @@ export async function GET(request: NextRequest) {
     alumno: `${d.alumno_nombre} ${d.alumno_apellido}`,
     curso: d.curso_solicitado,
     fecha_envio: d.created_at,
-    observaciones: d.observaciones_admin || null,
+    // Solo el mensaje de corrección es público (las notas internas van al historial).
+    // 'en_revision' se mantiene por las solicitudes observadas antes de existir 'observada'.
+    observaciones: ['observada', 'en_revision'].includes(d.estado) ? (d.observaciones_admin || null) : null,
+    subsanar_url: ['observada', 'en_revision'].includes(d.estado) && d.observaciones_admin ? `/admision/subsanar/${d.codigo_seguimiento}` : null,
     motivo_rechazo: d.motivo_rechazo || null,
   })
 }

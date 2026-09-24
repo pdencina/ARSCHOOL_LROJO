@@ -31,7 +31,8 @@ const DOCS_LABELS: Record<string, string> = {
 
 export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImportar, onEstadoCambiado, permitirEliminar = false, permitirImportar = false }: Props) {
   const [loading, setLoading] = useState(false)
-  const [observaciones, setObservaciones] = useState(pa.observaciones_admin || '')
+  // Comentario de la acción: en "Solicitar corrección" lo ve el apoderado; en el resto queda en el historial interno.
+  const [observaciones, setObservaciones] = useState('')
   const [motivoRechazo, setMotivoRechazo] = useState('')
   const [mostrarRechazo, setMostrarRechazo] = useState(false)
   const [docPreview, setDocPreview] = useState<string | null>(null)
@@ -46,11 +47,18 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
       const res = await fetch(`/api/admision/${pa.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion, observaciones_admin: observaciones, motivo_rechazo: motivoRechazo }),
+        body: JSON.stringify({ accion, comentario: observaciones, motivo_rechazo: motivoRechazo }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      toast.success(accion === 'aprobar' ? 'Solicitud aprobada' : accion === 'rechazar' ? 'Solicitud rechazada' : 'Estado actualizado')
+      const MSG: Record<string, string> = {
+        aprobar: 'Solicitud aprobada',
+        rechazar: 'Solicitud rechazada',
+        subsanar: 'Corrección solicitada al apoderado',
+        nota: 'Nota guardada en el historial',
+        desistir: 'Solicitud marcada como desistida',
+      }
+      toast.success(MSG[accion] ?? 'Estado actualizado')
       onEstadoCambiado()
     } catch (e: any) { toast.error(e.message) }
     finally { setLoading(false) }
@@ -210,18 +218,34 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
             </Section>
           )}
 
+          {/* Mensaje de corrección vigente (lo que ve el apoderado) */}
+          {['observada', 'en_revision'].includes(pa.estado) && pa.observaciones_admin && (
+            <Section titulo="Corrección pedida al apoderado" icono="ti-mail-forward">
+              <p className="text-xs text-orange-800 bg-orange-50 p-3 rounded-lg border border-orange-100 whitespace-pre-wrap">{pa.observaciones_admin}</p>
+            </Section>
+          )}
+
           {/* Acciones del gestor */}
           <Section titulo="Gestión" icono="ti-clipboard-check">
             <div className="space-y-3">
               <div>
-                <label className="text-[11px] font-semibold text-gray-600 mb-1 block">Observaciones internas</label>
+                <label className="text-[11px] font-semibold text-gray-600 mb-1 block">Comentario</label>
                 <textarea
                   value={observaciones}
                   onChange={e => setObservaciones(e.target.value)}
                   rows={2}
-                  placeholder="Notas internas sobre esta solicitud..."
+                  placeholder="Escribe una nota o el mensaje de corrección..."
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs resize-none focus:ring-2 focus:ring-[#1B3A5C]/20 focus:border-[#1B3A5C] outline-none"
                 />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Con <b>Solicitar corrección</b> este texto se envía al apoderado. En las demás acciones queda solo en el historial interno.
+                </p>
+                {observaciones.trim() && (
+                  <button onClick={() => cambiarEstado('nota')} disabled={loading}
+                    className="mt-1.5 text-[11px] font-semibold text-[#1B3A5C] hover:underline disabled:opacity-50">
+                    <i className="ti ti-note text-xs mr-1" aria-hidden="true"/> Guardar como nota interna (sin cambiar el estado)
+                  </button>
+                )}
               </div>
 
               {mostrarRechazo && (
@@ -276,6 +300,18 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
                 )}
               </div>
 
+              {/* La familia no continúa: sale de la bandeja sin borrar la solicitud */}
+              {['pendiente', 'en_revision', 'observada', 'aprobada'].includes(pa.estado) && (
+                <div className="pt-1">
+                  <button
+                    onClick={() => { if (confirm('¿Marcar esta solicitud como desistida? La familia no continuará con el proceso.')) cambiarEstado('desistir') }}
+                    disabled={loading}
+                    className="text-[11px] text-gray-500 hover:text-gray-700 hover:underline font-medium disabled:opacity-50">
+                    <i className="ti ti-user-off text-xs mr-1" aria-hidden="true"/> Marcar como desistida
+                  </button>
+                </div>
+              )}
+
               {/* Eliminar definitivamente */}
               {permitirEliminar && (
                 <div className="pt-3 mt-1 border-t border-gray-100">
@@ -287,6 +323,11 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
                 </div>
               )}
             </div>
+          </Section>
+
+          {/* Historial */}
+          <Section titulo="Historial" icono="ti-history">
+            <Historial eventos={pa.eventos ?? []}/>
           </Section>
 
           {/* Metadata */}
@@ -359,10 +400,54 @@ function EstadoBadge({ estado }: { estado: string }) {
   const config: Record<string, { label: string; cls: string }> = {
     pendiente: { label: 'Pendiente', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
     en_revision: { label: 'En revisión', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+    observada: { label: 'Esperando apoderado', cls: 'bg-orange-50 text-orange-700 border-orange-200' },
     aprobada: { label: 'Aprobada', cls: 'bg-[#EDF5F0] text-[#2D5A3F] border-[#2D5A3F]/20' },
     matriculada: { label: 'Matriculada', cls: 'bg-[#EDF5F0] text-[#2D5A3F] border-[#2D5A3F]/20' },
     rechazada: { label: 'Rechazada', cls: 'bg-red-50 text-red-700 border-red-200' },
+    desistida: { label: 'Desistida', cls: 'bg-gray-100 text-gray-600 border-gray-200' },
   }
   const c = config[estado] || config.pendiente
   return <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md border ${c.cls}`}>{c.label}</span>
+}
+
+const EVENTO_CONFIG: Record<string, { label: string; icono: string; color: string }> = {
+  enviada:             { label: 'Solicitud enviada por el apoderado',   icono: 'ti-send',          color: '#6b7280' },
+  corregida:           { label: 'El apoderado envió correcciones',      icono: 'ti-pencil-check',  color: '#7c3aed' },
+  observada:           { label: 'Se pidió corrección al apoderado',     icono: 'ti-mail-forward',  color: '#ea580c' },
+  en_revision:         { label: 'Marcada en revisión',                  icono: 'ti-search',        color: '#2563eb' },
+  aprobada:            { label: 'Solicitud aprobada',                   icono: 'ti-circle-check',  color: '#2D5A3F' },
+  rechazada:           { label: 'Solicitud rechazada',                  icono: 'ti-circle-x',      color: '#dc2626' },
+  nota:                { label: 'Nota interna',                         icono: 'ti-note',          color: '#1B3A5C' },
+  matricula_iniciada:  { label: 'Datos importados a matrícula',         icono: 'ti-file-import',   color: '#1B3A5C' },
+  matriculada:         { label: 'Matrícula completada',                 icono: 'ti-school',        color: '#2D5A3F' },
+  matricula_eliminada: { label: 'Matrícula eliminada',                  icono: 'ti-arrow-back-up', color: '#b45309' },
+  desistida:           { label: 'Marcada como desistida',               icono: 'ti-user-off',      color: '#6b7280' },
+}
+
+function Historial({ eventos }: { eventos: any[] }) {
+  if (!eventos.length) {
+    return <p className="text-[11px] text-gray-400">Sin movimientos registrados todavía.</p>
+  }
+  return (
+    <ol className="relative">
+      {eventos.map((ev, i) => {
+        const cfg = EVENTO_CONFIG[ev.accion] ?? { label: ev.accion, icono: 'ti-point', color: '#6b7280' }
+        const quien = ev.usuario ? `${ev.usuario.nombre ?? ''} ${ev.usuario.apellido ?? ''}`.trim() : (['enviada', 'corregida'].includes(ev.accion) ? 'Apoderado' : null)
+        return (
+          <li key={ev.id} className="relative pl-7 pb-3 last:pb-0">
+            {i < eventos.length - 1 && <span className="absolute left-[9px] top-5 bottom-0 w-px bg-gray-200" aria-hidden="true"/>}
+            <span className="absolute left-0 top-0.5 w-[19px] h-[19px] rounded-full bg-white border flex items-center justify-center" style={{ borderColor: `${cfg.color}55` }}>
+              <i className={`ti ${cfg.icono} text-[11px]`} style={{ color: cfg.color }} aria-hidden="true"/>
+            </span>
+            <div className="text-[11px] font-semibold text-gray-700">{cfg.label}</div>
+            <div className="text-[10px] text-gray-400">
+              {new Date(ev.created_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}
+              {quien && <> · {quien}</>}
+            </div>
+            {ev.comentario && <div className="text-[11px] text-gray-600 mt-1 whitespace-pre-wrap bg-white rounded-md border border-gray-100 px-2 py-1">{ev.comentario}</div>}
+          </li>
+        )
+      })}
+    </ol>
+  )
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { registrarEventoAdmision } from '@/lib/admisionEventos'
 
 function getAdmin() {
   return createAdminClient(
@@ -113,6 +114,14 @@ export async function POST(request: NextRequest) {
 
   // Marcar como en revisión
   await admin.from('pre_admisiones').update({ estado: 'en_revision', revisado_por: user.id, revisado_at: new Date().toISOString() }).eq('id', pre_admision_id)
+  await registrarEventoAdmision(admin, {
+    preAdmisionId: pre_admision_id,
+    colegioId: (preAdm as any).colegio_id,
+    usuarioId: user.id,
+    accion: 'matricula_iniciada',
+    estadoAnterior: (preAdm as any).estado,
+    estadoNuevo: 'en_revision',
+  })
 
   return NextResponse.json({ ok: true, datos: datosMatricula })
 }

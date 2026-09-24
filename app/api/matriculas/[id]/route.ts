@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { registrarEventoAdmision } from '@/lib/admisionEventos'
 
 function getAdmin() {
   return createAdminClient(
@@ -57,19 +58,35 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   const rutAlumno = m.alumno?.rut
   const nombreAlumno = m.alumno?.nombre
   const apellidoAlumno = m.alumno?.apellido
+  let revertidas: any[] = []
   try {
     if (rutAlumno) {
-      await admin.from('pre_admisiones')
+      const { data: rev } = await admin.from('pre_admisiones')
         .update({ estado: 'aprobada' })
         .eq('alumno_rut', rutAlumno)
         .eq('estado', 'matriculada')
+        .select('id, colegio_id')
+      revertidas = (rev as any[]) ?? []
     } else if (nombreAlumno && apellidoAlumno) {
       // Fallback para alumnos sin RUT (ej. Music & Play): match por nombre + apellido
-      await admin.from('pre_admisiones')
+      const { data: rev } = await admin.from('pre_admisiones')
         .update({ estado: 'aprobada' })
         .eq('alumno_nombre', nombreAlumno)
         .eq('alumno_apellido', apellidoAlumno)
         .eq('estado', 'matriculada')
+        .select('id, colegio_id')
+      revertidas = (rev as any[]) ?? []
+    }
+    for (const r of revertidas) {
+      await registrarEventoAdmision(admin, {
+        preAdmisionId: r.id,
+        colegioId: r.colegio_id,
+        usuarioId: user.id,
+        accion: 'matricula_eliminada',
+        estadoAnterior: 'matriculada',
+        estadoNuevo: 'aprobada',
+        comentario: 'Se eliminó la matrícula; la solicitud vuelve a aprobada',
+      })
     }
   } catch { /* no bloquear el borrado si falla la reversión */ }
 

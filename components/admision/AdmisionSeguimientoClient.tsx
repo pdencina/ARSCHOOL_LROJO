@@ -9,6 +9,7 @@ const ESTADOS = [
   { value: '', label: 'Todas' },
   { value: 'pendiente', label: 'Pendientes' },
   { value: 'en_revision', label: 'En revisión' },
+  { value: 'observada', label: 'Esperando apoderado' },
   { value: 'aprobada', label: 'Aprobadas' },
   { value: 'matriculada', label: 'Matriculadas' },
   { value: 'rechazada', label: 'Rechazadas' },
@@ -17,6 +18,7 @@ const ESTADOS = [
 const ESTADO_BADGE: Record<string, { label: string; class: string }> = {
   pendiente: { label: 'Pendiente', class: 'bg-amber-50 text-amber-700' },
   en_revision: { label: 'En revisión', class: 'bg-blue-50 text-blue-700' },
+  observada: { label: 'Esperando apoderado', class: 'bg-orange-50 text-orange-700' },
   aprobada: { label: 'Aprobada', class: 'bg-[#EDF5F0] text-[#2D5A3F]' },
   matriculada: { label: 'Matriculada', class: 'bg-[#EDF5F0] text-[#2D5A3F]' },
   rechazada: { label: 'Rechazada', class: 'bg-red-50 text-red-700' },
@@ -36,7 +38,8 @@ const PROGRAMA_POR_CODIGO: Record<string, typeof OTROS> = Object.fromEntries([..
 // Secciones de la bandeja "Por atender" (lo que requiere una acción del equipo)
 const SECCIONES_BANDEJA = [
   { estado: 'pendiente',   titulo: 'Por revisar',              desc: 'Solicitudes nuevas o corregidas por el apoderado', icono: 'ti-inbox' },
-  { estado: 'en_revision', titulo: 'En revisión / esperando al apoderado', desc: 'Revisadas u observadas, aún sin resolución', icono: 'ti-search' },
+  { estado: 'en_revision', titulo: 'En revisión',              desc: 'El equipo las está evaluando',                     icono: 'ti-search' },
+  { estado: 'observada',   titulo: 'Esperando al apoderado',   desc: 'Se pidió corrección; si pasa mucho tiempo, contactar a la familia', icono: 'ti-mail-forward' },
   { estado: 'aprobada',    titulo: 'Aprobadas por matricular', desc: 'Falta completar la matrícula',                     icono: 'ti-user-plus' },
 ]
 
@@ -74,9 +77,12 @@ function diasEspera(pa: any): number {
   return Math.max(0, Math.floor((Date.now() - fechaEspera(pa).getTime()) / DIA_MS))
 }
 
+const DIACRITICOS = new RegExp('[\\u0300-\\u036f]', 'g')
+
 // Normaliza para buscar sin importar tildes ni mayúsculas ("joaquin" encuentra "Joaquín").
 function normalizar(s: string): string {
-  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  // Quita los acentos: NFD separa "í" en "i" + tilde combinada (U+0300–U+036F) y se elimina la tilde.
+  return (s || '').normalize('NFD').replace(DIACRITICOS, '').toLowerCase()
 }
 
 function coincide(pa: any, q: string): boolean {
@@ -119,6 +125,7 @@ export default function AdmisionSeguimientoClient({ preAdmisiones, puedeEliminar
         total: items.length,
         pendientes: items.filter(i => i.estado === 'pendiente').length,
         enRevision: items.filter(i => i.estado === 'en_revision').length,
+        observadas: items.filter(i => i.estado === 'observada').length,
         aprobadas: items.filter(i => i.estado === 'aprobada').length,
         matriculadas: items.filter(i => i.estado === 'matriculada').length,
       }
@@ -275,6 +282,7 @@ export default function AdmisionSeguimientoClient({ preAdmisiones, puedeEliminar
               <div className="flex flex-wrap gap-1.5">
                 {c.pendientes > 0 && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">{c.pendientes} pendiente{c.pendientes !== 1 ? 's' : ''}</span>}
                 {c.enRevision > 0 && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{c.enRevision} en revisión</span>}
+                {c.observadas > 0 && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-700">{c.observadas} esperando apoderado</span>}
                 {c.aprobadas > 0 && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EDF5F0] text-[#2D5A3F]">{c.aprobadas} aprobada{c.aprobadas !== 1 ? 's' : ''}</span>}
                 {c.total === 0 && <span className="text-[10px] text-[var(--ar-muted)]">Sin solicitudes aún</span>}
               </div>
@@ -354,13 +362,14 @@ function Vacio({ texto, icono = 'ti-inbox' }: { texto: string; icono?: string })
 
 // Indicador de antigüedad: verde ≤2 días, ámbar 3–7, rojo >7.
 function ChipEspera({ pa }: { pa: any }) {
-  if (!['pendiente', 'en_revision', 'aprobada'].includes(pa.estado)) return null
+  if (!['pendiente', 'en_revision', 'observada', 'aprobada'].includes(pa.estado)) return null
   const d = diasEspera(pa)
   const cls = d > 7 ? 'bg-red-50 text-red-700' : d > 2 ? 'bg-amber-50 text-amber-700' : 'bg-[#EDF5F0] text-[#2D5A3F]'
   const txt = d === 0 ? 'hoy' : `hace ${d} día${d !== 1 ? 's' : ''}`
   const titulo = pa.estado === 'pendiente'
     ? 'Tiempo esperando revisión'
-    : pa.estado === 'aprobada' ? 'Tiempo desde la aprobación sin matricular' : 'Tiempo desde la última revisión'
+    : pa.estado === 'aprobada' ? 'Tiempo desde la aprobación sin matricular'
+    : pa.estado === 'observada' ? 'Tiempo esperando la corrección del apoderado' : 'Tiempo desde la última revisión'
   return (
     <span title={titulo} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap ${cls}`}>
       <i className="ti ti-clock text-[11px]" aria-hidden="true"/>{txt}

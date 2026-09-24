@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { enviarEmail } from '@/lib/email'
+import { registrarEventoAdmision } from '@/lib/admisionEventos'
 
 function getAdmin() {
   return createAdminClient(
@@ -42,7 +43,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   if (!data) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
   if (!puedeAcceder(usuario, data)) return NextResponse.json({ error: 'Sin acceso a esta solicitud' }, { status: 403 })
 
-  return NextResponse.json(data)
+  // Historial (si la migración 054 aún no se ejecutó, simplemente viene vacío)
+  const { data: eventos } = await admin
+    .from('pre_admision_eventos')
+    .select('id, accion, estado_anterior, estado_nuevo, comentario, created_at, usuario:usuarios(nombre, apellido, rol)')
+    .eq('pre_admision_id', params.id)
+    .order('created_at', { ascending: true })
+
+  return NextResponse.json({ ...data, eventos: eventos ?? [] })
 }
 
 // DELETE /api/admision/[id] — Eliminar definitivamente una solicitud de admisión
@@ -83,34 +91,52 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 
   // Verificar acceso a esta pre-admisión (coordinador: su programa + sede)
-  const { data: paActual } = await admin.from('pre_admisiones').select('id, colegio_id, programa_id').eq('id', params.id).single()
+  const { data: paActual } = await admin.from('pre_admisiones').select('id, colegio_id, programa_id, estado').eq('id', params.id).single()
   if (!paActual) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
   if (!puedeAcceder(usuario, paActual)) return NextResponse.json({ error: 'Sin acceso a esta solicitud' }, { status: 403 })
 
   const body = await request.json()
-  const { accion, observaciones_admin, motivo_rechazo } = body
+  const { accion, motivo_rechazo } = body
+  // Comentario de la acción. Solo en "subsanar" es un mensaje para el apoderado;
+  // en el resto queda únicamente en el historial interno.
+  const comentario: string = (body.comentario ?? body.observaciones_admin ?? '').toString().trim()
 
+  const estadoAnterior = (paActual as any).estado as string
   const updates: any = {
     revisado_por: user.id,
     revisado_at: new Date().toISOString(),
   }
+  // Acción que se registra en el historial (puede diferir del nombre de la acción recibida)
+  let accionEvento = accion as string
+  let comentarioEvento: string | null = comentario || null
 
   if (accion === 'aprobar') {
     updates.estado = 'aprobada'
-    updates.observaciones_admin = observaciones_admin || null
+    updates.observaciones_admin = null // el mensaje público de corrección ya no aplica
+    accionEvento = 'aprobada'
   } else if (accion === 'rechazar') {
     updates.estado = 'rechazada'
     updates.motivo_rechazo = motivo_rechazo || 'No cumple requisitos'
-    updates.observaciones_admin = observaciones_admin || null
+    updates.observaciones_admin = null
+    accionEvento = 'rechazada'
+    comentarioEvento = [`Motivo: ${updates.motivo_rechazo}`, comentario].filter(Boolean).join('\n')
   } else if (accion === 'en_revision') {
     updates.estado = 'en_revision'
-    updates.observaciones_admin = observaciones_admin || null
   } else if (accion === 'subsanar') {
-    // Enviar observación al apoderado para que corrija
-    updates.estado = 'en_revision'
-    updates.observaciones_admin = observaciones_admin || null
-  } else if (accion === 'observar') {
-    updates.observaciones_admin = observaciones_admin
+    // Pedir corrección al apoderado: el comentario es el mensaje que verá la familia
+    if (!comentario) return NextResponse.json({ error: 'Escriba la observación que verá el apoderado' }, { status: 400 })
+    updates.estado = 'observada'
+    updates.observaciones_admin = comentario
+    accionEvento = 'observada'
+  } else if (accion === 'nota' || accion === 'observar') {
+    // Nota interna: no cambia el estado ni el reloj de revisión
+    if (!comentario) return NextResponse.json({ error: 'Escriba la nota' }, { status: 400 })
+    delete updates.revisado_por
+    delete updates.revisado_at
+    accionEvento = 'nota'
+  } else if (accion === 'desistir') {
+    updates.estado = 'desistida'
+    accionEvento = 'desistida'
   } else if (accion === 'matriculada') {
     // Se completó la matrícula a partir de esta solicitud
     updates.estado = 'matriculada'
@@ -118,8 +144,27 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
   }
 
-  const { error } = await admin.from('pre_admisiones').update(updates).eq('id', params.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (Object.keys(updates).length > 0) {
+    let { error } = await admin.from('pre_admisiones').update(updates).eq('id', params.id)
+    // Compatibilidad: si la migración 054 aún no se ejecutó, 'observada' no pasa el CHECK
+    if (error && updates.estado === 'observada' && /check|violates/i.test(error.message)) {
+      updates.estado = 'en_revision'
+      ;({ error } = await admin.from('pre_admisiones').update(updates).eq('id', params.id))
+    }
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  await registrarEventoAdmision(admin, {
+    preAdmisionId: params.id,
+    colegioId: (paActual as any).colegio_id,
+    usuarioId: user.id,
+    accion: accionEvento,
+    estadoAnterior,
+    estadoNuevo: updates.estado ?? estadoAnterior,
+    comentario: comentarioEvento,
+  })
+
+  const observaciones_admin = comentario
 
   // Notificar al apoderado si se aprobó, rechazó, o pidió subsanación
   if (accion === 'aprobar' || accion === 'rechazar' || accion === 'subsanar') {

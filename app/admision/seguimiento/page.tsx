@@ -5,10 +5,21 @@ import { useSearchParams } from 'next/navigation'
 const ESTADO_CONFIG: Record<string, { color: string; bg: string; icon: string }> = {
   pendiente: { color: 'text-amber-700', bg: 'bg-amber-50', icon: '⏳' },
   en_revision: { color: 'text-blue-700', bg: 'bg-blue-50', icon: '🔍' },
+  observada: { color: 'text-orange-700', bg: 'bg-orange-50', icon: '📝' },
   aprobada: { color: 'text-[#2D5A3F]', bg: 'bg-[#EDF5F0]', icon: '✅' },
   matriculada: { color: 'text-[#2D5A3F]', bg: 'bg-[#EDF5F0]', icon: '🎓' },
   rechazada: { color: 'text-red-700', bg: 'bg-red-50', icon: '❌' },
   desistida: { color: 'text-gray-600', bg: 'bg-gray-100', icon: '↩️' },
+}
+
+const ESTADO_LABEL: Record<string, string> = {
+  pendiente: 'Pendiente',
+  en_revision: 'En revisión',
+  observada: 'Con observaciones',
+  aprobada: 'Aprobada',
+  matriculada: 'Matriculada',
+  rechazada: 'Rechazada',
+  desistida: 'Desistida',
 }
 
 function SeguimientoContent() {
@@ -78,7 +89,7 @@ function SeguimientoContent() {
           <div className="animate-[fadeIn_0.2s]">
             <div className={`${cfg.bg} rounded-xl p-4 mb-4 text-center`}>
               <div className="text-2xl mb-1">{cfg.icon}</div>
-              <div className={`text-sm font-bold ${cfg.color} capitalize`}>{resultado.estado.replace('_', ' ')}</div>
+              <div className={`text-sm font-bold ${cfg.color}`}>{ESTADO_LABEL[resultado.estado] ?? resultado.estado}</div>
               <p className="text-xs text-gray-600 mt-1">{resultado.mensaje}</p>
             </div>
 
@@ -98,7 +109,12 @@ function SeguimientoContent() {
               {resultado.observaciones && (
                 <div className="bg-blue-50 rounded-lg p-2.5 mt-2">
                   <div className="font-semibold text-blue-700 mb-0.5">Mensaje del Centro Educativo:</div>
-                  <div className="text-blue-600">{resultado.observaciones}</div>
+                  <div className="text-blue-600 whitespace-pre-wrap">{resultado.observaciones}</div>
+                  {resultado.subsanar_url && (
+                    <a href={resultado.subsanar_url} className="inline-block mt-2 px-3 py-1.5 bg-[#1B3A5C] text-white rounded-lg font-semibold hover:bg-[#143050]">
+                      Corregir mi solicitud →
+                    </a>
+                  )}
                 </div>
               )}
               {resultado.motivo_rechazo && (

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { registrarEventoAdmision } from '@/lib/admisionEventos'
 
 function getAdmin() {
   return createAdminClient(
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
 
   if (!pa) return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 })
 
-  if ((pa as any).estado === 'matriculada' || (pa as any).estado === 'rechazada') {
+  if (['matriculada', 'rechazada', 'desistida'].includes((pa as any).estado)) {
     return NextResponse.json({ error: 'Esta solicitud ya no puede ser modificada' }, { status: 400 })
   }
 
@@ -45,8 +46,21 @@ export async function POST(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Avisar al equipo de admisión de la sede que hay correcciones por revisar
   const p = pa as any
+  const docsNuevos = Object.keys(documentos || {}).filter(k => (documentos as any)[k])
+  await registrarEventoAdmision(admin, {
+    preAdmisionId: p.id,
+    colegioId: p.colegio_id,
+    accion: 'corregida',
+    estadoAnterior: p.estado,
+    estadoNuevo: 'pendiente',
+    comentario: [
+      docsNuevos.length ? `Documentos enviados: ${docsNuevos.join(', ')}` : null,
+      observaciones_apoderado ? `Nota: ${observaciones_apoderado}` : null,
+    ].filter(Boolean).join(' · ') || null,
+  })
+
+  // Avisar al equipo de admisión de la sede que hay correcciones por revisar
   if (p.colegio_id) {
     try {
       const { notificarAdmisionEquipo } = await import('@/lib/notificaciones')

@@ -124,7 +124,7 @@ export default async function MatriculaPage() {
     .from('pre_admisiones')
     .select('*')
     .in('colegio_id', colegioIdsSafe)
-    .in('estado', ['pendiente', 'en_revision', 'aprobada'])
+    .in('estado', ['pendiente', 'en_revision', 'observada', 'aprobada'])
     .order('created_at', { ascending: false })
   if (esCoordinador && usuario.programa_ids?.length > 0) {
     preAdmQuery = preAdmQuery.in('programa_id', usuario.programa_ids)
