@@ -33,7 +33,7 @@ const NAV_PROGRAMAS: NavItem[] = [
 ]
 
 const NAV_GESTION: NavItem[] = [
-  { label: 'Aportes',             href: '/contable',     icon: 'ti-cash',             roles: ['super_admin','admin','pastor_campus','gestor_admision','coordinador'] },
+  { label: 'Aportes',             href: '/contable',     icon: 'ti-cash',             roles: ['super_admin','admin','pastor_campus','coordinador'] },
   { label: 'Cobranza',           href: '/cobranza',     icon: 'ti-report-money',     roles: ['super_admin','admin','pastor_campus','coordinador'] },
   { label: 'Becas',              href: '/becas',        icon: 'ti-school',           roles: ['super_admin','admin','pastor_campus','gestor_admision'] },
   { label: 'Documentos',         href: '/documentos',   icon: 'ti-folder',           roles: ['super_admin','admin','pastor_campus','gestor_admision','tutor','coordinador'] },
