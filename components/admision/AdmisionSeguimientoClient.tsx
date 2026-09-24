@@ -2,8 +2,22 @@
 import { useState, useMemo } from 'react'
 import toast from 'react-hot-toast'
 import PreAdmisionDetalle from '@/components/matricula/PreAdmisionDetalle'
+import ContactoRapido from '@/components/admision/ContactoRapido'
+import IndicadoresAdmision from '@/components/admision/IndicadoresAdmision'
+import { codigoPrograma, docsFaltantes } from '@/lib/admisionDocs'
+import { esCorregida, fechaEspera, diasEspera } from '@/lib/admisionTiempos'
 
-interface Props { preAdmisiones: any[]; puedeEliminar?: boolean }
+interface Miembro { id: string; nombre: string | null; apellido: string | null; rol: string }
+interface Props {
+  preAdmisiones: any[]
+  puedeEliminar?: boolean
+  /** Usuario actual (filtro "Mías") */
+  usuarioId?: string
+  /** Equipo de admisión de las sedes visibles */
+  equipo?: Miembro[]
+  /** id de solicitud -> fecha de la primera respuesta del equipo */
+  primeraRespuesta?: Record<string, string>
+}
 
 const ESTADOS = [
   { value: '', label: 'Todas' },
@@ -43,40 +57,6 @@ const SECCIONES_BANDEJA = [
   { estado: 'aprobada',    titulo: 'Aprobadas por matricular', desc: 'Falta completar la matrícula',                     icono: 'ti-user-plus' },
 ]
 
-const DIA_MS = 86400000
-
-// Detecta el código de programa de una solicitud: primero el join, si no el texto del curso.
-function codigoPrograma(pa: any): string {
-  if (pa.programa?.codigo) return pa.programa.codigo
-  const c = (pa.curso_solicitado || '').toLowerCase()
-  if (c.includes('lions') || c.includes('soccer')) return 'lions_soccer'
-  if (c.includes('worship') || c.includes('music')) return 'ar_worship'
-  if (c.includes('play')) return 'play_group'
-  if (c.includes('kinder') || c.includes('school') || c.includes('elementary') || c.includes('middle') || c.includes('high') || c.includes('ciclo')) return 'ar_school'
-  return 'otros'
-}
-
-// Pendiente que ya había sido revisada y luego se actualizó => el apoderado envió
-// correcciones. (Un "observar" del gestor también toca revisado_at y updated_at, pero
-// en el mismo instante, por eso se exige un margen.)
-function esCorregida(pa: any): boolean {
-  if (pa.estado !== 'pendiente' || !pa.revisado_at || !pa.updated_at) return false
-  return new Date(pa.updated_at).getTime() - new Date(pa.revisado_at).getTime() > 60_000
-}
-
-// Fecha desde la que corre la espera, según el estado:
-// pendiente => envío (o última corrección del apoderado); en revisión / aprobada => última revisión.
-function fechaEspera(pa: any): Date {
-  const f = pa.estado === 'pendiente'
-    ? (esCorregida(pa) ? pa.updated_at : pa.created_at)
-    : (pa.revisado_at ?? pa.updated_at ?? pa.created_at)
-  return new Date(f)
-}
-
-function diasEspera(pa: any): number {
-  return Math.max(0, Math.floor((Date.now() - fechaEspera(pa).getTime()) / DIA_MS))
-}
-
 const DIACRITICOS = new RegExp('[\\u0300-\\u036f]', 'g')
 
 // Normaliza para buscar sin importar tildes ni mayúsculas ("joaquin" encuentra "Joaquín").
@@ -90,8 +70,11 @@ function coincide(pa: any, q: string): boolean {
   return normalizar(`${pa.alumno_nombre} ${pa.alumno_apellido} ${pa.apoderado_nombre} ${pa.apoderado_apellido} ${pa.curso_solicitado} ${pa.codigo_seguimiento}`).includes(normalizar(q))
 }
 
-export default function AdmisionSeguimientoClient({ preAdmisiones, puedeEliminar = false }: Props) {
-  const [vista, setVista] = useState<'bandeja' | 'programas'>('bandeja')
+export default function AdmisionSeguimientoClient({ preAdmisiones, puedeEliminar = false, usuarioId, equipo = [], primeraRespuesta = {} }: Props) {
+  const [vista, setVista] = useState<'bandeja' | 'programas' | 'indicadores'>('bandeja')
+  // Filtro por responsable en la bandeja
+  const [filtroResp, setFiltroResp] = useState<'todas' | 'mias' | 'sin'>('todas')
+  const equipoMap = useMemo(() => Object.fromEntries(equipo.map(m => [m.id, `${m.nombre ?? ''} ${m.apellido ?? ''}`.trim()])), [equipo])
   const [filtro, setFiltro] = useState('')
   // Carpeta abierta: null = vista de carpetas; código de programa = dentro de esa carpeta.
   const [carpeta, setCarpeta] = useState<string | null>(null)
@@ -100,12 +83,21 @@ export default function AdmisionSeguimientoClient({ preAdmisiones, puedeEliminar
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
   // Bandeja: solicitudes que requieren acción, agrupadas por estado, las más antiguas primero.
-  const bandeja = useMemo(() => SECCIONES_BANDEJA.map(s => ({
-    ...s,
-    items: preAdmisiones
-      .filter(pa => pa.estado === s.estado)
-      .sort((a, b) => fechaEspera(a).getTime() - fechaEspera(b).getTime()),
-  })), [preAdmisiones])
+  const abiertas = useMemo(() => preAdmisiones.filter(pa => SECCIONES_BANDEJA.some(s => s.estado === pa.estado)), [preAdmisiones])
+  const conteoResp = {
+    todas: abiertas.length,
+    mias: abiertas.filter(pa => !!usuarioId && pa.asignado_a === usuarioId).length,
+    sin: abiertas.filter(pa => !pa.asignado_a).length,
+  }
+  const bandeja = useMemo(() => {
+    const pasaResp = (pa: any) => filtroResp === 'todas' || (filtroResp === 'mias' ? pa.asignado_a === usuarioId : !pa.asignado_a)
+    return SECCIONES_BANDEJA.map(s => ({
+      ...s,
+      items: preAdmisiones
+        .filter(pa => pa.estado === s.estado && pasaResp(pa))
+        .sort((a, b) => fechaEspera(a).getTime() - fechaEspera(b).getTime()),
+    }))
+  }, [preAdmisiones, filtroResp, usuarioId])
   const totalBandeja = bandeja.reduce((acc, s) => acc + s.items.length, 0)
   const atrasadas = bandeja.reduce((acc, s) => acc + s.items.filter(pa => diasEspera(pa) > 7).length, 0)
 
@@ -178,7 +170,9 @@ export default function AdmisionSeguimientoClient({ preAdmisiones, puedeEliminar
               ? 'Solicitudes de este programa · revisa, aprueba y haz seguimiento'
               : vista === 'bandeja'
                 ? 'Lo que requiere acción del equipo, empezando por lo más antiguo'
-                : 'Elige un programa para ver sus solicitudes'}
+                : vista === 'indicadores'
+                  ? 'Cómo va la admisión de la sede'
+                  : 'Elige un programa para ver sus solicitudes'}
           </p>
         </div>
       </div>
@@ -202,6 +196,13 @@ export default function AdmisionSeguimientoClient({ preAdmisiones, puedeEliminar
               <i className="ti ti-folders text-sm" aria-hidden="true"/>
               Por programa
             </button>
+            <button
+              onClick={() => setVista('indicadores')}
+              className={`text-[12px] px-3 py-1.5 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${vista === 'indicadores' ? 'bg-white text-[#1B3A5C] shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}
+            >
+              <i className="ti ti-chart-bar text-sm" aria-hidden="true"/>
+              Indicadores
+            </button>
           </div>
           <div className="relative flex-1 min-w-[220px]">
             <i className="ti ti-search text-sm text-[var(--ar-muted)] absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true"/>
@@ -222,7 +223,7 @@ export default function AdmisionSeguimientoClient({ preAdmisiones, puedeEliminar
         ) : (
           <Lista>
             {resultadosGlobales.map(pa => (
-              <FilaSolicitud key={pa.id} pa={pa} mostrarPrograma loading={loadingId === pa.id} onAbrir={abrirDetalle}/>
+              <FilaSolicitud key={pa.id} pa={pa} mostrarPrograma loading={loadingId === pa.id} onAbrir={abrirDetalle} equipoMap={equipoMap}/>
             ))}
           </Lista>
         )
@@ -230,8 +231,21 @@ export default function AdmisionSeguimientoClient({ preAdmisiones, puedeEliminar
 
       {/* ─── BANDEJA "POR ATENDER" ─── */}
       {!carpeta && !buscando && vista === 'bandeja' && (
+        <div className="flex flex-wrap items-center gap-1.5 mb-4">
+          <span className="text-[11px] text-[var(--ar-muted)] mr-1">Responsable:</span>
+          {([['todas', 'Todas'], ['mias', 'Mías'], ['sin', 'Sin asignar']] as const).map(([v, label]) => (
+            <button key={v} onClick={() => setFiltroResp(v)}
+              className={`text-[11px] px-3 py-1 rounded-full font-medium transition-colors ${filtroResp === v ? 'bg-[#1B3A5C] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+              {label} <span className="opacity-70">({conteoResp[v]})</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {!carpeta && !buscando && vista === 'bandeja' && (
         totalBandeja === 0 ? (
-          <Vacio texto="Todo al día: no hay solicitudes esperando acción." icono="ti-circle-check"/>
+          <Vacio
+            texto={filtroResp === 'mias' ? 'No tienes solicitudes asignadas pendientes.' : filtroResp === 'sin' ? 'Todas las solicitudes abiertas tienen responsable.' : 'Todo al día: no hay solicitudes esperando acción.'}
+            icono="ti-circle-check"/>
         ) : (
           <div className="space-y-5">
             {atrasadas > 0 && (
@@ -250,13 +264,18 @@ export default function AdmisionSeguimientoClient({ preAdmisiones, puedeEliminar
                 </div>
                 <Lista>
                   {s.items.map(pa => (
-                    <FilaSolicitud key={pa.id} pa={pa} mostrarPrograma mostrarEspera loading={loadingId === pa.id} onAbrir={abrirDetalle}/>
+                    <FilaSolicitud key={pa.id} pa={pa} mostrarPrograma mostrarEspera loading={loadingId === pa.id} onAbrir={abrirDetalle} equipoMap={equipoMap}/>
                   ))}
                 </Lista>
               </section>
             ))}
           </div>
         )
+      )}
+
+      {/* ─── INDICADORES ─── */}
+      {!carpeta && !buscando && vista === 'indicadores' && (
+        <IndicadoresAdmision preAdmisiones={preAdmisiones} primeraRespuesta={primeraRespuesta} equipoMap={equipoMap}/>
       )}
 
       {/* ─── VISTA DE CARPETAS (una por programa) ─── */}
@@ -323,7 +342,7 @@ export default function AdmisionSeguimientoClient({ preAdmisiones, puedeEliminar
           ) : (
             <Lista color={carpetaActual?.color}>
               {listaCarpeta.map((pa: any) => (
-                <FilaSolicitud key={pa.id} pa={pa} mostrarEspera loading={loadingId === pa.id} onAbrir={abrirDetalle}/>
+                <FilaSolicitud key={pa.id} pa={pa} mostrarEspera loading={loadingId === pa.id} onAbrir={abrirDetalle} equipoMap={equipoMap}/>
               ))}
             </Lista>
           )}
@@ -377,37 +396,62 @@ function ChipEspera({ pa }: { pa: any }) {
   )
 }
 
-function FilaSolicitud({ pa, mostrarPrograma = false, mostrarEspera = false, loading, onAbrir }: {
-  pa: any; mostrarPrograma?: boolean; mostrarEspera?: boolean; loading: boolean; onAbrir: (id: string) => void
+function FilaSolicitud({ pa, mostrarPrograma = false, mostrarEspera = false, loading, onAbrir, equipoMap = {} }: {
+  pa: any; mostrarPrograma?: boolean; mostrarEspera?: boolean; loading: boolean; onAbrir: (id: string) => void; equipoMap?: Record<string, string>
 }) {
   const badge = ESTADO_BADGE[pa.estado] || ESTADO_BADGE.pendiente
   const docs = Object.keys(pa.documentos || {}).filter(k => pa.documentos[k]).length
-  const prog = PROGRAMA_POR_CODIGO[codigoPrograma(pa)] ?? OTROS
+  const codigo = codigoPrograma(pa)
+  const prog = PROGRAMA_POR_CODIGO[codigo] ?? OTROS
+  const abierta = ['pendiente', 'en_revision', 'observada', 'aprobada'].includes(pa.estado)
+  const faltan = abierta ? docsFaltantes(pa) : []
+  const responsable = pa.asignado_a ? (equipoMap[pa.asignado_a] || 'Asignada') : null
+  // Datos secundarios: cada uno es una unidad que no se parte, para que el "·" no quede suelto al envolver
+  const meta: React.ReactNode[] = [
+    <span key="curso">{pa.curso_solicitado}</span>,
+    <span key="apo">{pa.apoderado_nombre} {pa.apoderado_apellido}</span>,
+  ]
+  if (faltan.length > 0) {
+    meta.push(
+      <span key="docs" className="text-amber-700 font-medium" title={`Faltan: ${faltan.join(', ')}`}>
+        <i className="ti ti-file-alert text-[11px] mr-0.5" aria-hidden="true"/>Faltan {faltan.length} doc{faltan.length !== 1 ? 's' : ''}
+      </span>
+    )
+  } else if (docs > 0) {
+    meta.push(<span key="docs" className="text-[#2D5A3F] font-medium">{abierta ? 'Docs completos' : `${docs} docs`}</span>)
+  }
+  if (abierta) {
+    meta.push(responsable
+      ? <span key="resp" className="text-[var(--ar-text)]" title="Responsable"><i className="ti ti-user-check text-[11px] mr-0.5" aria-hidden="true"/>{responsable}</span>
+      : <span key="resp" className="text-gray-400 italic">sin responsable</span>)
+  }
+
   return (
-    <div className="p-3.5 flex items-center gap-3 hover:bg-[#fafbfc] cursor-pointer" onClick={() => onAbrir(pa.id)}>
+    <div className="p-3.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 hover:bg-[#fafbfc] cursor-pointer" onClick={() => onAbrir(pa.id)}>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-          <span className="text-[13px] font-semibold text-[var(--ar-text)] truncate">{pa.alumno_nombre} {pa.alumno_apellido}</span>
+        <div className="flex items-center gap-x-2 gap-y-1 mb-0.5 flex-wrap">
+          <span className="text-[13px] font-semibold text-[var(--ar-text)]">{pa.alumno_nombre} {pa.alumno_apellido}</span>
           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${badge.class}`}>{badge.label}</span>
           {esCorregida(pa) && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-50 text-violet-700" title="El apoderado envió correcciones">Corregida</span>}
           {mostrarPrograma && (
             <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ background: `${prog.color}12`, color: prog.color }}>{prog.nombre}</span>
           )}
         </div>
-        <div className="text-[11px] text-[var(--ar-muted)] flex items-center gap-2 flex-wrap">
-          <span>{pa.curso_solicitado}</span>
-          <span>·</span>
-          <span>{pa.apoderado_nombre} {pa.apoderado_apellido}</span>
-          {docs > 0
-            ? (<><span>·</span><span className="text-[#2D5A3F] font-medium">{docs} docs</span></>)
-            : (<><span>·</span><span className="text-amber-700 font-medium">sin documentos</span></>)}
+        <div className="text-[11px] text-[var(--ar-muted)] flex items-center gap-x-1.5 gap-y-0.5 flex-wrap">
+          {meta.map((m, i) => (
+            <span key={i} className="whitespace-nowrap">{i > 0 && <span className="mr-1.5" aria-hidden="true">·</span>}{m}</span>
+          ))}
         </div>
         <div className="text-[9px] text-gray-400 mt-0.5">{pa.codigo_seguimiento} · enviada {new Date(pa.created_at).toLocaleDateString('es-CL')}</div>
       </div>
-      {mostrarEspera && <ChipEspera pa={pa}/>}
-      <button disabled={loading} className="px-3 py-1.5 bg-white border border-[var(--ar-border)] text-[var(--ar-text)] text-[10px] font-semibold rounded-lg hover:bg-gray-50 flex-shrink-0">
-        {loading ? '...' : 'Revisar'}
-      </button>
+      {/* Acciones: a la derecha en escritorio; en celular bajan a su propia línea */}
+      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:flex-shrink-0">
+        {mostrarEspera && <ChipEspera pa={pa}/>}
+        <ContactoRapido pa={pa} programa={codigo}/>
+        <button disabled={loading} className="ml-auto sm:ml-0 px-3 py-1.5 bg-white border border-[var(--ar-border)] text-[var(--ar-text)] text-[10px] font-semibold rounded-lg hover:bg-gray-50 flex-shrink-0">
+          {loading ? '...' : 'Revisar'}
+        </button>
+      </div>
     </div>
   )
 }

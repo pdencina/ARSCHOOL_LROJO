@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { enviarEmail } from '@/lib/email'
 import { registrarEventoAdmision } from '@/lib/admisionEventos'
+import { obtenerEquipoAdmision, nombreMiembro } from '@/lib/admisionEquipo'
 
 function getAdmin() {
   return createAdminClient(
@@ -39,9 +40,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
-  const { data } = await admin.from('pre_admisiones').select('*').eq('id', params.id).single()
+  let { data } = await admin.from('pre_admisiones').select('*, programa:programas(codigo)').eq('id', params.id).single()
+  if (!data) {
+    // Instancias sin programa_id: sin el join
+    ;({ data } = await admin.from('pre_admisiones').select('*').eq('id', params.id).single())
+  }
   if (!data) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
   if (!puedeAcceder(usuario, data)) return NextResponse.json({ error: 'Sin acceso a esta solicitud' }, { status: 403 })
+
+  // Equipo de la sede, para el selector de responsable
+  const equipo = await obtenerEquipoAdmision(admin, [(data as any).colegio_id])
 
   // Historial (si la migración 054 aún no se ejecutó, simplemente viene vacío)
   const { data: eventos } = await admin
@@ -50,7 +58,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     .eq('pre_admision_id', params.id)
     .order('created_at', { ascending: true })
 
-  return NextResponse.json({ ...data, eventos: eventos ?? [] })
+  return NextResponse.json({ ...(data as any), eventos: eventos ?? [], equipo })
 }
 
 // DELETE /api/admision/[id] — Eliminar definitivamente una solicitud de admisión
@@ -134,6 +142,67 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     delete updates.revisado_por
     delete updates.revisado_at
     accionEvento = 'nota'
+  } else if (accion === 'asignar') {
+    // Asignar (o quitar) responsable del caso. No cambia el estado ni el reloj de revisión.
+    const asignadoA: string | null = body.asignado_a || null
+    let nombreAsignado = 'nadie'
+    if (asignadoA) {
+      const equipo = await obtenerEquipoAdmision(admin, [(paActual as any).colegio_id])
+      const miembro = equipo.find(m => m.id === asignadoA)
+      if (!miembro) return NextResponse.json({ error: 'Esa persona no es parte del equipo de admisión de la sede' }, { status: 400 })
+      nombreAsignado = nombreMiembro(miembro)
+    }
+    delete updates.revisado_por
+    delete updates.revisado_at
+    updates.asignado_a = asignadoA
+    accionEvento = 'asignada'
+    comentarioEvento = asignadoA ? `Responsable: ${nombreAsignado}` : 'Se quitó el responsable'
+
+    const { error: errAsig } = await admin.from('pre_admisiones').update(updates).eq('id', params.id)
+    if (errAsig) {
+      const msg = /asignado_a/.test(errAsig.message) ? 'Falta ejecutar la migración 055 (responsable de admisión)' : errAsig.message
+      return NextResponse.json({ error: msg }, { status: 500 })
+    }
+    await registrarEventoAdmision(admin, {
+      preAdmisionId: params.id,
+      colegioId: (paActual as any).colegio_id,
+      usuarioId: user.id,
+      accion: accionEvento,
+      estadoAnterior,
+      estadoNuevo: estadoAnterior,
+      comentario: comentarioEvento,
+    })
+    // Avisar a la persona asignada (si no se asignó a sí misma)
+    if (asignadoA && asignadoA !== user.id) {
+      try {
+        const { data: paInfo } = await admin.from('pre_admisiones').select('codigo_seguimiento, alumno_nombre, alumno_apellido, curso_solicitado').eq('id', params.id).single()
+        const i = paInfo as any
+        const { crearNotificaciones } = await import('@/lib/notificaciones')
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://app.arschoolglobal.com'
+        await crearNotificaciones({
+          colegioId: (paActual as any).colegio_id,
+          titulo: '👤 Te asignaron una solicitud de admisión',
+          mensaje: `${i?.alumno_nombre ?? ''} ${i?.alumno_apellido ?? ''} · ${i?.codigo_seguimiento ?? ''}`.trim(),
+          tipo: 'alerta',
+          href: '/admisiones',
+          usuarioIds: [asignadoA],
+          enviarEmailNotif: true,
+          emailSubject: `AR School — Te asignaron la solicitud ${i?.codigo_seguimiento ?? ''}`,
+          emailHtml: `
+            <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <p style="color:#1a2332;font-size:15px;font-weight:600;margin:0 0 12px;">Te asignaron una solicitud de admisión</p>
+              <p style="color:#4b5563;font-size:14px;line-height:1.6;margin:0 0 20px;">
+                <strong>${i?.alumno_nombre ?? ''} ${i?.alumno_apellido ?? ''}</strong>${i?.curso_solicitado ? ` · ${i.curso_solicitado}` : ''}
+                · <span style="font-family:monospace;">${i?.codigo_seguimiento ?? ''}</span>
+              </p>
+              <a href="${baseUrl}/admisiones" style="background:#1a2332;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;display:inline-block;">Ver solicitud</a>
+            </div>`,
+        })
+      } catch (e) {
+        console.error('Error notificando asignación:', e)
+      }
+    }
+    return NextResponse.json({ ok: true, asignado_a: asignadoA })
   } else if (accion === 'desistir') {
     updates.estado = 'desistida'
     accionEvento = 'desistida'

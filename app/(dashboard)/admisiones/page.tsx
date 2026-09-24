@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AdmisionSeguimientoClient from '@/components/admision/AdmisionSeguimientoClient'
 import { getColegioScope } from '@/lib/colegioScope'
+import { obtenerEquipoAdmision } from '@/lib/admisionEquipo'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Admisiones — AR School' }
@@ -50,6 +51,29 @@ export default async function AdmisionPage() {
 
   const { data: preAdmisiones } = await query
 
+  // Equipo de admisión de las sedes visibles (responsables y filtro "Mías")
+  const idsSedes = scope.all ? scope.colegioIds : colegioIdsSafe
+  const equipo = await obtenerEquipoAdmision(admin, idsSedes)
+
+  // Primera respuesta del equipo por solicitud (para "tiempo de primera respuesta").
+  // Si la migración 054 no se ha ejecutado, queda vacío y se usa revisado_at.
+  const ACCIONES_RESPUESTA = ['en_revision', 'observada', 'aprobada', 'rechazada', 'matricula_iniciada', 'matriculada', 'desistida']
+  const haceUnAnio = new Date(Date.now() - 400 * 86400000).toISOString()
+  let qEv = admin
+    .from('pre_admision_eventos')
+    .select('pre_admision_id, created_at')
+    .not('usuario_id', 'is', null)
+    .in('accion', ACCIONES_RESPUESTA)
+    .gte('created_at', haceUnAnio)
+    .order('created_at', { ascending: true })
+    .limit(5000)
+  if (!scope.all) qEv = qEv.in('colegio_id', colegioIdsSafe)
+  const { data: evs } = await qEv
+  const primeraRespuesta: Record<string, string> = {}
+  for (const e of (evs as any[]) ?? []) {
+    if (!primeraRespuesta[e.pre_admision_id]) primeraRespuesta[e.pre_admision_id] = e.created_at
+  }
+
   // Eliminar es destructivo: solo roles de administración y coordinador (de su programa)
   const puedeEliminar = ['super_admin', 'admin', 'pastor_campus', 'coordinador'].includes(usuario.rol)
 
@@ -57,6 +81,9 @@ export default async function AdmisionPage() {
     <AdmisionSeguimientoClient
       preAdmisiones={(preAdmisiones as any[]) ?? []}
       puedeEliminar={puedeEliminar}
+      usuarioId={user.id}
+      equipo={equipo}
+      primeraRespuesta={primeraRespuesta}
     />
   )
 }

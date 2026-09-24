@@ -2,6 +2,8 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import MatricularDesdeAdmisionModal from '@/components/admision/MatricularDesdeAdmisionModal'
+import { DOCS_LABELS, checklistDocs, codigoPrograma } from '@/lib/admisionDocs'
+import ContactoRapido from '@/components/admision/ContactoRapido'
 
 interface Props {
   preAdmision: any
@@ -12,21 +14,6 @@ interface Props {
   permitirEliminar?: boolean
   /** Muestra el botón "Importar a matrícula" (solo si el usuario tiene el módulo Matrícula) */
   permitirImportar?: boolean
-}
-
-const DOCS_LABELS: Record<string, string> = {
-  cedula_alumno_frente: 'CI alumno (frente)',
-  cedula_alumno_dorso: 'CI alumno (dorso)',
-  cedula_alumno: 'Cédula alumno',
-  cedula_apoderado_frente: 'CI apoderado (frente)',
-  cedula_apoderado_dorso: 'CI apoderado (dorso)',
-  cedula_apoderado: 'Cédula apoderado',
-  cert_nacimiento_alumno: 'Cert. nacimiento alumno',
-  cert_nacimiento_apoderado: 'Cert. nacimiento apoderado',
-  cuenta_servicios: 'Cuenta servicios',
-  cert_medico: 'Cert. médico',
-  cert_diagnostico: 'Cert. diagnóstico',
-  notas_anteriores: 'Notas anteriores',
 }
 
 export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImportar, onEstadoCambiado, permitirEliminar = false, permitirImportar = false }: Props) {
@@ -40,6 +27,31 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
 
   const docs = pa.documentos || {}
   const docsSubidos = Object.keys(docs).filter(k => docs[k])
+  const checklist = checklistDocs(pa)
+  const equipo: any[] = pa.equipo ?? []
+  const [asignado, setAsignado] = useState<string>(pa.asignado_a ?? '')
+  // Si se cambió algo que no cierra el panel (ej. responsable), recargar la lista al cerrar
+  const [huboCambios, setHuboCambios] = useState(false)
+  const cerrar = () => (huboCambios ? onEstadoCambiado() : onClose())
+
+  async function asignar(usuarioId: string) {
+    const previo = asignado
+    setAsignado(usuarioId)
+    try {
+      const res = await fetch(`/api/admision/${pa.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'asignar', asignado_a: usuarioId || null }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setHuboCambios(true)
+      toast.success(usuarioId ? 'Responsable asignado' : 'Responsable quitado')
+    } catch (e: any) {
+      setAsignado(previo)
+      toast.error(e.message)
+    }
+  }
 
   async function cambiarEstado(accion: string) {
     setLoading(true)
@@ -96,7 +108,7 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" onClick={onClose}/>
+      <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" onClick={cerrar}/>
 
       {/* Panel lateral */}
       <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-[580px] bg-white shadow-2xl overflow-y-auto animate-[slideIn_0.2s_ease-out]" style={{ animationName: 'slideInRight' }}>
@@ -108,13 +120,31 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
           </div>
           <div className="flex items-center gap-2">
             <EstadoBadge estado={pa.estado}/>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <button onClick={cerrar} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
           </div>
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Responsable + contacto rápido */}
+          <div className="flex flex-wrap items-end justify-between gap-3 bg-[#f8fafc] border border-gray-100 rounded-xl p-3">
+            <div className="min-w-[200px] flex-1">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Responsable</label>
+              <select
+                value={asignado}
+                onChange={e => asignar(e.target.value)}
+                className="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1B3A5C]"
+              >
+                <option value="">Sin asignar</option>
+                {equipo.map(m => (
+                  <option key={m.id} value={m.id}>{`${m.nombre ?? ''} ${m.apellido ?? ''}`.trim() || m.id} · {m.rol.replace('_', ' ')}</option>
+                ))}
+              </select>
+            </div>
+            <ContactoRapido pa={pa} programa={codigoPrograma(pa)} tamano="md"/>
+          </div>
+
           {/* Datos alumno */}
           <Section titulo="Datos del alumno" icono="ti-user">
             <Row label="Nombre completo" value={`${pa.alumno_nombre} ${pa.alumno_apellido}`} highlight/>
@@ -195,15 +225,18 @@ export default function PreAdmisionDetalle({ preAdmision: pa, onClose, onImporta
 
             {/* Verificación de obligatorios */}
             <div className="mt-3 space-y-1">
-              {['cedula_alumno_frente', 'cedula_alumno_dorso', 'cedula_apoderado_frente', 'cedula_apoderado_dorso', 'cert_nacimiento_alumno', 'cuenta_servicios'].map(key => (
-                <div key={key} className="flex items-center gap-2 text-[10px]">
-                  {docs[key] ? (
+              {checklist.length === 0 && (
+                <p className="text-[10px] text-gray-400">Este programa no pide documentos obligatorios.</p>
+              )}
+              {checklist.map(d => (
+                <div key={d.key} className="flex items-center gap-2 text-[10px]">
+                  {d.ok ? (
                     <span className="text-[#2D5A3F] font-bold">✓</span>
                   ) : (
                     <span className="text-red-500 font-bold">✗</span>
                   )}
-                  <span className={docs[key] ? 'text-gray-600' : 'text-red-600 font-medium'}>{DOCS_LABELS[key]}</span>
-                  {!docs[key] && <span className="text-red-400 text-[9px]">(faltante)</span>}
+                  <span className={d.ok ? 'text-gray-600' : 'text-red-600 font-medium'}>{d.label}</span>
+                  {!d.ok && <span className="text-red-400 text-[9px]">(faltante)</span>}
                 </div>
               ))}
             </div>
@@ -418,6 +451,7 @@ const EVENTO_CONFIG: Record<string, { label: string; icono: string; color: strin
   aprobada:            { label: 'Solicitud aprobada',                   icono: 'ti-circle-check',  color: '#2D5A3F' },
   rechazada:           { label: 'Solicitud rechazada',                  icono: 'ti-circle-x',      color: '#dc2626' },
   nota:                { label: 'Nota interna',                         icono: 'ti-note',          color: '#1B3A5C' },
+  asignada:            { label: 'Cambio de responsable',                icono: 'ti-user-check',    color: '#1B3A5C' },
   matricula_iniciada:  { label: 'Datos importados a matrícula',         icono: 'ti-file-import',   color: '#1B3A5C' },
   matriculada:         { label: 'Matrícula completada',                 icono: 'ti-school',        color: '#2D5A3F' },
   matricula_eliminada: { label: 'Matrícula eliminada',                  icono: 'ti-arrow-back-up', color: '#b45309' },
