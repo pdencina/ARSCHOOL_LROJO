@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import toast, { Toaster } from 'react-hot-toast'
-import { formatearRut, validarRut } from '@/lib/validaciones'
+import { formatearRut, validarRut, capitalizarNombre } from '@/lib/validaciones'
 
 const INSTRUMENTOS = ['Guitarra', 'Bajo', 'Teclado', 'Batería', 'Canto', 'Saxophone', 'Violín']
 const PROGRAMAS = [
@@ -151,12 +151,12 @@ export default function WorshipInscripcionPage() {
             {/* Datos alumno */}
             <div className="text-[10px] font-bold text-[#ff6b6b] uppercase tracking-wider">Datos del alumno</div>
             <div className="grid grid-cols-2 gap-3">
-              <WInput label="Primer nombre *" value={form.alumno_nombre} onChange={v => set('alumno_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Benjamín"/>
-              <WInput label="Segundo nombre" value={form.alumno_segundo_nombre || ''} onChange={v => set('alumno_segundo_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Opcional"/>
+              <WInput label="Primer nombre *" value={form.alumno_nombre} onChange={v => set('alumno_nombre', capitalizarNombre(v))} placeholder="Ej: Benjamín"/>
+              <WInput label="Segundo nombre" value={form.alumno_segundo_nombre || ''} onChange={v => set('alumno_segundo_nombre', capitalizarNombre(v))} placeholder="Opcional"/>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <WInput label="Apellido paterno *" value={form.alumno_apellido} onChange={v => set('alumno_apellido', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Pinto"/>
-              <WInput label="Apellido materno *" value={form.alumno_apellido_materno || ''} onChange={v => set('alumno_apellido_materno', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Guzmán"/>
+              <WInput label="Apellido paterno *" value={form.alumno_apellido} onChange={v => set('alumno_apellido', capitalizarNombre(v))} placeholder="Ej: Pinto"/>
+              <WInput label="Apellido materno *" value={form.alumno_apellido_materno || ''} onChange={v => set('alumno_apellido_materno', capitalizarNombre(v))} placeholder="Ej: Guzmán"/>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -268,12 +268,12 @@ export default function WorshipInscripcionPage() {
               <div className="text-[10px] font-bold text-[#ff6b6b] uppercase tracking-wider mb-3">Datos del apoderado *</div>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <WInput label="Primer nombre *" value={form.apoderado_nombre} onChange={v => set('apoderado_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Nombre"/>
-                  <WInput label="Segundo nombre" value={form.apoderado_segundo_nombre || ''} onChange={v => set('apoderado_segundo_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))}/>
+                  <WInput label="Primer nombre *" value={form.apoderado_nombre} onChange={v => set('apoderado_nombre', capitalizarNombre(v))} placeholder="Nombre"/>
+                  <WInput label="Segundo nombre" value={form.apoderado_segundo_nombre || ''} onChange={v => set('apoderado_segundo_nombre', capitalizarNombre(v))}/>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <WInput label="Apellido paterno *" value={form.apoderado_apellido} onChange={v => set('apoderado_apellido', v.replace(/\b\w/g, c => c.toUpperCase()))}/>
-                  <WInput label="Apellido materno *" value={form.apoderado_apellido_materno || ''} onChange={v => set('apoderado_apellido_materno', v.replace(/\b\w/g, c => c.toUpperCase()))}/>
+                  <WInput label="Apellido paterno *" value={form.apoderado_apellido} onChange={v => set('apoderado_apellido', capitalizarNombre(v))}/>
+                  <WInput label="Apellido materno *" value={form.apoderado_apellido_materno || ''} onChange={v => set('apoderado_apellido_materno', capitalizarNombre(v))}/>
                 </div>
                 <div>
                   <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">RUT apoderado *</label>

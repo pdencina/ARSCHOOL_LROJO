@@ -243,7 +243,9 @@ export function validarFormularioAdmision(form: any, paso: number): Record<strin
  */
 export function capitalizarNombre(s: string): string {
   if (!s) return ''
-  return s.replace(/\b\w/g, c => c.toUpperCase())
+  // No usar \b\w: las letras con tilde (í, á, ñ) no son \w y dejaban en mayúscula la
+  // letra siguiente ("Joaquín" -> "JoaquíN").
+  return s.replace(/(^|[\s\-'’.])([^\s\-'’.])/g, (_m, sep, c) => sep + c.toUpperCase())
 }
 
 /**

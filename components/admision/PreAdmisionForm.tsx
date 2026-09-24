@@ -564,5 +564,5 @@ function SumCard({ title, rows }: { title:string; rows:[string,string|null|undef
 }
 
 function capitalizar(s: string): string {
-  return s.replace(/\b\w/g, c => c.toUpperCase())
+  return s.replace(/(^|[\s\-'’.])([^\s\-'’.])/g, (_m, sep, c) => sep + c.toUpperCase())
 }

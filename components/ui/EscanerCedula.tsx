@@ -125,7 +125,7 @@ function formatearRutSimple(rut: string): string {
 }
 
 function capitalizarPalabras(s: string): string {
-  return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+  return s.toLowerCase().replace(/(^|[\s\-'’.])([^\s\-'’.])/g, (_m, sep, c) => sep + c.toUpperCase())
 }
 
 export default function EscanerCedula({ onDatosEscaneados, onCerrar }: Props) {

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import toast, { Toaster } from 'react-hot-toast'
-import { formatearRut, validarRut } from '@/lib/validaciones'
+import { formatearRut, validarRut, capitalizarNombre } from '@/lib/validaciones'
 
 // Categorías oficiales Lions Soccer School (4 tramos de edad)
 const CATEGORIAS = [
@@ -206,12 +206,12 @@ export default function LionsInscripcionPage() {
             {/* Datos alumno */}
             <div className="text-[10px] font-bold text-[#5fd18a] uppercase tracking-wider">Datos del jugador</div>
             <div className="grid grid-cols-2 gap-3">
-              <LInput label="Primer nombre *" value={form.alumno_nombre} onChange={v => set('alumno_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Matías"/>
-              <LInput label="Segundo nombre" value={form.alumno_segundo_nombre} onChange={v => set('alumno_segundo_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Opcional"/>
+              <LInput label="Primer nombre *" value={form.alumno_nombre} onChange={v => set('alumno_nombre', capitalizarNombre(v))} placeholder="Ej: Matías"/>
+              <LInput label="Segundo nombre" value={form.alumno_segundo_nombre} onChange={v => set('alumno_segundo_nombre', capitalizarNombre(v))} placeholder="Opcional"/>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <LInput label="Apellido paterno *" value={form.alumno_apellido} onChange={v => set('alumno_apellido', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: González"/>
-              <LInput label="Apellido materno *" value={form.alumno_apellido_materno} onChange={v => set('alumno_apellido_materno', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Ej: Rojas"/>
+              <LInput label="Apellido paterno *" value={form.alumno_apellido} onChange={v => set('alumno_apellido', capitalizarNombre(v))} placeholder="Ej: González"/>
+              <LInput label="Apellido materno *" value={form.alumno_apellido_materno} onChange={v => set('alumno_apellido_materno', capitalizarNombre(v))} placeholder="Ej: Rojas"/>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -291,12 +291,12 @@ export default function LionsInscripcionPage() {
               <div className="text-[10px] font-bold text-[#5fd18a] uppercase tracking-wider mb-3">Datos del apoderado *</div>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <LInput label="Primer nombre *" value={form.apoderado_nombre} onChange={v => set('apoderado_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Nombre"/>
-                  <LInput label="Segundo nombre" value={form.apoderado_segundo_nombre} onChange={v => set('apoderado_segundo_nombre', v.replace(/\b\w/g, c => c.toUpperCase()))}/>
+                  <LInput label="Primer nombre *" value={form.apoderado_nombre} onChange={v => set('apoderado_nombre', capitalizarNombre(v))} placeholder="Nombre"/>
+                  <LInput label="Segundo nombre" value={form.apoderado_segundo_nombre} onChange={v => set('apoderado_segundo_nombre', capitalizarNombre(v))}/>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <LInput label="Apellido paterno *" value={form.apoderado_apellido} onChange={v => set('apoderado_apellido', v.replace(/\b\w/g, c => c.toUpperCase()))}/>
-                  <LInput label="Apellido materno *" value={form.apoderado_apellido_materno} onChange={v => set('apoderado_apellido_materno', v.replace(/\b\w/g, c => c.toUpperCase()))}/>
+                  <LInput label="Apellido paterno *" value={form.apoderado_apellido} onChange={v => set('apoderado_apellido', capitalizarNombre(v))}/>
+                  <LInput label="Apellido materno *" value={form.apoderado_apellido_materno} onChange={v => set('apoderado_apellido_materno', capitalizarNombre(v))}/>
                 </div>
                 <div>
                   <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">RUT apoderado *</label>
