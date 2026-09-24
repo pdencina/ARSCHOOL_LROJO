@@ -276,13 +276,16 @@ export default async function InicioPage() {
   const programaStats: { codigo: string; nombre: string; color: string; icono: string; inscritos: number }[] = []
   if (programas) {
     for (const p of programas as any[]) {
-      const { count } = await admin
-        .from('inscripciones_programa')
-        .select('*', { count: 'exact', head: true })
-        .eq('programa_id', p.id)
-        .in('colegio_id', colegioIdsSafe)
-        .eq('estado', 'activa')
-      programaStats.push({ codigo: p.codigo, nombre: p.nombre_corto || p.nombre, color: p.color, icono: p.icono, inscritos: count ?? 0 })
+      // Inscritos = alumnos activos del programa (alumnos.programa_id) + inscripciones activas
+      // (multi-programa), sin duplicar. Los alumnos regulares no tienen inscripción.
+      const [{ data: propios }, { data: inscritos }] = await Promise.all([
+        admin.from('alumnos').select('id').eq('programa_id', p.id).in('colegio_id', colegioIdsSafe).eq('activo', true),
+        admin.from('inscripciones_programa').select('alumno_id').eq('programa_id', p.id).in('colegio_id', colegioIdsSafe).eq('estado', 'activa'),
+      ])
+      const ids: Record<string, true> = {}
+      ;(propios ?? []).forEach((a: any) => { ids[a.id] = true })
+      ;(inscritos ?? []).forEach((i: any) => { ids[i.alumno_id] = true })
+      programaStats.push({ codigo: p.codigo, nombre: p.nombre_corto || p.nombre, color: p.color, icono: p.icono, inscritos: Object.keys(ids).length })
     }
   }
 
