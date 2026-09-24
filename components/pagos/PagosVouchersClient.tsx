@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PagosContratoModal from '@/components/pagos/PagosContratoModal'
+import { VOUCHERS_EQUIPO_HABILITADOS } from '@/lib/pagosConfig'
 
 interface Contrato {
   id: string
@@ -35,10 +36,12 @@ const FILTROS = [
   { value: 'todos', label: 'Todos' },
   { value: 'por_validar', label: 'Vouchers por validar' },
   { value: 'vencidas', label: 'Con cuotas vencidas' },
-  { value: 'sin_voucher', label: 'Pagos sin voucher' },
   { value: 'al_dia', label: 'Al día' },
+  { value: 'sin_voucher', label: 'Pagos sin voucher' },
 ] as const
 type Filtro = typeof FILTROS[number]['value']
+// El filtro de vouchers solo aplica si la subida de vouchers del equipo está habilitada
+const FILTROS_VISIBLES = FILTROS.filter(f => VOUCHERS_EQUIPO_HABILITADOS || f.value !== 'sin_voucher')
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 const $ = (n: number) => `$${(n ?? 0).toLocaleString('es-CL')}`
@@ -68,8 +71,8 @@ export default function PagosVouchersClient({ contratos, anio, anios }: { contra
       .filter(c => !programa || c.programa?.codigo === programa)
       .filter(c => pasaFiltro(c, filtro))
       .filter(c => !q || norm(`${c.alumno?.nombre} ${c.alumno?.apellido} ${c.apoderado ?? ''} ${c.alumno?.curso ?? ''}`).includes(q))
-      // Primero lo que requiere acción: por validar, vencidas, sin voucher
-      .sort((a, b) => (b.por_validar - a.por_validar) || (b.vencidas - a.vencidas) || (b.sin_voucher - a.sin_voucher)
+      // Primero lo que requiere acción: por validar, vencidas (y sin voucher, si aplica)
+      .sort((a, b) => (b.por_validar - a.por_validar) || (b.vencidas - a.vencidas) || (VOUCHERS_EQUIPO_HABILITADOS ? b.sin_voucher - a.sin_voucher : 0)
         || `${a.alumno?.apellido}`.localeCompare(`${b.alumno?.apellido}`))
   }, [contratos, busqueda, programa, filtro])
 
@@ -78,7 +81,7 @@ export default function PagosVouchersClient({ contratos, anio, anios }: { contra
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-[var(--ar-text)]" style={{ fontFamily: 'DM Sans' }}>Pagos y vouchers</h1>
-          <p className="text-xs text-[var(--ar-muted)]">Cuotas de cada contrato: adjunta vouchers, registra pagos y valida los comprobantes de apoderados</p>
+          <p className="text-xs text-[var(--ar-muted)]">Cuotas de cada contrato: marca cada una como pagada o pendiente y valida los comprobantes de apoderados</p>
         </div>
         <select
           value={anio}
@@ -96,7 +99,9 @@ export default function PagosVouchersClient({ contratos, anio, anios }: { contra
         <Kpi label="Por cobrar" valor={$(totales.pendiente)}/>
         <Kpi label="Vouchers por validar" valor={String(totales.por_validar)} tono={totales.por_validar > 0 ? 'violeta' : undefined} onClick={() => setFiltro('por_validar')}/>
         <Kpi label="Cuotas vencidas" valor={String(totales.vencidas)} tono={totales.vencidas > 0 ? 'rojo' : undefined} onClick={() => setFiltro('vencidas')}/>
-        <Kpi label="Pagos sin voucher" valor={String(totales.sin_voucher)} tono={totales.sin_voucher > 0 ? 'ambar' : undefined} onClick={() => setFiltro('sin_voucher')}/>
+        {VOUCHERS_EQUIPO_HABILITADOS && (
+          <Kpi label="Pagos sin voucher" valor={String(totales.sin_voucher)} tono={totales.sin_voucher > 0 ? 'ambar' : undefined} onClick={() => setFiltro('sin_voucher')}/>
+        )}
       </div>
 
       {/* Búsqueda y filtros */}
@@ -112,7 +117,7 @@ export default function PagosVouchersClient({ contratos, anio, anios }: { contra
         </select>
       </div>
       <div className="flex flex-wrap gap-1.5 mb-4">
-        {FILTROS.map(f => (
+        {FILTROS_VISIBLES.map(f => (
           <button key={f.value} onClick={() => setFiltro(f.value)}
             className={`text-[11px] px-3 py-1 rounded-full font-medium transition-colors ${filtro === f.value ? 'bg-[#1B3A5C] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
             {f.label} <span className="opacity-70">({cuenta(f.value)})</span>
@@ -142,7 +147,7 @@ export default function PagosVouchersClient({ contratos, anio, anios }: { contra
                     )}
                     {c.por_validar > 0 && <Chip cls="bg-violet-50 text-violet-700" icono="ti-user-check">{c.por_validar} por validar</Chip>}
                     {c.vencidas > 0 && <Chip cls="bg-red-50 text-red-700" icono="ti-alert-triangle">{c.vencidas} vencida{c.vencidas !== 1 ? 's' : ''}</Chip>}
-                    {c.sin_voucher > 0 && <Chip cls="bg-amber-50 text-amber-800" icono="ti-file-alert">{c.sin_voucher} sin voucher</Chip>}
+                    {VOUCHERS_EQUIPO_HABILITADOS && c.sin_voucher > 0 && <Chip cls="bg-amber-50 text-amber-800" icono="ti-file-alert">{c.sin_voucher} sin voucher</Chip>}
                     {c.descuadre && <Chip cls="bg-red-50 text-red-700" icono="ti-alert-circle">cuotas ≠ contrato</Chip>}
                   </div>
                   <div className="text-[11px] text-[var(--ar-muted)] flex flex-wrap gap-x-1.5">

@@ -1,6 +1,7 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+import { VOUCHERS_EQUIPO_HABILITADOS } from '@/lib/pagosConfig'
 
 interface Props {
   matriculaId: string
@@ -15,12 +16,6 @@ const MEDIOS = [
   { value: 'webpay', label: 'Webpay / tarjeta' },
   { value: 'app', label: 'App' },
 ]
-const ESTADO_CUOTA: Record<string, { label: string; cls: string }> = {
-  pagado: { label: 'Pagada', cls: 'bg-[#EDF5F0] text-[#2D5A3F]' },
-  parcial: { label: 'Parcial', cls: 'bg-blue-50 text-blue-700' },
-  pendiente: { label: 'Pendiente', cls: 'bg-amber-50 text-amber-700' },
-  mora: { label: 'En mora', cls: 'bg-red-50 text-red-700' },
-}
 const MAX_MB = 4
 const $ = (n: number) => `$${(n ?? 0).toLocaleString('es-CL')}`
 const fecha = (iso?: string | null) => (iso ? new Date(`${iso.slice(0, 10)}T12:00`).toLocaleDateString('es-CL') : '')
@@ -48,6 +43,32 @@ export default function PagosContratoModal({ matriculaId, onClose }: Props) {
   const [data, setData] = useState<any>(null)
   const [cargando, setCargando] = useState(true)
   const [abierta, setAbierta] = useState<string | null>(null) // cuota con el formulario abierto
+  const [marcando, setMarcando] = useState<string | null>(null)
+
+  // Control rápido: marcar la cuota como pagada (por su saldo, con fecha de hoy) o volverla a pendiente
+  async function marcar(c: any, titulo: string, estado: 'pagado' | 'pendiente') {
+    const pregunta = estado === 'pagado'
+      ? `¿Marcar "${titulo}" como PAGADA?\n\nSe registra el pago de ${$(c.saldo)} con fecha de hoy.`
+      : `¿Volver "${titulo}" a PENDIENTE?\n\nEl pago registrado queda anulado (se conserva en el historial).`
+    if (!confirm(pregunta)) return
+    setMarcando(c.id)
+    try {
+      const r = await fetch(`/api/matriculas/${matriculaId}/pagos`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cobro_id: c.id, estado }),
+      })
+      const d = await r.json().catch(() => null)
+      if (!r.ok) throw new Error(d?.error || 'No se pudo actualizar la cuota')
+      toast.success(estado === 'pagado' ? 'Cuota marcada como pagada' : 'Cuota vuelta a pendiente')
+      setHuboCambios(true)
+      cargar()
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setMarcando(null)
+    }
+  }
   const [huboCambios, setHuboCambios] = useState(false)
 
   const cargar = useCallback(async () => {
@@ -150,7 +171,7 @@ export default function PagosContratoModal({ matriculaId, onClose }: Props) {
                   <Dato label="Cuotas pagadas" valor={`${r.cuotas_pagadas} de ${r.cuotas_mensuales}`}/>
                 </div>
 
-                {r.sin_comprobante > 0 && (
+                {VOUCHERS_EQUIPO_HABILITADOS && r.sin_comprobante > 0 && (
                   <Aviso tono="ambar" icono="ti-file-alert">
                     {r.sin_comprobante} cuota{r.sin_comprobante !== 1 ? 's tienen' : ' tiene'} pagos registrados sin voucher adjunto.
                   </Aviso>
@@ -169,15 +190,15 @@ export default function PagosContratoModal({ matriculaId, onClose }: Props) {
                       const titulo = c.tipo_concepto === 'aporte_inicial'
                         ? 'Aporte inicial (matrícula)'
                         : `Cuota ${n} de ${mensuales.length} · ${MESES[c.mes - 1]} ${c.anio}`
-                      const est = ESTADO_CUOTA[c.estado] ?? ESTADO_CUOTA.pendiente
                       const porValidar = (c.pagos as any[]).filter(p => p.estado === 'pendiente')
+                      // Vencida: con saldo y fecha de vencimiento pasada (o marcada en mora)
+                      const vencida = c.saldo > 0 && (c.estado === 'mora' || (!!c.fecha_vencimiento && c.fecha_vencimiento < hoyISO()))
                       return (
                         <li key={c.id} className="p-3">
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                             <div className="flex-1 min-w-[180px]">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-[12px] font-semibold text-[var(--ar-text)]">{titulo}</span>
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${est.cls}`}>{est.label}</span>
                                 {porValidar.length > 0 && (
                                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-50 text-violet-700" title="El apoderado envió un comprobante que falta validar">
                                     Voucher por validar
@@ -191,13 +212,36 @@ export default function PagosContratoModal({ matriculaId, onClose }: Props) {
                                 {c.fecha_pago && c.saldo === 0 && <> · pagada {fecha(c.fecha_pago)}</>}
                               </div>
                             </div>
-                            <button
-                              onClick={() => setAbierta(abierta === c.id ? null : c.id)}
-                              className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-colors ${abierta === c.id ? 'bg-slate-100 border-slate-200 text-slate-700' : 'bg-white border-[var(--ar-border)] text-[#1B3A5C] hover:bg-slate-50'}`}
-                            >
-                              <i className="ti ti-paperclip text-xs mr-1" aria-hidden="true"/>
-                              {abierta === c.id ? 'Cancelar' : 'Adjuntar voucher'}
-                            </button>
+                            <div className="flex items-center gap-2">
+                              {/* Pendiente | Pagado */}
+                              <div className="inline-flex rounded-lg border border-[var(--ar-border)] p-0.5 bg-slate-50" role="group" aria-label={`Estado de ${titulo}`}>
+                                <button
+                                  onClick={() => c.saldo === 0 && marcar(c, titulo, 'pendiente')}
+                                  disabled={marcando === c.id}
+                                  aria-pressed={c.saldo > 0}
+                                  className={`text-[11px] font-semibold px-3 py-1 rounded-md transition-colors disabled:opacity-50 ${c.saldo > 0 ? (vencida ? 'bg-red-600 text-white shadow-sm' : 'bg-amber-500 text-white shadow-sm') : 'text-slate-500 hover:text-slate-800'}`}
+                                >
+                                  {c.saldo > 0 && c.monto_pagado > 0 ? 'Parcial' : vencida ? 'Vencida' : 'Pendiente'}
+                                </button>
+                                <button
+                                  onClick={() => c.saldo > 0 && marcar(c, titulo, 'pagado')}
+                                  disabled={marcando === c.id}
+                                  aria-pressed={c.saldo === 0}
+                                  className={`text-[11px] font-semibold px-3 py-1 rounded-md transition-colors disabled:opacity-50 ${c.saldo === 0 ? 'bg-[#2D5A3F] text-white shadow-sm' : 'text-slate-500 hover:text-[#2D5A3F]'}`}
+                                >
+                                  {marcando === c.id ? '…' : 'Pagado'}
+                                </button>
+                              </div>
+                              {VOUCHERS_EQUIPO_HABILITADOS && (
+                                <button
+                                  onClick={() => setAbierta(abierta === c.id ? null : c.id)}
+                                  className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-colors ${abierta === c.id ? 'bg-slate-100 border-slate-200 text-slate-700' : 'bg-white border-[var(--ar-border)] text-[#1B3A5C] hover:bg-slate-50'}`}
+                                >
+                                  <i className="ti ti-paperclip text-xs mr-1" aria-hidden="true"/>
+                                  {abierta === c.id ? 'Cancelar' : 'Adjuntar voucher'}
+                                </button>
+                              )}
+                            </div>
                           </div>
 
                           {/* Vouchers y pagos de la cuota */}
@@ -249,7 +293,7 @@ export default function PagosContratoModal({ matriculaId, onClose }: Props) {
                             </div>
                           ))}
 
-                          {abierta === c.id && (
+                          {VOUCHERS_EQUIPO_HABILITADOS && abierta === c.id && (
                             <FormVoucher
                               matriculaId={matriculaId}
                               cuota={c}

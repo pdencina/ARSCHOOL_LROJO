@@ -243,6 +243,83 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   return NextResponse.json({ ok: true, comprobante_id: (comp as any).id, pago_id: pagoId })
 }
 
+// PATCH /api/matriculas/[id]/pagos — Marcar una cuota como pagada o volverla a pendiente
+// (control rápido, sin voucher). Body: { cobro_id, estado: 'pagado' | 'pendiente', fecha_pago?, medio_pago? }
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const admin = getAdmin()
+  const auth = await autorizarMatricula(admin, user.id, params.id)
+  if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
+
+  const body = await request.json().catch(() => ({}))
+  const cobroId = String(body.cobro_id || '')
+  const estado = body.estado
+  if (!cobroId || !['pagado', 'pendiente'].includes(estado)) return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+
+  const mat = await cargarMatricula(admin, params.id)
+  if (!mat) return NextResponse.json({ error: 'Matrícula no encontrada' }, { status: 404 })
+  const cuota = (await cuotasDelContrato(admin, mat)).find(c => c.id === cobroId)
+  if (!cuota) return NextResponse.json({ error: 'La cuota no pertenece a este contrato' }, { status: 400 })
+
+  const ahora = new Date().toISOString()
+  const hoy = ahora.slice(0, 10)
+
+  // ── Marcar pagada: se registra un pago por el saldo ──
+  if (estado === 'pagado') {
+    const saldo = Math.max(0, (cuota.monto ?? 0) - (cuota.monto_pagado ?? 0))
+    if (saldo === 0) return NextResponse.json({ ok: true, sin_cambios: true })
+    const fechaPago = /^\d{4}-\d{2}-\d{2}$/.test(String(body.fecha_pago || '')) ? String(body.fecha_pago) : hoy
+    const medio = MEDIOS_OK.includes(body.medio_pago) ? body.medio_pago : 'transferencia'
+
+    const { data: pago, error: ePago } = await admin.from('pagos').insert({
+      cobro_id: cobroId,
+      monto: saldo,
+      medio_pago: medio,
+      referencia: 'Marcado como pagado',
+      estado: 'confirmado',
+      registrado_por: user.id,
+      metadata: { origen: 'marcado_manual', fecha_pago: fechaPago },
+    }).select('id').single()
+    if (ePago || !pago) return NextResponse.json({ error: `No se pudo registrar el pago: ${ePago?.message ?? ''}` }, { status: 500 })
+
+    const { error: eCobro } = await admin.from('cobros').update({
+      monto_pagado: cuota.monto,
+      estado: 'pagado',
+      medio_pago: medio,
+      fecha_pago: fechaPago,
+    }).eq('id', cobroId)
+    if (eCobro) {
+      await admin.from('pagos').delete().eq('id', (pago as any).id)
+      return NextResponse.json({ error: `No se pudo actualizar la cuota: ${eCobro.message}` }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true, estado: 'pagado' })
+  }
+
+  // ── Volver a pendiente: se anulan los pagos confirmados de la cuota (quedan en el registro) ──
+  const { data: pagosCuota } = await admin.from('pagos').select('id, medio_pago, metadata').eq('cobro_id', cobroId).eq('estado', 'confirmado')
+  const confirmados = (pagosCuota as any[]) ?? []
+  if (confirmados.some(p => p.medio_pago === 'webpay')) {
+    return NextResponse.json({ error: 'Esta cuota se pagó por Webpay (el dinero ingresó). No se puede revertir desde aquí.' }, { status: 409 })
+  }
+  for (const p of confirmados) {
+    const { error } = await admin.from('pagos').update({
+      estado: 'anulado',
+      metadata: { ...(p.metadata ?? {}), anulado_por: user.id, anulado_at: ahora, motivo: 'Cuota marcada como pendiente' },
+    }).eq('id', p.id)
+    if (error) return NextResponse.json({ error: `No se pudo revertir el pago: ${error.message}` }, { status: 500 })
+  }
+  const { error: eCobro } = await admin.from('cobros').update({
+    monto_pagado: 0,
+    estado: 'pendiente',
+    fecha_pago: null,
+  }).eq('id', cobroId)
+  if (eCobro) return NextResponse.json({ error: `No se pudo actualizar la cuota: ${eCobro.message}` }, { status: 500 })
+  return NextResponse.json({ ok: true, estado: 'pendiente', anulados: confirmados.length })
+}
+
 // DELETE /api/matriculas/[id]/pagos?comprobante=<id> — Quitar un voucher adjuntado por error.
 // No anula el pago registrado (eso se hace aparte); solo el archivo de respaldo.
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
