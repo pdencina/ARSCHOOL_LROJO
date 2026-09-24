@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import AdmisionSeguimientoClient from '@/components/admision/AdmisionSeguimientoClient'
 import { getColegioScope } from '@/lib/colegioScope'
 import { obtenerEquipoAdmision } from '@/lib/admisionEquipo'
+import { COLUMNAS_LISTA_ADMISION } from '@/lib/admisionDocs'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Admisiones — AR School' }
@@ -33,23 +34,29 @@ export default async function AdmisionPage() {
   const colegioIds = scope.all ? scope.colegioIds : (scope.colegioId ? [scope.colegioId] : [])
   const colegioIdsSafe = colegioIds.length ? colegioIds : [usuario.colegio_id ?? '__none__']
 
-  let query = admin
-    .from('pre_admisiones')
-    .select('*, programa:programas(id, codigo, nombre, nombre_corto, color, icono)')
-    .order('created_at', { ascending: false })
+  // La lista no trae los documentos (base64): solo qué documentos hay (docs_presentes).
+  const consultar = (columnas: string) => {
+    let query = admin
+      .from('pre_admisiones')
+      .select(`${columnas}, programa:programas(id, codigo, nombre, nombre_corto, color, icono)`)
+      .order('created_at', { ascending: false })
 
-  // super_admin con "Todas las sedes" ve TODO (sin filtro de colegio, incluso
-  // solicitudes con colegio_id nulo). El resto se acota a su(s) sede(s).
-  if (!scope.all) {
-    query = query.in('colegio_id', colegioIdsSafe)
+    // super_admin con "Todas las sedes" ve TODO (sin filtro de colegio, incluso
+    // solicitudes con colegio_id nulo). El resto se acota a su(s) sede(s).
+    if (!scope.all) {
+      query = query.in('colegio_id', colegioIdsSafe)
+    }
+
+    // Coordinador: acotar a las admisiones de sus programas
+    if (usuario.rol === 'coordinador' && usuario.programa_ids?.length > 0) {
+      query = query.in('programa_id', usuario.programa_ids)
+    }
+    return query
   }
 
-  // Coordinador: acotar a las admisiones de sus programas
-  if (usuario.rol === 'coordinador' && usuario.programa_ids?.length > 0) {
-    query = query.in('programa_id', usuario.programa_ids)
-  }
-
-  const { data: preAdmisiones } = await query
+  let { data: preAdmisiones, error: errLista } = await consultar(COLUMNAS_LISTA_ADMISION)
+  // Si falta alguna columna nueva (migraciones 055/056 sin ejecutar), consulta completa
+  if (errLista) ({ data: preAdmisiones } = await consultar('*'))
 
   // Equipo de admisión de las sedes visibles (responsables y filtro "Mías")
   const idsSedes = scope.all ? scope.colegioIds : colegioIdsSafe

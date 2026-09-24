@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import MatriculaClient from '@/components/matricula/MatriculaClient'
 import { getColegioScope } from '@/lib/colegioScope'
+import { COLUMNAS_LISTA_ADMISION } from '@/lib/admisionDocs'
 
 function getAdmin() {
   return createAdminClient(
@@ -120,15 +121,24 @@ export default async function MatriculaPage() {
   }
 
   // Pre-admisiones pendientes (mismo filtro por programa)
-  let preAdmQuery = admin
-    .from('pre_admisiones')
-    .select('*')
-    .in('colegio_id', colegioIdsSafe)
-    .in('estado', ['pendiente', 'en_revision', 'observada', 'aprobada'])
-    .order('created_at', { ascending: false })
-  if (esCoordinador && usuario.programa_ids?.length > 0) {
-    preAdmQuery = preAdmQuery.in('programa_id', usuario.programa_ids)
+  // Sin los documentos (base64): solo qué documentos hay (docs_presentes)
+  const consultarPreAdm = (columnas: string) => {
+    let q = admin
+      .from('pre_admisiones')
+      .select(columnas)
+      .in('colegio_id', colegioIdsSafe)
+      .in('estado', ['pendiente', 'en_revision', 'observada', 'aprobada'])
+      .order('created_at', { ascending: false })
+    if (esCoordinador && usuario.programa_ids?.length > 0) {
+      q = q.in('programa_id', usuario.programa_ids)
+    }
+    return q
   }
+  // Si falta alguna columna nueva (migraciones 055/056 sin ejecutar), consulta completa
+  const preAdmQuery = (async () => {
+    const r = await consultarPreAdm(COLUMNAS_LISTA_ADMISION)
+    return r.error ? await consultarPreAdm('*') : r
+  })()
 
   const [{ data: planes }, { data: matriculas }, { data: aportes }, { data: becasAprobadas }, { data: preAdmisiones }] = await Promise.all([
     admin.from('planes_cobro').select('*').in('colegio_id', colegioIdsSafe).eq('activo', true),

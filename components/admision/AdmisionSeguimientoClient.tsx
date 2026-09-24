@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import PreAdmisionDetalle from '@/components/matricula/PreAdmisionDetalle'
 import ContactoRapido from '@/components/admision/ContactoRapido'
 import IndicadoresAdmision from '@/components/admision/IndicadoresAdmision'
-import { codigoPrograma, docsFaltantes } from '@/lib/admisionDocs'
+import { codigoPrograma, docsFaltantes, docsPresentes } from '@/lib/admisionDocs'
 import { esCorregida, fechaEspera, diasEspera } from '@/lib/admisionTiempos'
 
 interface Miembro { id: string; nombre: string | null; apellido: string | null; rol: string }
@@ -400,7 +400,7 @@ function FilaSolicitud({ pa, mostrarPrograma = false, mostrarEspera = false, loa
   pa: any; mostrarPrograma?: boolean; mostrarEspera?: boolean; loading: boolean; onAbrir: (id: string) => void; equipoMap?: Record<string, string>
 }) {
   const badge = ESTADO_BADGE[pa.estado] || ESTADO_BADGE.pendiente
-  const docs = Object.keys(pa.documentos || {}).filter(k => pa.documentos[k]).length
+  const docs = docsPresentes(pa).length
   const codigo = codigoPrograma(pa)
   const prog = PROGRAMA_POR_CODIGO[codigo] ?? OTROS
   const abierta = ['pendiente', 'en_revision', 'observada', 'aprobada'].includes(pa.estado)

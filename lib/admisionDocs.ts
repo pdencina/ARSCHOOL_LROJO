@@ -55,15 +55,36 @@ export function codigoPrograma(pa: any): string {
   return 'otros'
 }
 
-export function tieneDoc(docs: Record<string, any> | null | undefined, key: string): boolean {
-  const d = docs || {}
-  return !!d[key] || (ALIAS[key] ?? []).some(k => !!d[k])
+/**
+ * Columnas que necesitan las listas de solicitudes (Admisiones y cola de Matrícula).
+ * No incluye `documentos` (base64, pesado): se usa `docs_presentes` (migración 056).
+ */
+export const COLUMNAS_LISTA_ADMISION = [
+  'id', 'colegio_id', 'programa_id', 'codigo_seguimiento', 'estado', 'sede',
+  'alumno_nombre', 'alumno_apellido', 'alumno_rut', 'curso_solicitado',
+  'apoderado_nombre', 'apoderado_apellido', 'apoderado_email', 'apoderado_telefono',
+  'created_at', 'updated_at', 'revisado_at', 'asignado_a', 'docs_presentes',
+].join(', ')
+
+/**
+ * Claves de los documentos que tiene la solicitud. Usa `docs_presentes` (listas)
+ * y, si no viene, las claves con contenido de `documentos` (detalle).
+ */
+export function docsPresentes(pa: any): string[] {
+  if (Array.isArray(pa?.docs_presentes)) return pa.docs_presentes
+  const d = pa?.documentos || {}
+  return Object.keys(d).filter(k => !!d[k])
+}
+
+export function tieneDoc(presentes: string[], key: string): boolean {
+  return presentes.indexOf(key) >= 0 || (ALIAS[key] ?? []).some(k => presentes.indexOf(k) >= 0)
 }
 
 /** Documentos obligatorios del programa de la solicitud (clave + si está). */
 export function checklistDocs(pa: any): { key: string; label: string; ok: boolean }[] {
   const requeridos = DOCS_REQUERIDOS[codigoPrograma(pa)] ?? []
-  return requeridos.map(key => ({ key, label: DOCS_LABELS[key] ?? key, ok: tieneDoc(pa?.documentos, key) }))
+  const presentes = docsPresentes(pa)
+  return requeridos.map(key => ({ key, label: DOCS_LABELS[key] ?? key, ok: tieneDoc(presentes, key) }))
 }
 
 export function docsFaltantes(pa: any): string[] {

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import PreAdmisionDetalle from './PreAdmisionDetalle'
+import { docsPresentes } from '@/lib/admisionDocs'
 
 interface PreAdmision {
   id: string
@@ -13,7 +14,8 @@ interface PreAdmision {
   apoderado_nombre: string
   apoderado_apellido: string
   apoderado_email: string
-  documentos: Record<string, string>
+  documentos?: Record<string, string>
+  docs_presentes?: string[]
   created_at: string
 }
 
@@ -51,7 +53,6 @@ export default function PreAdmisionesQueue({ preAdmisiones, onImportar, puedeEli
     }
   }
 
-  const docsCount = (docs: Record<string, string>) => Object.keys(docs || {}).filter(k => docs[k]).length
 
   return (
     <>
@@ -66,7 +67,7 @@ export default function PreAdmisionesQueue({ preAdmisiones, onImportar, puedeEli
         <div className="space-y-2 max-h-[280px] overflow-y-auto">
           {preAdmisiones.map(pa => {
             const badge = ESTADO_BADGE[pa.estado] || ESTADO_BADGE.pendiente
-            const docs = docsCount(pa.documentos)
+            const docs = docsPresentes(pa).length
             return (
               <div
                 key={pa.id}

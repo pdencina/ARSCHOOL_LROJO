@@ -452,6 +452,7 @@ const EVENTO_CONFIG: Record<string, { label: string; icono: string; color: strin
   rechazada:           { label: 'Solicitud rechazada',                  icono: 'ti-circle-x',      color: '#dc2626' },
   nota:                { label: 'Nota interna',                         icono: 'ti-note',          color: '#1B3A5C' },
   asignada:            { label: 'Cambio de responsable',                icono: 'ti-user-check',    color: '#1B3A5C' },
+  pendiente:           { label: 'Revisada (volvió a pendiente)',        icono: 'ti-eye-check',     color: '#b45309' },
   matricula_iniciada:  { label: 'Datos importados a matrícula',         icono: 'ti-file-import',   color: '#1B3A5C' },
   matriculada:         { label: 'Matrícula completada',                 icono: 'ti-school',        color: '#2D5A3F' },
   matricula_eliminada: { label: 'Matrícula eliminada',                  icono: 'ti-arrow-back-up', color: '#b45309' },
