@@ -36,8 +36,14 @@ export async function limiteSiguienteMatricula(admin: any, mat: any, desdeIdx: n
     .select('id, anio_escolar, fecha_inicio_contrato, fecha_matricula, created_at')
     .eq('alumno_id', mat.alumno_id)
     .neq('id', mat.id)
+  return limiteEntre(mat, (otras as any[]) ?? [], desdeIdx)
+}
+
+/** Igual que limiteSiguienteMatricula, con las otras matrículas del alumno ya cargadas. */
+export function limiteEntre(mat: any, otrasDelAlumno: any[], desdeIdx: number): number {
   let limite = Infinity
-  for (const o of (otras as any[]) ?? []) {
+  for (const o of otrasDelAlumno) {
+    if (o.id === mat.id) continue
     const ini = inicioMatricula(o)
     if (!ini) continue
     let idx = idxDeFecha(ini)

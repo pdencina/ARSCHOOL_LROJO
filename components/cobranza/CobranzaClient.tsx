@@ -289,7 +289,7 @@ export default function CobranzaClient({ cobros, logReciente, anio, pagosConVouc
                           body: JSON.stringify({ pago_id: p.id, cobro_id: p.cobro_id, accion: 'aprobar' }),
                         })
                         if (res.ok) { toast.success('Pago aprobado'); window.location.reload() }
-                        else toast.error('Error al aprobar')
+                        else toast.error((await res.json().catch(() => null))?.error || 'Error al aprobar')
                       } catch { toast.error('Error') }
                     }}
                     className="text-[10px] bg-[#2D5A3F] text-white px-2.5 py-1 rounded-md font-semibold hover:bg-[#245234]"
@@ -306,7 +306,7 @@ export default function CobranzaClient({ cobros, logReciente, anio, pagosConVouc
                           body: JSON.stringify({ pago_id: p.id, cobro_id: p.cobro_id, accion: 'rechazar' }),
                         })
                         if (res.ok) { toast.success('Comprobante rechazado'); window.location.reload() }
-                        else toast.error('Error al rechazar')
+                        else toast.error((await res.json().catch(() => null))?.error || 'Error al rechazar')
                       } catch { toast.error('Error') }
                     }}
                     className="text-[10px] bg-white border border-red-300 text-red-600 px-2.5 py-1 rounded-md font-semibold hover:bg-red-50"

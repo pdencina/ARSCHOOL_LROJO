@@ -65,6 +65,36 @@ export default function PagosContratoModal({ matriculaId, onClose }: Props) {
 
   useEffect(() => { cargar() }, [cargar])
 
+  const [validando, setValidando] = useState<string | null>(null)
+
+  // Aprobar o rechazar el voucher que envió el apoderado desde el portal
+  async function validar(p: any, cobroId: string, accion: 'aprobar' | 'rechazar') {
+    let motivo: string | null = null
+    if (accion === 'aprobar') {
+      if (!confirm(`¿Aprobar el comprobante de ${$(p.monto)}? Se sumará a lo pagado de la cuota.`)) return
+    } else {
+      motivo = prompt('Motivo del rechazo (se enviará al apoderado por email):', 'El comprobante no es legible o el monto no coincide')
+      if (motivo === null) return
+    }
+    setValidando(p.id)
+    try {
+      const r = await fetch('/api/pagos/confirmar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pago_id: p.id, cobro_id: cobroId, accion, motivo }),
+      })
+      const d = await r.json().catch(() => null)
+      if (!r.ok) throw new Error(d?.error || 'No se pudo validar')
+      toast.success(accion === 'aprobar' ? 'Comprobante aprobado' : 'Comprobante rechazado; se avisó al apoderado')
+      setHuboCambios(true)
+      cargar()
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setValidando(null)
+    }
+  }
+
   async function quitar(compId: string) {
     if (!confirm('¿Quitar este voucher? El pago registrado (si lo hay) no se anula; solo se quita el archivo de respaldo.')) return
     const r = await fetch(`/api/matriculas/${matriculaId}/pagos?comprobante=${compId}`, { method: 'DELETE' })
@@ -149,7 +179,7 @@ export default function PagosContratoModal({ matriculaId, onClose }: Props) {
                                 <span className="text-[12px] font-semibold text-[var(--ar-text)]">{titulo}</span>
                                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${est.cls}`}>{est.label}</span>
                                 {porValidar.length > 0 && (
-                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-50 text-violet-700" title="El apoderado envió un comprobante que falta validar en Cobranza">
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-50 text-violet-700" title="El apoderado envió un comprobante que falta validar">
                                     Voucher por validar
                                   </span>
                                 )}
@@ -171,7 +201,7 @@ export default function PagosContratoModal({ matriculaId, onClose }: Props) {
                           </div>
 
                           {/* Vouchers y pagos de la cuota */}
-                          {(c.comprobantes.length > 0 || c.pagos.some((p: any) => p.tiene_comprobante)) && (
+                          {(c.comprobantes.length > 0 || c.pagos.some((p: any) => p.tiene_comprobante && p.estado !== 'pendiente')) && (
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               {c.comprobantes.map((v: any) => (
                                 <span key={v.id} className="inline-flex items-center gap-1 text-[10px] bg-slate-50 border border-slate-200 rounded-md pl-2 pr-1 py-0.5">
@@ -185,16 +215,39 @@ export default function PagosContratoModal({ matriculaId, onClose }: Props) {
                                   </button>
                                 </span>
                               ))}
-                              {c.pagos.filter((p: any) => p.tiene_comprobante).map((p: any) => (
+                              {c.pagos.filter((p: any) => p.tiene_comprobante && p.estado !== 'pendiente').map((p: any) => (
                                 <a key={p.id} href={`/api/matriculas/${matriculaId}/pagos/ver?pago=${p.id}`} target="_blank" rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1 text-[10px] bg-violet-50 border border-violet-100 text-violet-800 rounded-md px-2 py-0.5 hover:underline"
-                                  title={p.estado === 'pendiente' ? 'Enviado por el apoderado · por validar en Cobranza' : 'Enviado por el apoderado'}>
-                                  <i className="ti ti-user text-[11px]" aria-hidden="true"/>
-                                  Apoderado · {$(p.monto)} · {fecha(p.created_at)}{p.estado === 'pendiente' ? ' · por validar' : ''}
+                                  title="Enviado por el apoderado y aprobado">
+                                  <i className="ti ti-user-check text-[11px]" aria-hidden="true"/>
+                                  Apoderado · {$(p.monto)} · {fecha(p.created_at)}
                                 </a>
                               ))}
                             </div>
                           )}
+
+                          {porValidar.map((p: any) => (
+                            <div key={p.id} className="mt-2 flex flex-wrap items-center gap-2 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2">
+                              <div className="flex-1 min-w-[160px] text-[11px] text-violet-900">
+                                <b>Comprobante del apoderado por validar</b> · {$(p.monto)} · enviado {fecha(p.created_at)}
+                                {p.registrado_por_nombre && <span className="block text-[10px] text-violet-700">{p.registrado_por_nombre}</span>}
+                              </div>
+                              {p.tiene_comprobante && (
+                                <a href={`/api/matriculas/${matriculaId}/pagos/ver?pago=${p.id}`} target="_blank" rel="noopener noreferrer"
+                                  className="text-[11px] font-semibold text-violet-800 hover:underline">
+                                  <i className="ti ti-eye text-xs mr-0.5" aria-hidden="true"/>Ver
+                                </a>
+                              )}
+                              <button onClick={() => validar(p, c.id, 'aprobar')} disabled={validando === p.id}
+                                className="text-[11px] font-semibold px-3 py-1 rounded-md bg-[#2D5A3F] text-white hover:bg-[#245234] disabled:opacity-50">
+                                ✓ Aprobar
+                              </button>
+                              <button onClick={() => validar(p, c.id, 'rechazar')} disabled={validando === p.id}
+                                className="text-[11px] font-semibold px-3 py-1 rounded-md bg-white border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50">
+                                Rechazar
+                              </button>
+                            </div>
+                          ))}
 
                           {abierta === c.id && (
                             <FormVoucher
