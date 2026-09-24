@@ -9,6 +9,7 @@ import CapturaMovilSection from '@/components/matricula/CapturaMovilSection'
 import SelectorRegionComuna from '@/components/ui/SelectorRegionComuna'
 import PreAdmisionesQueue from '@/components/matricula/PreAdmisionesQueue'
 import EditarMatriculaModal from '@/components/matricula/EditarMatriculaModal'
+import PagosContratoModal from '@/components/matricula/PagosContratoModal'
 import EscanerCedula from '@/components/ui/EscanerCedula'
 
 interface Props {
@@ -47,6 +48,8 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
   const [vista, setVista] = useState<'lista' | 'nueva'>('lista')
   const [saving, setSaving] = useState(false)
   const [editandoMatricula, setEditandoMatricula] = useState<any>(null)
+  // Matrícula con el panel de pagos/vouchers del contrato abierto
+  const [pagosMatriculaId, setPagosMatriculaId] = useState<string | null>(null)
   const [fechaDisplay, setFechaDisplay] = useState('')
   const [montoMatDisplay, setMontoMatDisplay] = useState('')
   const [montoMensDisplay, setMontoMensDisplay] = useState('')
@@ -520,6 +523,13 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                           className="text-[10px] text-[var(--ar-accent)] hover:underline"
                         >
                           Editar matrícula
+                        </button>
+                        <button
+                          onClick={() => setPagosMatriculaId(m.id)}
+                          className="text-[10px] font-semibold text-[#2D5A3F] hover:underline"
+                          title="Cuotas del contrato: adjuntar vouchers y registrar pagos"
+                        >
+                          Pagos y vouchers
                         </button>
                         <button
                           onClick={async () => {
@@ -1234,6 +1244,14 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
         matricula={editandoMatricula}
         onClose={() => setEditandoMatricula(null)}
         onSave={() => { setEditandoMatricula(null); router.refresh() }}
+      />
+    )}
+
+    {/* Modal Pagos y vouchers del contrato */}
+    {pagosMatriculaId && (
+      <PagosContratoModal
+        matriculaId={pagosMatriculaId}
+        onClose={huboCambios => { setPagosMatriculaId(null); if (huboCambios) router.refresh() }}
       />
     )}
     </>

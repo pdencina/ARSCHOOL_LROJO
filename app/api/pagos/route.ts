@@ -54,6 +54,22 @@ export async function POST(request: NextRequest) {
   if (!cobro) return NextResponse.json({ error: 'Cobro no encontrado' }, { status: 404 })
 
   const cobroData = cobro as any
+
+  // Seguridad: solo el equipo puede registrar un pago directo (queda confirmado y marca
+  // la cuota como pagada). Cualquier otro usuario (apoderado) solo puede ENVIAR un
+  // comprobante, que queda por validar, y únicamente para cuotas de sus propios hijos.
+  const { data: ur } = await admin.from('usuarios').select('rol').eq('id', user.id).single()
+  const esEquipo = ['super_admin', 'admin', 'pastor_campus', 'gestor_admision', 'coordinador'].includes((ur as any)?.rol)
+  if (!esEquipo) {
+    if (!comprobante_url) return NextResponse.json({ error: 'Adjunta el comprobante de pago' }, { status: 403 })
+    const [{ data: va }, { data: ta }] = await Promise.all([
+      admin.from('usuario_alumno').select('alumno_id').eq('usuario_id', user.id),
+      admin.from('tutor_alumnos').select('alumno_id').eq('tutor_id', user.id),
+    ])
+    const mios = new Set([...((va as any[]) ?? []), ...((ta as any[]) ?? [])].map(r => r.alumno_id))
+    if (!mios.has(cobroData.alumno_id)) return NextResponse.json({ error: 'Esta cuota no corresponde a tus alumnos' }, { status: 403 })
+  }
+
   const montoPago = montoManual || cobroData.monto
 
   // Un comprobante (voucher) de apoderado queda PENDIENTE de validación por el pastor de campus.
