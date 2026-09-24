@@ -138,6 +138,59 @@ export async function notificarComunicado(
   return result
 }
 
+/**
+ * Avisar al equipo de admisión de la sede (admin, pastor_campus, gestor_admision)
+ * que llegó una solicitud nueva o que un apoderado corrigió una observada.
+ */
+export async function notificarAdmisionEquipo(
+  colegioId: string,
+  opts: { tipo: 'nueva' | 'corregida'; codigo: string; alumno: string; curso?: string | null }
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://app.arschoolglobal.com'
+  const titulo = opts.tipo === 'nueva'
+    ? `📥 Nueva solicitud de admisión`
+    : `✏️ Solicitud corregida por el apoderado`
+  const mensaje = `${opts.alumno}${opts.curso ? ` · ${opts.curso}` : ''} · ${opts.codigo}`
+
+  return crearNotificaciones({
+    colegioId,
+    titulo,
+    mensaje,
+    tipo: 'alerta',
+    href: '/admisiones',
+    roles: ['admin', 'pastor_campus', 'gestor_admision'],
+    enviarEmailNotif: true,
+    emailSubject: `AR School — ${opts.tipo === 'nueva' ? 'Nueva solicitud' : 'Solicitud corregida'}: ${opts.alumno} (${opts.codigo})`,
+    emailHtml: `
+      <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="border-bottom: 2px solid #1a2332; padding-bottom: 16px; margin-bottom: 24px;">
+          <strong style="font-size: 16px; color: #1a2332;">AR SCHOOL</strong>
+          <span style="color: #9ca3af; font-size: 12px; margin-left: 8px;">Admisiones</span>
+        </div>
+        <h2 style="color: #1a2332; font-size: 18px; margin: 0 0 12px;">${titulo}</h2>
+        <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+          <p style="color: #1a2332; font-size: 15px; font-weight: 700; margin: 0 0 6px;">${opts.alumno}</p>
+          <p style="color: #6b7280; font-size: 13px; margin: 0;">${opts.curso ?? ''}${opts.curso ? ' · ' : ''}<span style="font-family: monospace;">${opts.codigo}</span></p>
+        </div>
+        <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">
+          ${opts.tipo === 'nueva'
+            ? 'Llegó una nueva solicitud de admisión a tu sede y está esperando revisión.'
+            : 'El apoderado envió las correcciones solicitadas. La solicitud volvió a quedar pendiente de revisión.'}
+        </p>
+        <div style="text-align: center; margin: 28px 0;">
+          <a href="${baseUrl}/admisiones"
+             style="background: #1a2332; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; display: inline-block;">
+            Revisar solicitud
+          </a>
+        </div>
+        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e8eaed; color: #9ca3af; font-size: 11px;">
+          Este mensaje fue enviado automáticamente. No responda a este correo.
+        </div>
+      </div>
+    `,
+  })
+}
+
 // Template de email para horario publicado
 function templateNotificacionHorario(titulo: string) {
   return `

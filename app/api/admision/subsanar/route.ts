@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   // Buscar la pre-admisión
   const { data: pa } = await admin
     .from('pre_admisiones')
-    .select('id, estado, documentos')
+    .select('id, estado, documentos, colegio_id, codigo_seguimiento, alumno_nombre, alumno_apellido, curso_solicitado')
     .eq('codigo_seguimiento', codigo.toUpperCase().trim())
     .single()
 
@@ -44,6 +44,22 @@ export async function POST(request: NextRequest) {
   }).eq('id', (pa as any).id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Avisar al equipo de admisión de la sede que hay correcciones por revisar
+  const p = pa as any
+  if (p.colegio_id) {
+    try {
+      const { notificarAdmisionEquipo } = await import('@/lib/notificaciones')
+      await notificarAdmisionEquipo(p.colegio_id, {
+        tipo: 'corregida',
+        codigo: p.codigo_seguimiento,
+        alumno: `${p.alumno_nombre ?? ''} ${p.alumno_apellido ?? ''}`.trim(),
+        curso: p.curso_solicitado,
+      })
+    } catch (e) {
+      console.error('Error notificando al equipo de admisión:', e)
+    }
+  }
 
   return NextResponse.json({ ok: true, mensaje: 'Correcciones recibidas. La solicitud será revisada nuevamente.' })
 }

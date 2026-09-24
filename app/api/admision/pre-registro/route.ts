@@ -212,6 +212,19 @@ export async function POST(request: NextRequest) {
     console.error('Error enviando email confirmación:', e)
   }
 
+  // Avisar al equipo de admisión de la sede (in-app + email)
+  try {
+    const { notificarAdmisionEquipo } = await import('@/lib/notificaciones')
+    await notificarAdmisionEquipo(colegioIdFinal, {
+      tipo: 'nueva',
+      codigo,
+      alumno: `${alumno_nombre} ${alumno_apellido}`.trim(),
+      curso: curso_solicitado,
+    })
+  } catch (e) {
+    console.error('Error notificando al equipo de admisión:', e)
+  }
+
   return NextResponse.json({
     ok: true,
     codigo_seguimiento: codigo,

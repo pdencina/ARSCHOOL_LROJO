@@ -82,7 +82,7 @@ export default async function InicioPage() {
     admin.from('comunicados').select('*', { count: 'exact', head: true }).in('colegio_id', colegioIdsSafe),
     porAlumno(admin.from('cobros').select('estado, monto, monto_pagado').in('colegio_id', colegioIdsSafe).eq('mes', mes).eq('anio', anio)),
     porAlumno(admin.from('asistencias').select('estado').in('colegio_id', colegioIdsSafe).eq('fecha', hoy)),
-    admin.from('notificaciones').select('*').in('colegio_id', colegioIdsSafe).eq('leida', false).order('created_at', { ascending: false }).limit(10),
+    admin.from('notificaciones').select('*').in('colegio_id', colegioIdsSafe).or(`usuario_id.eq.${user.id},usuario_id.is.null`).eq('leida', false).order('created_at', { ascending: false }).limit(10),
     admin.from('comunicados').select('*').in('colegio_id', colegioIdsSafe).order('created_at', { ascending: false }).limit(5),
   ])
 
@@ -102,6 +102,39 @@ export default async function InicioPage() {
         href: '/planificacion',
         icon: 'ti-calendar-event',
         tipo: 'action',
+      })
+    }
+  }
+
+  // Admisiones: solicitudes por revisar, atrasadas y aprobadas sin matricular
+  if (['admin', 'super_admin', 'pastor_campus', 'gestor_admision', 'coordinador'].includes(rol)) {
+    let qAdm = admin
+      .from('pre_admisiones')
+      .select('estado, created_at, updated_at, revisado_at')
+      .in('colegio_id', colegioIdsSafe)
+      .in('estado', ['pendiente', 'en_revision', 'aprobada'])
+    if (rol === 'coordinador' && usuario.programa_ids?.length > 0) qAdm = qAdm.in('programa_id', usuario.programa_ids)
+    const { data: adms } = await qAdm
+    const DIA = 86400000
+    const porRevisar = (adms ?? []).filter((a: any) => a.estado === 'pendiente')
+    // Espera desde el envío, o desde la última corrección del apoderado (misma regla que en /admisiones)
+    const desde = (a: any) => (a.revisado_at && a.updated_at && new Date(a.updated_at).getTime() - new Date(a.revisado_at).getTime() > 60_000) ? a.updated_at : a.created_at
+    const atrasadas = porRevisar.filter((a: any) => ahora.getTime() - new Date(desde(a)).getTime() > 7 * DIA).length
+    const aprobadas = (adms ?? []).filter((a: any) => a.estado === 'aprobada').length
+    if (porRevisar.length > 0) {
+      pendientes.push({
+        texto: `${porRevisar.length} solicitud${porRevisar.length > 1 ? 'es' : ''} de admisión por revisar${atrasadas > 0 ? ` (${atrasadas} con más de 7 días)` : ''}`,
+        href: '/admisiones',
+        icon: 'ti-clipboard-list',
+        tipo: atrasadas > 0 ? 'warning' : 'action',
+      })
+    }
+    if (aprobadas > 0) {
+      pendientes.push({
+        texto: `${aprobadas} admisión${aprobadas > 1 ? 'es' : ''} aprobada${aprobadas > 1 ? 's' : ''} por matricular`,
+        href: '/matricula',
+        icon: 'ti-user-plus',
+        tipo: 'info',
       })
     }
   }
@@ -190,21 +223,6 @@ export default async function InicioPage() {
         href: '/cobranza',
         icon: 'ti-receipt',
         tipo: 'action',
-      })
-    }
-
-    // Pre-admisiones pendientes de importar
-    const { count: preAdmisionesPendientes } = await admin
-      .from('pre_admisiones')
-      .select('*', { count: 'exact', head: true })
-      .in('colegio_id', colegioIdsSafe)
-      .eq('estado', 'aprobada')
-    if (preAdmisionesPendientes && preAdmisionesPendientes > 0) {
-      pendientes.push({
-        texto: `${preAdmisionesPendientes} admisión${preAdmisionesPendientes > 1 ? 'es' : ''} aprobada${preAdmisionesPendientes > 1 ? 's' : ''} por matricular`,
-        href: '/matricula',
-        icon: 'ti-user-plus',
-        tipo: 'info',
       })
     }
 

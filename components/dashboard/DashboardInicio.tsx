@@ -203,7 +203,9 @@ export default function DashboardInicio({ usuario, rol, stats, notificaciones, u
                 <p className="text-[#9ca3af] text-xs">Sin notificaciones pendientes</p>
               </div>
             ) : notificaciones.map((n: any) => (
-              <div key={n.id} className={`rounded-lg p-3 border transition-colors ${n.leida ? 'bg-white border-[#e8eaed]' : 'bg-[#fdf8ee] border-[#fde68a]/50'}`}>
+              <Link key={n.id} href={n.href || '#'}
+                onClick={() => { if (!n.leida) fetch('/api/notificaciones', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [n.id] }) }).catch(() => {}) }}
+                className={`block rounded-lg p-3 border transition-colors ${n.href ? 'hover:border-[#fcd34d]' : 'pointer-events-none'} ${n.leida ? 'bg-white border-[#e8eaed]' : 'bg-[#fdf8ee] border-[#fde68a]/50'}`}>
                 <div className="flex items-start gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="text-[12px] font-semibold text-[#1a2332]">{n.titulo}</div>
@@ -212,7 +214,7 @@ export default function DashboardInicio({ usuario, rol, stats, notificaciones, u
                   </div>
                   {!n.leida && <div className="w-2 h-2 bg-[#b8860b] rounded-full flex-shrink-0 mt-1"/>}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
 
