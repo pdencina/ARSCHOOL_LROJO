@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 interface Props {
@@ -8,10 +8,9 @@ interface Props {
   onSave: () => void
 }
 
-export default function EditarMatriculaModal({ matricula, onClose, onSave }: Props) {
-  const [saving, setSaving] = useState(false)
-  const [recalculando, setRecalculando] = useState(false)
-  const [form, setForm] = useState({
+// Valores del formulario a partir de una matrícula (con alumno y familia)
+function formDesde(matricula: any) {
+  return {
     monto_matricula: matricula.monto_matricula ?? 0,
     monto_mensual: matricula.monto_mensual ?? 0,
     meses_cobro: matricula.duracion_contrato_meses ?? matricula.meses_cobro ?? 10,
@@ -35,7 +34,32 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
     alumno_rut: matricula.alumno?.rut || '',
     alumno_fecha_nacimiento: matricula.alumno?.fecha_nacimiento || '',
     observaciones: matricula.observaciones || '',
-  })
+  }
+}
+
+export default function EditarMatriculaModal({ matricula: matriculaLista, onClose, onSave }: Props) {
+  const [saving, setSaving] = useState(false)
+  const [recalculando, setRecalculando] = useState(false)
+  // La lista de Matrículas trae solo algunas columnas: el modal carga la matrícula
+  // completa para no mostrar (y volver a guardar) valores por defecto.
+  const [matricula, setMatricula] = useState<any>(matriculaLista)
+  const [cargando, setCargando] = useState(true)
+  const [form, setForm] = useState(() => formDesde(matriculaLista))
+
+  useEffect(() => {
+    let vivo = true
+    fetch(`/api/matriculas/${matriculaLista.id}`)
+      .then(async r => {
+        const d = await r.json().catch(() => null)
+        if (!r.ok) throw new Error(d?.error || 'No se pudo cargar la matrícula')
+        if (!vivo) return
+        setMatricula(d)
+        setForm(formDesde(d))
+      })
+      .catch((e: any) => { if (vivo) toast.error(`${e.message}. Revisa los datos antes de guardar.`) })
+      .finally(() => { if (vivo) setCargando(false) })
+    return () => { vivo = false }
+  }, [matriculaLista.id])
 
   const contratoFirmado = !!matricula.firma_apoderado
 
@@ -49,7 +73,7 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
       if (form.observaciones) payload.observaciones = form.observaciones
       if (form.sede) payload.sede = form.sede
       if (form.fecha_inicio_contrato) payload.fecha_inicio_contrato = form.fecha_inicio_contrato
-      if (form.porcentaje_beca > 0) payload.porcentaje_beca = form.porcentaje_beca
+      payload.porcentaje_beca = form.porcentaje_beca || 0
       if (form.anio_escolar) payload.anio_escolar = form.anio_escolar
       if (form.meses_cobro) payload.meses_cobro = form.meses_cobro
       if (form.modalidad_contrato) payload.modalidad_contrato = form.modalidad_contrato
@@ -77,6 +101,8 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
         const text = await res.text()
         throw new Error(text ? JSON.parse(text).error || 'Error al guardar' : 'Error al guardar')
       }
+      const guardado = await res.json().catch(() => ({}))
+      const advertencias: string[] = guardado?.advertencias ?? []
 
       // 2. Recalcular cobros automáticamente
       const res2 = await fetch(`/api/matriculas/${matricula.id}/recalcular-cobros`, {
@@ -94,9 +120,16 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
       })
       if (res2.ok) {
         const data2 = await res2.json()
-        toast.success(`Matrícula guardada y cobros recalculados (${data2.generados} generados)`)
+        const extra = data2.omitidos ? `, ${data2.omitidos} ya pagados se mantuvieron` : ''
+        if (data2.errores?.length) advertencias.push(`Algunos cobros no se generaron: ${data2.errores[0]}`)
+        if (advertencias.length === 0) toast.success(`Matrícula guardada y cobros recalculados (${data2.generados} generados${extra})`)
       } else {
-        toast.success('Matrícula guardada. Cobros no se recalcularon (revise manualmente).')
+        const d2 = await res2.json().catch(() => null)
+        advertencias.push(`Los cobros no se recalcularon${d2?.error ? `: ${d2.error}` : ''}. El contrato mostrará los montos anteriores.`)
+      }
+      // Si algo no se guardó, decirlo claramente (antes se mostraba "guardado" igual)
+      if (advertencias.length) {
+        toast.error(`Guardado con problemas:\n• ${advertencias.join('\n• ')}`, { duration: 9000 })
       }
 
       onSave()
@@ -146,6 +179,12 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
           </div>
+
+          {cargando && (
+            <div className="flex items-center gap-2 text-[11px] text-[var(--ar-muted)] mb-3">
+              <i className="ti ti-loader-2 animate-spin text-sm" aria-hidden="true"/> Cargando datos actuales de la matrícula…
+            </div>
+          )}
 
           {/* Aviso si el contrato ya fue firmado */}
           {contratoFirmado && (
@@ -365,7 +404,7 @@ export default function EditarMatriculaModal({ matricula, onClose, onSave }: Pro
 
           <div className="flex gap-3 mt-6">
             <button onClick={onClose} className="flex-1 btn-secondary py-2.5">Cancelar</button>
-            <button onClick={guardar} disabled={saving} className="flex-1 py-2.5 bg-[#1B3A5C] text-white text-sm font-semibold rounded-xl disabled:opacity-50">
+            <button onClick={guardar} disabled={saving || cargando} className="flex-1 py-2.5 bg-[#1B3A5C] text-white text-sm font-semibold rounded-xl disabled:opacity-50">
               {saving ? 'Guardando...' : 'Guardar y recalcular'}
             </button>
           </div>

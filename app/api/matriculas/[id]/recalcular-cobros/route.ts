@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { resolverArancel, mesesDesdeInicio } from '@/lib/aranceles'
+import { idxMes, idxDeFecha, inicioMatricula, limiteSiguienteMatricula } from '@/lib/matriculaPeriodo'
 
 function getAdmin() {
   return createAdminClient(
@@ -30,18 +31,21 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const admin = getAdmin()
   const { data: ur } = await admin.from('usuarios').select('rol, colegio_id, programa_ids, sedes_ids').eq('id', user.id).single()
   const usuario = ur as any
-  if (!['super_admin', 'admin', 'pastor_campus', 'coordinador'].includes(usuario?.rol)) {
+  // Mismos roles que pueden editar la matrícula: el modal guarda y recalcula en un solo paso.
+  // (Antes gestor_admision podía editar montos pero no recalcular, y el contrato quedaba desfasado.)
+  if (!['super_admin', 'admin', 'pastor_campus', 'gestor_admision', 'coordinador'].includes(usuario?.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
   const { id } = params
   const body = await request.json().catch(() => ({}))
-  const { monto_mensual, monto_matricula, fecha_inicio_contrato, porcentaje_beca = 0, proporcional_primer_mes = 0, meses_cobro, anio: anioManual } = body
+  const { monto_mensual, monto_matricula, fecha_inicio_contrato, proporcional_primer_mes = 0, meses_cobro, anio: anioManual } = body
 
   // Obtener matrícula
   const { data: matricula } = await admin.from('matriculas').select('*, alumno:alumnos(curso)').eq('id', id).single()
   if (!matricula) return NextResponse.json({ error: 'Matrícula no encontrada' }, { status: 404 })
   const mat = matricula as any
+  const porcentaje_beca: number = Math.max(0, Math.min(100, Number(body.porcentaje_beca ?? mat.porcentaje_beca ?? 0) || 0))
 
   // Coordinador: solo puede recalcular matrículas de su programa y sede
   if (usuario.rol === 'coordinador') {
@@ -78,25 +82,56 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // Año: manual si el gestor lo indica (contratos que cruzan de año), si no el de la fecha de inicio.
   const anio = (anioManual && Number(anioManual) > 2000) ? Number(anioManual) : new Date(fechaInicio + 'T12:00').getFullYear()
 
-  // Eliminar cobros pendientes (no pagados). Los pagados NUNCA se tocan.
-  const { data: eliminados } = await admin
-    .from('cobros')
-    .delete()
-    .eq('alumno_id', alumnoId)
-    .in('estado', ['pendiente'])
-    .select('id')
-
-  const countEliminados = eliminados?.length ?? 0
-
   // Cantidad de meses: manual si el gestor lo indica (1..N libre), si no el cálculo por programa.
   // Esto permite contratos flexibles: 2 meses, 3, 4, 12, lo que decida admisión.
   const mesesGenerar = (meses_cobro != null && Number(meses_cobro) > 0)
     ? Number(meses_cobro)
     : mesesDesdeInicio(programaCodigo, curso, mesInicio)
+
+  // ── Período de ESTA matrícula ──
+  // Los cobros no guardan su matrícula, así que se acota por fechas: desde el inicio
+  // (el anterior o el nuevo, el que sea antes) hasta la siguiente matrícula del alumno.
+  const idxNuevo = idxMes(anio, mesInicio)
+  const inicioAnterior = inicioMatricula(mat)
+  const desdeIdx = Math.min(idxNuevo, inicioAnterior ? idxDeFecha(inicioAnterior) : idxNuevo)
+  const hastaIdx = await limiteSiguienteMatricula(admin, mat, desdeIdx)
+  const enPeriodo = (c: any) => { const i = idxMes(c.anio, c.mes); return i >= desdeIdx && i < hastaIdx }
+
+  const { data: cobrosAlumno } = await admin
+    .from('cobros')
+    .select('id, mes, anio, estado, tipo_concepto')
+    .eq('alumno_id', alumnoId)
+  const delPeriodo = ((cobrosAlumno as any[]) ?? []).filter(enPeriodo)
+
+  // Pendientes con pagos asociados (comprobante por validar, Webpay en curso) no se
+  // borran: pagos.cobro_id tiene ON DELETE CASCADE y se perdería el pago.
+  const pendientes = delPeriodo.filter(c => c.estado === 'pendiente')
+  let conPago = new Set<string>()
+  if (pendientes.length) {
+    const { data: pagosLigados } = await admin.from('pagos').select('cobro_id').in('cobro_id', pendientes.map(c => c.id))
+    conPago = new Set(((pagosLigados as any[]) ?? []).map(p => p.cobro_id))
+  }
+  const borrar = pendientes.filter(c => !conPago.has(c.id)).map(c => c.id)
+  let countEliminados = 0
+  if (borrar.length) {
+    const { data: eliminados, error: eDel } = await admin.from('cobros').delete().in('id', borrar).select('id')
+    if (eDel) return NextResponse.json({ error: `No se pudieron reemplazar los cobros: ${eDel.message}` }, { status: 500 })
+    countEliminados = eliminados?.length ?? 0
+  }
+
+  // Meses ya ocupados (pagados, parciales, en mora o pendientes con pago en curso): no se regeneran,
+  // para no duplicar cuotas en la cobranza ni en la tabla del contrato.
+  const ocupado = (c: any) => ['pagado', 'parcial', 'mora'].includes(c.estado) || conPago.has(c.id)
+  const mesesOcupados = new Set(delPeriodo.filter(c => c.tipo_concepto === 'aporte_mensual' && ocupado(c)).map(c => idxMes(c.anio, c.mes)))
+  const inicialOcupado = delPeriodo.some(c => c.tipo_concepto === 'aporte_inicial' && ocupado(c))
+
   let cobrosGenerados = 0
+  let omitidos = 0
+  const erroresInsert: string[] = []
 
   // Aporte inicial
-  if (montoMatricula > 0) {
+  if (montoMatricula > 0 && inicialOcupado) omitidos++
+  if (montoMatricula > 0 && !inicialOcupado) {
     const baseInicial: any = {
       colegio_id: colegioId,
       familia_id: familiaId,
@@ -113,7 +148,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     if (insIni.error && /observaciones/.test(insIni.error.message)) {
       insIni = await admin.from('cobros').insert(baseInicial)
     }
-    if (!insIni.error) cobrosGenerados++
+    if (insIni.error) erroresInsert.push(insIni.error.message)
+    else cobrosGenerados++
   }
 
   // Cobros mensuales
@@ -122,6 +158,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // El año avanza cada vez que el índice absoluto de mes cruza diciembre.
     // Soporta contratos que pasan de un año a otro (Pre 12 meses) e incluso >12 meses.
     const anioC = anio + Math.floor((mesInicio - 1 + i) / 12)
+    if (mesesOcupados.has(idxMes(anioC, mes))) { omitidos++; continue }
     const vencimiento = `${anioC}-${String(mes).padStart(2, '0')}-05`
 
     // Primer mes puede ser proporcional
@@ -142,11 +179,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     if (insMens.error && /observaciones/.test(insMens.error.message)) {
       insMens = await admin.from('cobros').insert(baseMensual)
     }
-    if (!insMens.error) cobrosGenerados++
+    if (insMens.error) erroresInsert.push(insMens.error.message)
+    else cobrosGenerados++
   }
 
   // Persistir la duración usada, para que el contrato PDF y el modal muestren lo mismo.
-  await admin.from('matriculas').update({ duracion_contrato_meses: mesesGenerar }).eq('id', id).then(() => {}, () => {})
+  const { error: eDur } = await admin.from('matriculas').update({ duracion_contrato_meses: mesesGenerar }).eq('id', id)
+  if (eDur) erroresInsert.push(`duración: ${eDur.message}`)
 
   return NextResponse.json({
     ok: true,
@@ -157,5 +196,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     monto_mensual: montoMensFinal,
     monto_inicial: montoMatricula,
     desde: `${mesInicio}/${anio}`,
+    // Meses que ya estaban pagados/en mora/con pago en curso y no se duplicaron
+    omitidos,
+    errores: erroresInsert,
   })
 }

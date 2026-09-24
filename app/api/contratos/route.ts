@@ -5,6 +5,7 @@ import { ESTILOS_CONTRATO, seccionFirmas, botonImprimir } from '@/lib/contratos/
 import { generarContratoPreschool } from '@/lib/contratos/preschool'
 import { generarContratoARSchool } from '@/lib/contratos/arschool'
 import { generarPagare } from '@/lib/contratos/pagare'
+import { idxMes, idxDeFecha, limiteSiguienteMatricula } from '@/lib/matriculaPeriodo'
 
 function getAdmin() {
   return createAdminClient(
@@ -65,7 +66,8 @@ export async function GET(request: NextRequest) {
     familia = fam
   }
   if (!familia) {
-    const { data: fam } = await admin.from('familias').select('*').eq('alumno_id', alumno.id).limit(1).single()
+    // Misma regla que el modal de edición: la familia más reciente del alumno
+    const { data: fam } = await admin.from('familias').select('*').eq('alumno_id', alumno.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
     familia = fam
   }
   if (!familia || (!familia.nombre_apoderado && !familia.rut)) {
@@ -165,7 +167,16 @@ export async function GET(request: NextRequest) {
   const comunaApoderado = familia?.comuna || ciudadSede
 
   // Cobros para tabla
-  const { data: cobros } = await admin.from('cobros').select('monto, mes, anio, tipo_concepto').eq('alumno_id', alumno.id).order('anio').order('mes')
+  // Solo los cobros del período de ESTA matrícula (los cobros no guardan su matrícula):
+  // desde el inicio del contrato hasta la siguiente matrícula del alumno. Sin anulados.
+  const { data: cobrosAlumno } = await admin.from('cobros').select('monto, mes, anio, tipo_concepto, estado').eq('alumno_id', alumno.id).order('anio').order('mes')
+  const desdeIdx = idxDeFecha(fechaInicioContrato)
+  const hastaIdx = matricula?.id ? await limiteSiguienteMatricula(admin, matricula, desdeIdx) : Infinity
+  const cobros = ((cobrosAlumno as any[]) ?? []).filter((c: any) => {
+    if (c.estado === 'anulado') return false
+    const i = idxMes(c.anio, c.mes)
+    return i >= desdeIdx && i < hastaIdx
+  })
   const cobrosmensuales = (cobros ?? []).filter((c: any) => c.tipo_concepto === 'aporte_mensual')
   const montoMensualReal = cobrosmensuales.length > 0 ? Math.max(...(cobrosmensuales as any[]).map((c: any) => c.monto)) : Math.round(montoMensual * (1 - porcentajeBeca / 100))
 
@@ -323,5 +334,6 @@ ${botonImprimir(new Date().toLocaleDateString('es-CL'))}
 </body>
 </html>`
 
-  return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+  // Sin caché: el contrato siempre debe reflejar los datos actuales de la matrícula
+  return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } })
 }
