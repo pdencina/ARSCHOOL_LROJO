@@ -606,8 +606,18 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                     const esMiddleSchool = cursoLower.includes('middle school')
                     const esPreschool = cursoLower.includes('pre school') || cursoLower.includes('kinder')
                     const esPlaygroup = cursoLower.includes('play group')
+                    const esWorship = cursoLower.includes('worship') || cursoLower.includes('music')
+                    const esLions = cursoLower.includes('lions') || cursoLower.includes('soccer')
                     const soloCompleta = esHighSchool || esMiddleSchool
 
+                    // Worship y Lions no usan las jornadas de AR School: su horario lo define el
+                    // programa (y así figura en su contrato). El valor sigue siendo 'completa' para el arancel.
+                    if (esWorship) {
+                      return <option value="completa">Sábados en la mañana (horario según ciclo)</option>
+                    }
+                    if (esLions) {
+                      return <option value="completa">Martes y sábados (horario según categoría)</option>
+                    }
                     if (esPlaygroup) {
                       return (
                         <>
@@ -632,9 +642,13 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                 </select>
                 {(() => {
                   const cursoLower = form.curso.toLowerCase()
-                  const soloCompleta = cursoLower.includes('high school') || cursoLower.includes('medio') || cursoLower.includes('middle school') || cursoLower.includes('pre school') || cursoLower.includes('kinder')
+                  const esPrograma = cursoLower.includes('worship') || cursoLower.includes('music') || cursoLower.includes('lions') || cursoLower.includes('soccer')
+                  const soloCompleta = esPrograma || cursoLower.includes('high school') || cursoLower.includes('medio') || cursoLower.includes('middle school') || cursoLower.includes('pre school') || cursoLower.includes('kinder')
                   if (soloCompleta && form.jornada !== 'completa') {
                     setTimeout(() => setForm(p => ({...p, jornada: 'completa'})), 0)
+                  }
+                  if (esPrograma) {
+                    return <span className="text-[10px] text-[#6b7280] mt-1 block">El horario lo define el programa y queda indicado en el contrato</span>
                   }
                   return soloCompleta ? (
                     <span className="text-[10px] text-[#6b7280] mt-1 block">Preschool, Middle y High School tienen jornada única</span>
