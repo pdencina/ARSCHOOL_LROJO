@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import ProgramaClient from '@/components/programas/ProgramaClient'
+import { estadosFirma } from '@/lib/firmaEstado'
 import { getColegioScope } from '@/lib/colegioScope'
 
 export const metadata = { title: 'AR Worship School — AR School' }
@@ -80,11 +81,15 @@ export default async function WorshipPage() {
     .lte('mes', mesActual)
     .lte('anio', anioActual)
 
+  // Estado de firma por documento (contrato y pagaré)
+  const firmasPorMatricula = await estadosFirma(admin, (matriculas as any[]) ?? [])
+  const matriculasConFirmas = ((matriculas as any[]) ?? []).map(m => ({ ...m, firmas: firmasPorMatricula[m.id] }))
+
   return (
     <ProgramaClient
       programa={programa as any}
       inscripciones={(inscripciones as any[]) ?? []}
-      matriculas={(matriculas as any[]) ?? []}
+      matriculas={matriculasConFirmas}
       colegioId={usuario.colegio_id}
       asistencias4w={(asistencias4w as any[]) ?? []}
       cobrosPendientes={(cobrosPendientes as any[]) ?? []}

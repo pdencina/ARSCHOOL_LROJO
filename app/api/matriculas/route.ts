@@ -49,24 +49,41 @@ export async function POST(request: NextRequest) {
   }
   const colegioId = SEDE_A_COLEGIO[sede as string] || (ur as any).colegio_id || SEDE_A_COLEGIO.santiago
 
+  // Año escolar elegido en el formulario (antes se ignoraba y quedaba el año actual)
+  const anioEscolar = Number(body.anio_escolar) >= 2020 && Number(body.anio_escolar) <= 2100
+    ? Number(body.anio_escolar)
+    : new Date().getFullYear()
+
   try {
-    // Verificar duplicado por RUT
+    // Alumno ya registrado con ese RUT (con o sin puntos): se REUTILIZA en vez de bloquear.
+    // Cubre alumnos dados de baja que vuelven y las renovaciones de un año a otro.
+    let alumnoExistente: any = null
     if (rut) {
-      const { data: existente } = await admin
+      const { data: candidatos } = await admin
         .from('alumnos')
         .select('id, nombre, apellido, curso, activo')
         .eq('colegio_id', colegioId)
-        .eq('rut', rut)
+        .in('rut', variantesRut(rut))
         .limit(1)
-        .single()
+      alumnoExistente = ((candidatos as any[]) ?? [])[0] ?? null
 
-      if (existente) {
-        const al = existente as any
-        return NextResponse.json({
-          error: `Ya existe un alumno con RUT ${rut}: ${al.nombre} ${al.apellido} (${al.curso})${!al.activo ? ' [inactivo]' : ''}`,
-          duplicado: true,
-          alumno_existente: { id: al.id, nombre: al.nombre, apellido: al.apellido, curso: al.curso, activo: al.activo },
-        }, { status: 409 })
+      if (alumnoExistente) {
+        // Solo puede haber una matrícula por alumno y año escolar
+        const { data: matAnio } = await admin
+          .from('matriculas')
+          .select('id, estado')
+          .eq('alumno_id', alumnoExistente.id)
+          .eq('anio_escolar', anioEscolar)
+          .maybeSingle()
+        if (matAnio) {
+          const al = alumnoExistente
+          return NextResponse.json({
+            error: `${al.nombre} ${al.apellido} (RUT ${rut}) ya tiene matrícula ${anioEscolar} (${(matAnio as any).estado}). Búscala en Matrículas y usa "Editar matrícula".`,
+            duplicado: true,
+            alumno_existente: { id: al.id, nombre: al.nombre, apellido: al.apellido, curso: al.curso, activo: al.activo },
+            matricula_existente_id: (matAnio as any).id,
+          }, { status: 409 })
+        }
       }
     }
 
@@ -83,7 +100,7 @@ export async function POST(request: NextRequest) {
               ? 'High School'
               : 'Elementary'
 
-    const { data: alumno, error: errAlumno } = await admin.from('alumnos').insert({
+    const datosAlumno = {
       colegio_id: colegioId,
       nombre: nombre.trim(),
       apellido: apellido.trim(),
@@ -116,9 +133,29 @@ export async function POST(request: NextRequest) {
       contacto_especialista: body.contacto_especialista || null,
       modalidad: body.modalidad || 'presencial',
       activo: true,
-    }).select().single()
+    }
 
-    if (errAlumno) return NextResponse.json({ error: `Error al crear alumno: ${errAlumno.message}` }, { status: 500 })
+    // Alumno existente: se reactiva y se actualizan sus datos con los del formulario.
+    // Nuevo: se crea.
+    const { data: alumno, error: errAlumno } = alumnoExistente
+      ? await admin.from('alumnos').update(datosAlumno).eq('id', alumnoExistente.id).select().single()
+      : await admin.from('alumnos').insert(datosAlumno).select().single()
+
+    if (errAlumno) return NextResponse.json({ error: `Error al ${alumnoExistente ? 'actualizar' : 'crear'} alumno: ${errAlumno.message}` }, { status: 500 })
+
+    // Alumno que vuelve: reabrir su inscripción al programa (la baja la deja finalizada
+    // y así el coordinador no lo veía en su lista)
+    if (alumnoExistente && body.programa_id) {
+      const { error: errInsc } = await admin.from('inscripciones_programa').upsert({
+        alumno_id: alumnoExistente.id,
+        programa_id: body.programa_id,
+        colegio_id: colegioId,
+        estado: 'activa',
+        fecha_inscripcion: new Date().toISOString().slice(0, 10),
+        fecha_fin: null,
+      }, { onConflict: 'alumno_id,programa_id' })
+      if (errInsc) console.error('Reactivar inscripción:', errInsc.message)
+    }
 
     // 2. Crear familia
     let familiaId = null
@@ -420,6 +457,7 @@ export async function POST(request: NextRequest) {
     const { data: matricula } = await admin.from('matriculas').insert({
       colegio_id: colegioId,
       alumno_id: (alumno as any).id,
+      anio_escolar: anioEscolar,
       familia_id: familiaId,
       programa_id: body.programa_id || null,
       plan_cobro_id: plan_cobro_id || null,
@@ -498,6 +536,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       alumno,
+      alumno_reutilizado: !!alumnoExistente,
+      alumno_reactivado: !!alumnoExistente && !alumnoExistente.activo,
       familia_id: familiaId,
       apoderado_user_id: apoderadoUserId,
       cobros_generados: cobrosGenerados.length,
@@ -507,6 +547,16 @@ export async function POST(request: NextRequest) {
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? 'Error interno' }, { status: 500 })
   }
+}
+
+// Formatos posibles de un RUT guardado: con y sin puntos (12.345.678-9 / 12345678-9)
+function variantesRut(rut: string): string[] {
+  const limpio = String(rut).replace(/[.\s]/g, '').toUpperCase()
+  const m = limpio.match(/^(\d+)-?([\dK])$/)
+  if (!m) return [rut]
+  const cuerpo = m[1], dv = m[2]
+  const conPuntos = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return Array.from(new Set([rut, `${cuerpo}-${dv}`, `${conPuntos}-${dv}`, `${cuerpo}-${dv.toLowerCase()}`, `${conPuntos}-${dv.toLowerCase()}`]))
 }
 
 // GET: Listar matrículas del colegio

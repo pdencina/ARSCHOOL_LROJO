@@ -9,6 +9,7 @@ import CapturaMovilSection from '@/components/matricula/CapturaMovilSection'
 import SelectorRegionComuna from '@/components/ui/SelectorRegionComuna'
 import PreAdmisionesQueue from '@/components/matricula/PreAdmisionesQueue'
 import EditarMatriculaModal from '@/components/matricula/EditarMatriculaModal'
+import EstadoFirmas from '@/components/firma/EstadoFirmas'
 import EscanerCedula from '@/components/ui/EscanerCedula'
 
 interface Props {
@@ -295,7 +296,7 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
         } catch { /* la matrícula ya quedó creada */ }
       }
 
-      toast.success('Matrícula completada exitosamente')
+      toast.success('Matrícula completada exitosamente' + (data.alumno_reutilizado ? (data.alumno_reactivado ? ' · Alumno existente reactivado' : ' · Se usó el registro existente del alumno') : ''), { duration: 5000 })
       localStorage.removeItem('ar_matricula_form')
       // Mostrar modal de acciones post-matrícula
       if (data.matricula?.id) {
@@ -440,6 +441,8 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                     <td className="px-4 py-3.5 text-[#6b7280] text-[12px]">{new Date(m.fecha_matricula).toLocaleDateString('es-CL')}</td>
                     <td className="px-4 py-3.5 text-[#1a2332] font-medium">${(m.monto_matricula ?? 0).toLocaleString('es-CL')}</td>
                     <td className="px-4 py-3.5">
+                      {/* Estado de cada documento: firmado / abierto / sin abrir / vencido / no enviado */}
+                      <div className="mb-1.5"><EstadoFirmas contrato={m.firmas?.contrato} pagare={m.firmas?.pagare}/></div>
                       <div className="flex gap-2">
                         <a href={`/api/contratos?matricula_id=${m.id}&modalidad=completo`} target="_blank" className="text-[11px] text-[var(--ar-accent)] hover:underline font-medium">
                           Contrato
@@ -454,8 +457,10 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                           {m.firma_apoderado && m.firma_pagare
                             ? '✓ Firmado'
                             : m.firma_apoderado
-                              ? '⚠ Falta pagaré'
-                              : 'Firmar'}
+                              ? 'Firmar pagaré'
+                              : m.firma_pagare
+                                ? 'Firmar contrato'
+                                : 'Firmar'}
                         </a>
                         {!m.firma_apoderado && (
                           <button

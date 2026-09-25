@@ -168,7 +168,7 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
         body: JSON.stringify({ accion: 'matriculada' }),
       }).catch(() => {})
 
-      toast.success('Matrícula creada correctamente')
+      toast.success('Matrícula creada correctamente' + (data.alumno_reutilizado ? (data.alumno_reactivado ? ' · Alumno existente reactivado' : ' · Se usó el registro existente del alumno') : ''), { duration: 5000 })
     } catch (e: any) {
       toast.error(e.message)
     } finally {

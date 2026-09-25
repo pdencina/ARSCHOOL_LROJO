@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import MatriculaClient from '@/components/matricula/MatriculaClient'
 import { getColegioScope } from '@/lib/colegioScope'
 import { COLUMNAS_LISTA_ADMISION } from '@/lib/admisionDocs'
+import { estadosFirma } from '@/lib/firmaEstado'
 
 function getAdmin() {
   return createAdminClient(
@@ -150,10 +151,12 @@ export default async function MatriculaPage() {
 
   // Derivar los flags de firma desde los timestamps (sin traer el base64).
   // MatriculaClient usa m.firma_apoderado / m.firma_pagare solo como booleanos.
+  const firmas = await estadosFirma(admin, (matriculas as any[]) ?? [])
   const matriculasLigeras = ((matriculas as any[]) ?? []).map(m => ({
     ...m,
     firma_apoderado: !!m.firmado_at,
     firma_pagare: !!m.firmado_pagare_at,
+    firmas: firmas[m.id],
   }))
 
   return (

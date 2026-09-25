@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { PROGRAMA_CONFIG } from '@/lib/programas'
+import EstadoFirmas from '@/components/firma/EstadoFirmas'
 import { formatearRut, validarRut, capitalizarNombre } from '@/lib/validaciones'
 import { resolverArancel } from '@/lib/aranceles'
 import FichaAlumnoModal from './FichaAlumnoModal'
@@ -122,21 +123,24 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
     }
     setEnviandoContrato(alumnoId)
     try {
-      const res = await fetch('/api/contratos/enviar-firma', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matricula_id: mat.id, tipo: 'contrato' }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      toast.success(`Contrato enviado a ${data.email_enviado_a}`)
-      // También enviar pagaré
-      await fetch('/api/contratos/enviar-firma', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matricula_id: mat.id, tipo: 'pagare' }),
-      })
-      toast.success('Pagaré también enviado')
+      // Solo se envía lo que falta firmar (antes se reenviaba el pagaré aunque ya estuviera firmado)
+      const faltaContrato = !mat.firma_apoderado && !mat.firmado_at
+      const faltaPagare = !mat.firma_pagare && !mat.firmado_pagare_at
+      if (!faltaContrato && !faltaPagare) { toast('Contrato y pagaré ya están firmados', { icon: '✓' }); return }
+      const enviados: string[] = []
+      let email = ''
+      for (const tipo of [faltaContrato && 'contrato', faltaPagare && 'pagare'].filter(Boolean) as string[]) {
+        const res = await fetch('/api/contratos/enviar-firma', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ matricula_id: mat.id, tipo }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error)
+        email = data.email_enviado_a || email
+        enviados.push(tipo === 'contrato' ? 'contrato' : 'pagaré')
+      }
+      toast.success(`Enviado a ${email}: ${enviados.join(' y ')}`)
       router.refresh()
     } catch (e: any) {
       toast.error(e.message || 'Error al enviar contrato')
@@ -224,7 +228,7 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
         })
       }
 
-      toast.success(esPrueba ? 'Clase de prueba registrada' : 'Inscripción completada')
+      toast.success((esPrueba ? 'Clase de prueba registrada' : 'Inscripción completada') + (data.alumno_reutilizado ? (data.alumno_reactivado ? ' · Alumno existente reactivado' : ' · Se usó el registro existente del alumno') : ''), { duration: 5000 })
       setVista('lista')
       router.refresh()
     } catch (e: any) {
@@ -465,16 +469,15 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
                               className="text-[10px] text-[#1B3A5C] hover:underline font-medium"
                             >⤴ Convertir a activa</button>
                           )}
+                          {tieneMatricula && <EstadoFirmas contrato={tieneMatricula.firmas?.contrato} pagare={tieneMatricula.firmas?.pagare}/>}
                           {tieneMatricula ? (
-                            contratoFirmado ? (
-                              <span className="text-[10px] text-[#2D5A3F] font-medium">✓ Firmado</span>
-                            ) : (
+                            contratoFirmado && (tieneMatricula.firma_pagare || tieneMatricula.firmado_pagare_at) ? null : (
                               <button
                                 onClick={() => handleEnviarContrato(ins.alumno?.id)}
                                 disabled={enviandoContrato === ins.alumno?.id}
                                 className="text-[10px] text-[var(--ar-accent)] hover:underline font-medium disabled:opacity-50"
                               >
-                                {enviandoContrato === ins.alumno?.id ? '⏳ Enviando...' : '📧 Enviar contrato'}
+                                {enviandoContrato === ins.alumno?.id ? '⏳ Enviando...' : (['enviado', 'visto', 'vencido'].includes(tieneMatricula.firmas?.contrato ?? '') || ['enviado', 'visto', 'vencido'].includes(tieneMatricula.firmas?.pagare ?? '') ? '📧 Reenviar lo pendiente' : '📧 Enviar a firma')}
                               </button>
                             )
                           ) : (
