@@ -326,7 +326,7 @@ export async function POST(request: NextRequest) {
 
     // 4. Generar cobros del año (con beca, descuento contado, y descuento multi-hijo)
     const cobrosGenerados = []
-    const porcentaje_beca = body.porcentaje_beca || 0
+    const porcentaje_beca = Math.max(0, Math.min(100, Number(body.porcentaje_beca) || 0))
     const descuentoContado = body.descuento_contado || 0
     const factorBeca = 1 - (porcentaje_beca / 100)
     const factorDescuento = 1 - (descuentoContado / 100)
@@ -367,6 +367,9 @@ export async function POST(request: NextRequest) {
     const montoMensualBase = body.monto_override || monto_mensual || 0
     const montoMatFinal = Math.round((monto_matricula || 0) * (1 - descuentoMatriculaMultiHijo / 100))
     const montoMensFinal = Math.round(montoMensualBase * factorBeca * factorDescuento)
+    // Aporte mensual ANTES de la beca: es el "valor natural" que muestra el contrato,
+    // que luego aplica el % de beca y agrega su cláusula. Las cuotas van con el monto final.
+    const montoMensSinBeca = Math.round(montoMensualBase * factorDescuento)
 
     // Calcular fechas de contrato (Play/sala cuna = 12 meses desde ingreso)
     const cursoLower = (curso || '').toLowerCase()
@@ -454,7 +457,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Crear registro de matrícula
-    const { data: matricula } = await admin.from('matriculas').insert({
+    const datosMatricula: Record<string, any> = {
       colegio_id: colegioId,
       alumno_id: (alumno as any).id,
       anio_escolar: anioEscolar,
@@ -462,7 +465,8 @@ export async function POST(request: NextRequest) {
       programa_id: body.programa_id || null,
       plan_cobro_id: plan_cobro_id || null,
       monto_matricula: montoMatFinal,
-      monto_mensual: montoMensFinal,
+      monto_mensual: montoMensSinBeca,
+      porcentaje_beca,
       observaciones,
       registrado_por: user.id,
       firma_apoderado: firma_apoderado || null,
@@ -482,7 +486,17 @@ export async function POST(request: NextRequest) {
       // Datos de cheque (se guardan en matrícula para inyectar en contrato)
       cheques: body.cheques || null,
       banco_cheque: body.banco_cheque || null,
-    }).select().single()
+    }
+    let { data: matricula, error: errMatricula } = await admin.from('matriculas').insert(datosMatricula).select().single()
+    // Instancia sin la migración 057: se guarda como antes (monto ya descontado, sin %)
+    if (errMatricula && /porcentaje_beca/.test(errMatricula.message)) {
+      const { porcentaje_beca: _p, ...sinBeca } = datosMatricula
+      const retry = await admin.from('matriculas').insert({ ...sinBeca, monto_mensual: montoMensFinal }).select().single()
+      matricula = retry.data; errMatricula = retry.error
+    }
+    if (errMatricula || !matricula) {
+      return NextResponse.json({ error: `El alumno y sus cobros se crearon, pero la matrícula no se guardó: ${errMatricula?.message ?? 'error desconocido'}` }, { status: 500 })
+    }
 
     // 6. Guardar documentos adjuntos
     const documentos = body.documentos as Record<string, string> | undefined

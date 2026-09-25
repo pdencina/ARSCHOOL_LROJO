@@ -1,4 +1,5 @@
 import { HEADER_FUNDACION, DATOS_BANCARIOS, FOOTER_SEDES } from './estilos'
+import { montoConLetras } from '@/lib/numeroALetras'
 
 interface DatosContratoLions {
   fecha: string
@@ -21,10 +22,13 @@ interface DatosContratoLions {
 }
 
 export function generarContratoLions(d: DatosContratoLions): string {
-  const montoInicialTexto = d.montoInicial > 0
-    ? `cuarenta y cinco mil pesos chilenos ($${d.montoInicial.toLocaleString('es-CL')} CLP)`
-    : `cero pesos chilenos ($0 CLP)`
-  const montoMensualTexto = `cuarenta mil pesos chilenos ($${d.montoMensual.toLocaleString('es-CL')} CLP)`
+  // Montos en palabras según el valor real (antes el texto estaba fijo en "cuarenta mil")
+  const montoInicialTexto = montoConLetras(d.montoInicial > 0 ? d.montoInicial : 0)
+  // montoMensual es el valor antes de la beca; el contrato cobra el valor con la beca aplicada
+  const montoMensualFinal = Math.round(d.montoMensual * (1 - (d.porcentajeBeca ?? 0) / 100))
+  const montoMensualTexto = d.porcentajeBeca && d.porcentajeBeca > 0
+    ? `${montoConLetras(montoMensualFinal)}, correspondiente al valor original de $${d.montoMensual.toLocaleString('es-CL')} CLP con ${d.porcentajeBeca}% de beca`
+    : montoConLetras(montoMensualFinal)
 
   return `
 ${HEADER_FUNDACION}

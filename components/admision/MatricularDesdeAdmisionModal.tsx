@@ -1,4 +1,6 @@
 'use client'
+import InputMonto from '@/components/ui/InputMonto'
+import ResumenBeca from '@/components/matricula/ResumenBeca'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 
@@ -288,13 +290,14 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-600 mb-1">Aporte inicial (CLP)</label>
-                  <input type="number" value={form.monto_matricula} onChange={e => set('monto_matricula', e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B3A5C]" min={0}/>
+                  <InputMonto value={form.monto_matricula} onChange={v => set('monto_matricula', v)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B3A5C]"/>
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-600 mb-1">Aporte mensual (CLP)</label>
-                  <input type="number" value={form.monto_mensual} onChange={e => set('monto_mensual', e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B3A5C]" min={0}/>
+                  <InputMonto value={form.monto_mensual} onChange={v => set('monto_mensual', v)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B3A5C]"/>
+                  <p className="text-[9px] text-gray-400 mt-0.5">Valor del contrato, sin beca.</p>
                 </div>
               </div>
 
@@ -381,11 +384,14 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-600 mb-1">Proporcional 1er mes ($)</label>
-                  <input type="number" value={form.proporcional_primer_mes || ''} onChange={e => set('proporcional_primer_mes', parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B3A5C]" min={0} placeholder="0"/>
+                  <InputMonto value={form.proporcional_primer_mes} onChange={v => set('proporcional_primer_mes', v)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B3A5C]"/>
                   <p className="text-[9px] text-gray-400 mt-0.5">Si ingresa a mitad de mes. Vacío = mes completo.</p>
                 </div>
               </div>
+
+              {/* Desglose con beca: valor del contrato, descuento y valor final */}
+              <ResumenBeca montoMensual={Number(form.monto_mensual) || 0} porcentaje={Number(form.porcentaje_beca) || 0}/>
 
               <div>
                 <label className="block text-[11px] font-semibold text-gray-600 mb-1">Observaciones</label>

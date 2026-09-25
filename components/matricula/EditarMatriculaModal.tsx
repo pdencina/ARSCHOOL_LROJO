@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+import InputMonto from '@/components/ui/InputMonto'
+import ResumenBeca from '@/components/matricula/ResumenBeca'
 
 interface Props {
   matricula: any
@@ -259,21 +261,20 @@ export default function EditarMatriculaModal({ matricula: matriculaLista, onClos
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Aporte inicial ($)</label>
-                <input
-                  type="number"
+                <InputMonto
                   value={form.monto_matricula}
-                  onChange={e => setForm(p => ({...p, monto_matricula: parseInt(e.target.value) || 0}))}
+                  onChange={v => setForm(p => ({...p, monto_matricula: v}))}
                   className="input-base"
                 />
               </div>
               <div>
                 <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Aporte mensual ($)</label>
-                <input
-                  type="number"
+                <InputMonto
                   value={form.monto_mensual}
-                  onChange={e => setForm(p => ({...p, monto_mensual: parseInt(e.target.value) || 0}))}
+                  onChange={v => setForm(p => ({...p, monto_mensual: v}))}
                   className="input-base"
                 />
+                <p className="text-[9px] text-[var(--ar-muted)] mt-0.5">Valor del contrato, sin beca.</p>
               </div>
             </div>
 
@@ -367,12 +368,10 @@ export default function EditarMatriculaModal({ matricula: matriculaLista, onClos
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Proporcional 1er mes ($)</label>
-                <input
-                  type="number"
-                  value={form.proporcional_primer_mes || ''}
-                  onChange={e => setForm(p => ({...p, proporcional_primer_mes: parseInt(e.target.value) || 0}))}
+                <InputMonto
+                  value={form.proporcional_primer_mes}
+                  onChange={v => setForm(p => ({...p, proporcional_primer_mes: v}))}
                   className="input-base"
-                  placeholder="0"
                 />
                 <p className="text-[9px] text-[var(--ar-muted)] mt-0.5">Días fraccionados del primer mes</p>
               </div>
@@ -389,6 +388,9 @@ export default function EditarMatriculaModal({ matricula: matriculaLista, onClos
                 />
               </div>
             </div>
+
+            {/* Desglose con beca: valor del contrato, descuento y valor final */}
+            <ResumenBeca montoMensual={form.monto_mensual} porcentaje={form.porcentaje_beca}/>
 
             <div>
               <label className="block text-[11px] font-semibold text-[var(--ar-muted)] uppercase tracking-wider mb-1">Observaciones</label>

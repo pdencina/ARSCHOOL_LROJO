@@ -26,9 +26,13 @@ export function generarContratoWorship(d: DatosContratoWorship): string {
   const montoInicialTexto = d.montoInicial > 0
     ? `$${d.montoInicial.toLocaleString('es-CL')} CLP`
     : `$0 CLP`
-  const montoAnual = d.montoMensual * d.mesesCobro
-  const montoMensualTexto = d.montoMensual > 0
-    ? `$${d.montoMensual.toLocaleString('es-CL')} CLP`
+  // montoMensual es el valor antes de la beca; el contrato cobra el valor con la beca aplicada
+  const montoMensualFinal = Math.round(d.montoMensual * (1 - (d.porcentajeBeca ?? 0) / 100))
+  const montoAnual = montoMensualFinal * d.mesesCobro
+  const montoMensualTexto = montoMensualFinal > 0
+    ? (d.porcentajeBeca && d.porcentajeBeca > 0
+        ? `$${montoMensualFinal.toLocaleString('es-CL')} CLP (valor original $${d.montoMensual.toLocaleString('es-CL')} CLP con ${d.porcentajeBeca}% de beca)`
+        : `$${montoMensualFinal.toLocaleString('es-CL')} CLP`)
     : `$0 CLP`
 
   const becaClausula = d.porcentajeBeca && d.porcentajeBeca > 0
