@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { registrarEventoAdmision } from '@/lib/admisionEventos'
 import { autorizarMatricula, familiaDeMatricula } from '@/lib/matriculaAcceso'
+import { idxMes, idxDeFecha, inicioMatricula, limiteSiguienteMatricula } from '@/lib/matriculaPeriodo'
 
 function getAdmin() {
   return createAdminClient(
@@ -28,7 +29,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   const { id } = params
 
   // Obtener la matrícula para saber el alumno_id (y el RUT del alumno para revertir la admisión)
-  const { data: matricula } = await admin.from('matriculas').select('alumno_id, familia_id, programa_id, colegio_id, alumno:alumnos(rut, nombre, apellido)').eq('id', id).single()
+  const { data: matricula } = await admin.from('matriculas').select('id, alumno_id, familia_id, programa_id, colegio_id, anio_escolar, fecha_inicio_contrato, fecha_matricula, created_at, firmado_at, firmado_pagare_at, alumno:alumnos(rut, nombre, apellido)').eq('id', id).single()
   if (!matricula) return NextResponse.json({ error: 'Matrícula no encontrada' }, { status: 404 })
 
   const m = matricula as any
@@ -43,10 +44,43 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
   }
 
-  // Eliminar cobros asociados
-  await admin.from('cobros').delete().eq('alumno_id', m.alumno_id)
+  // ── Protección: eliminar es solo para matrículas creadas por error ──
+  // Antes se borraban TODOS los cobros del alumno (cualquier año, incluso pagados, con sus
+  // pagos en cascada) y la evidencia de la firma electrónica.
+  if (m.firmado_at || m.firmado_pagare_at) {
+    return NextResponse.json({
+      error: 'No se puede eliminar: tiene contrato o pagaré firmado (es la evidencia legal de la firma). Si el alumno no continúa, usa "Dar de baja"; si hay datos que corregir, usa "Editar matrícula".',
+      bloqueado: 'firmada',
+    }, { status: 409 })
+  }
 
-  // Eliminar firma tokens
+  // Cobros de ESTA matrícula (su período), no los de todo el alumno
+  const ini = inicioMatricula(m)
+  const desdeIdx = ini ? idxDeFecha(ini) : -Infinity
+  const hastaIdx = await limiteSiguienteMatricula(admin, m, desdeIdx === -Infinity ? 0 : desdeIdx)
+  const { data: cobrosAlumno } = await admin.from('cobros').select('id, mes, anio, estado, monto_pagado').eq('alumno_id', m.alumno_id)
+  const cobrosMatricula = ((cobrosAlumno as any[]) ?? []).filter(c => { const i = idxMes(c.anio, c.mes); return i >= desdeIdx && i < hastaIdx })
+
+  // Con pagos registrados no se elimina (se perdería el historial de pagos)
+  let conPagos = cobrosMatricula.some(c => (c.monto_pagado ?? 0) > 0 || ['pagado', 'parcial'].includes(c.estado))
+  if (!conPagos && cobrosMatricula.length) {
+    const { data: pagos } = await admin.from('pagos').select('id').in('cobro_id', cobrosMatricula.map(c => c.id)).in('estado', ['confirmado', 'pendiente']).limit(1)
+    conPagos = ((pagos as any[]) ?? []).length > 0
+  }
+  if (conPagos) {
+    return NextResponse.json({
+      error: 'No se puede eliminar: tiene pagos registrados o comprobantes por validar. Si el alumno no continúa, usa "Dar de baja".',
+      bloqueado: 'con_pagos',
+    }, { status: 409 })
+  }
+
+  // Eliminar solo los cobros de esta matrícula
+  if (cobrosMatricula.length) {
+    const { error: eCob } = await admin.from('cobros').delete().in('id', cobrosMatricula.map(c => c.id))
+    if (eCob) return NextResponse.json({ error: `No se pudieron eliminar los cobros: ${eCob.message}` }, { status: 500 })
+  }
+
+  // Enlaces de firma sin firmar de esta matrícula
   await admin.from('firma_tokens').delete().eq('matricula_id', id)
 
   // Eliminar la matrícula

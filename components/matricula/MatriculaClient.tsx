@@ -512,13 +512,17 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                         </button>
                         <button
                           onClick={async () => {
-                            if (!confirm(`¿Eliminar matrícula de ${m.alumno?.nombre} ${m.alumno?.apellido}? Esto eliminará también los cobros asociados.`)) return
+                            if (!confirm(
+                              `¿Eliminar la matrícula de ${m.alumno?.nombre} ${m.alumno?.apellido}?\n\n` +
+                              `Úsalo solo si se creó por error: se borran sus cuotas pendientes. Si tiene firmas o pagos no se podrá eliminar.\n\n` +
+                              `Si el alumno no continúa, usa "Dar de baja" en Alumnos.`
+                            )) return
                             try {
                               const res = await fetch(`/api/matriculas/${m.id}`, { method: 'DELETE' })
                               if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
                               toast.success('Matrícula eliminada')
                               router.refresh()
-                            } catch (e: any) { toast.error(e.message) }
+                            } catch (e: any) { toast.error(e.message, { duration: 9000 }) }
                           }}
                           className="text-[10px] text-red-400 hover:text-red-600 hover:underline"
                         >

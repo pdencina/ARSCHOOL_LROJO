@@ -28,16 +28,20 @@ export default async function AlumnosPage() {
   const colegioIdsSafe = colegioIds.length ? colegioIds : ['__none__']
   const colegioId = scope.colegioId ?? usuario?.colegio_id ?? (colegioIds[0] ?? '')
 
-  // Coordinador: solo los alumnos inscritos en sus programas
+  // Coordinador: los alumnos de sus programas, incluidos los dados de baja
+  // (inscripción finalizada), para poder verlos en "Ver retirados" y reactivarlos.
   let alumnoIdsCoord: string[] | null = null
+  let activosEnPrograma: Set<string> | null = null
   if (usuario?.rol === 'coordinador' && usuario.programa_ids?.length > 0) {
     const { data: insc } = await admin
       .from('inscripciones_programa')
-      .select('alumno_id')
+      .select('alumno_id, estado')
       .in('programa_id', usuario.programa_ids)
       .in('colegio_id', colegioIdsSafe)
-      .in('estado', ['activa', 'prueba'])
-    alumnoIdsCoord = [...new Set((insc ?? []).map((i: any) => i.alumno_id))]
+      .in('estado', ['activa', 'prueba', 'finalizada'])
+    const filas = (insc as any[]) ?? []
+    activosEnPrograma = new Set(filas.filter(i => i.estado !== 'finalizada').map(i => i.alumno_id))
+    alumnoIdsCoord = Array.from(new Set(filas.map(i => i.alumno_id)))
     if (alumnoIdsCoord.length === 0) alumnoIdsCoord = ['__none__']
   }
 
@@ -48,7 +52,12 @@ export default async function AlumnosPage() {
     .order('apellido')
   if (alumnoIdsCoord) alumnosQuery = alumnosQuery.in('id', alumnoIdsCoord)
 
-  const { data: alumnos } = await alumnosQuery
+  const { data: alumnosRaw } = await alumnosQuery
+  // Para el coordinador, "activo" = activo en SUS programas (si lo dieron de baja de su
+  // programa aparece en "Ver retirados" aunque siga activo en otro programa)
+  const alumnos = activosEnPrograma
+    ? ((alumnosRaw as any[]) ?? []).map(a => ({ ...a, activo: a.activo && activosEnPrograma!.has(a.id) }))
+    : alumnosRaw
 
   const cursos = [...new Set((alumnos ?? []).map((a: any) => a.curso))].sort()
 
