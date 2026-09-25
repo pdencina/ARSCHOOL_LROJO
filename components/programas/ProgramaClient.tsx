@@ -127,20 +127,18 @@ export default function ProgramaClient({ programa, inscripciones, matriculas, co
       const faltaContrato = !mat.firma_apoderado && !mat.firmado_at
       const faltaPagare = !mat.firma_pagare && !mat.firmado_pagare_at
       if (!faltaContrato && !faltaPagare) { toast('Contrato y pagaré ya están firmados', { icon: '✓' }); return }
-      const enviados: string[] = []
-      let email = ''
-      for (const tipo of [faltaContrato && 'contrato', faltaPagare && 'pagare'].filter(Boolean) as string[]) {
-        const res = await fetch('/api/contratos/enviar-firma', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ matricula_id: mat.id, tipo }),
-        })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error)
-        email = data.email_enviado_a || email
-        enviados.push(tipo === 'contrato' ? 'contrato' : 'pagaré')
-      }
-      toast.success(`Enviado a ${email}: ${enviados.join(' y ')}`)
+      const reenvio = ['enviado', 'visto'].includes(mat.firmas?.contrato) || ['enviado', 'visto'].includes(mat.firmas?.pagare)
+      if (reenvio && !confirm('Ya hay un enlace enviado sin firmar. Si reenvías, el anterior deja de funcionar. ¿Reenviar?')) return
+      // Un solo correo con lo que falte: la familia firma contrato y pagaré uno tras otro
+      const res = await fetch('/api/contratos/enviar-firma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricula_id: mat.id, tipo: 'ambos' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      const docs = (data.documentos as string[]).map(d => d === 'pagare' ? 'pagaré' : 'contrato').join(' y ')
+      toast.success(`Enviado a ${data.email_enviado_a}: ${docs} (un solo correo)`)
       router.refresh()
     } catch (e: any) {
       toast.error(e.message || 'Error al enviar contrato')

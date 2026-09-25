@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createHash } from 'crypto'
+import { documentoPendiente } from '@/lib/firmaSiguiente'
 import { enviarEmail } from '@/lib/email'
 
 function getAdmin() {
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
   // Verificar expiración
   if (new Date(ft.expira_at) < new Date()) {
     await admin.from('firma_tokens').update({ estado: 'expirado' }).eq('id', ft.id)
-    return NextResponse.json({ error: 'Este enlace ha expirado. Solicite uno nuevo al SEDE.' }, { status: 410 })
+    return NextResponse.json({ error: 'Este enlace ha expirado. Solicite uno nuevo al Centro Educacional.' }, { status: 410 })
   }
 
   // Verificar que no esté ya firmado
@@ -172,25 +173,32 @@ export async function POST(request: NextRequest) {
     // Actualizar matrícula con la firma
     const firmaData = `FIRMA ELECTRÓNICA: ${nombre_firma} | RUT: ${rut_firma || 'N/A'} | ${timestamp}`
 
+    let errMatricula: any = null
     if (ft.tipo === 'pagare') {
-      await admin.from('matriculas').update({
+      ;({ error: errMatricula } = await admin.from('matriculas').update({
         firma_pagare: firmaData,
         firmado_pagare_at: timestamp,
         auditoria_pagare: auditoria,
-        estado_contrato: 'firmado',
-      }).eq('id', ft.matricula_id)
+        // estado_contrato NO se toca: firmar el pagaré no significa que el contrato esté firmado
+      }).eq('id', ft.matricula_id))
     } else {
-      await admin.from('matriculas').update({
+      ;({ error: errMatricula } = await admin.from('matriculas').update({
         firma_apoderado: firmaData,
         firmado_at: timestamp,
         auditoria_contrato: auditoria,
         estado_contrato: 'firmado',
-      }).eq('id', ft.matricula_id)
+      }).eq('id', ft.matricula_id))
     }
+    // Antes no se revisaba: el enlace quedaba 'firmado' aunque la matrícula no se actualizara
+    if (errMatricula) console.error('Firma remota: no se actualizó la matrícula', ft.matricula_id, errMatricula.message)
+
+    // ¿Falta el otro documento? Se ofrece continuar sin esperar otro correo
+    const siguiente = await documentoPendiente(admin, ft.matricula_id, ft.tipo)
 
     return NextResponse.json({
       ok: true,
       firmado: true,
+      siguiente: siguiente ? { tipo: siguiente.tipo, etiqueta: siguiente.etiqueta, url: siguiente.token ? `/firmar/${siguiente.token}` : null } : null,
       evidencia: {
         timestamp,
         firma_hash: firmaHash,

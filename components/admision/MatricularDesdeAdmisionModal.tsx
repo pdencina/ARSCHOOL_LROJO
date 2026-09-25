@@ -185,19 +185,12 @@ export default function MatricularDesdeAdmisionModal({ preAdmision: pa, onClose,
       const res = await fetch('/api/contratos/enviar-firma', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matricula_id: matriculaId, tipo: 'contrato', modalidad }),
+        // Un solo correo: la familia firma contrato y pagaré uno tras otro
+        body: JSON.stringify({ matricula_id: matriculaId, tipo: 'ambos', modalidad }),
       })
       const data = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(data?.error || 'Error al enviar contrato')
-      toast.success(`Contrato enviado a ${data.email_enviado_a || pa.apoderado_email}`)
-
-      // Enviar también el pagaré
-      await fetch('/api/contratos/enviar-firma', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matricula_id: matriculaId, tipo: 'pagare' }),
-      }).catch(() => {})
-      toast.success('Pagaré también enviado')
+      if (!res.ok) throw new Error(data?.error || 'Error al enviar a firma')
+      toast.success(`Contrato y pagaré enviados a ${data.email_enviado_a || pa.apoderado_email} (un solo correo)`)
     } catch (e: any) {
       toast.error(e.message)
     } finally {

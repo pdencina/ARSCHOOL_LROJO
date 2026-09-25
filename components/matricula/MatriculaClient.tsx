@@ -462,54 +462,38 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                                 ? 'Firmar contrato'
                                 : 'Firmar'}
                         </a>
-                        {!m.firma_apoderado && (
+                        {(!m.firma_apoderado || !m.firma_pagare) && (
                           <button
                             onClick={async () => {
-                              // Elegir qué contrato enviar a firma
-                              const es2x1 = confirm(
-                                `¿Qué contrato enviar a ${m.alumno?.nombre}?\n\n` +
-                                `OK = Contrato con MATRÍCULA EXENTA (promoción 2x1 hermanos)\n` +
-                                `Cancelar = Contrato con MONTO COMPLETO`
-                              )
+                              // Un solo correo con lo que falte firmar: la familia firma contrato y pagaré seguidos
+                              let modalidad: string | undefined
+                              if (!m.firma_apoderado) {
+                                const es2x1 = confirm(
+                                  `¿Qué contrato enviar a ${m.alumno?.nombre}?\n\n` +
+                                  `OK = Contrato con MATRÍCULA EXENTA (promoción 2x1 hermanos)\n` +
+                                  `Cancelar = Contrato con MONTO COMPLETO`
+                                )
+                                modalidad = es2x1 ? 'hermanos_2x1' : 'completo'
+                              }
+                              const reenvio = ['enviado', 'visto'].includes(m.firmas?.contrato) || ['enviado', 'visto'].includes(m.firmas?.pagare)
+                              if (reenvio && !confirm('Ya hay un enlace enviado sin firmar. Si reenvías, el enlace anterior deja de funcionar y la familia debe usar el nuevo correo. ¿Reenviar?')) return
                               try {
                                 const res = await fetch('/api/contratos/enviar-firma', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    matricula_id: m.id,
-                                    tipo: 'contrato',
-                                    modalidad: es2x1 ? 'hermanos_2x1' : 'completo',
-                                  }),
+                                  body: JSON.stringify({ matricula_id: m.id, tipo: 'ambos', modalidad }),
                                 })
                                 const data = await res.json()
                                 if (!res.ok) throw new Error(data.error)
-                                toast.success(`Contrato ${es2x1 ? '2x1 ' : ''}enviado a ${data.email_enviado_a}`)
+                                const docs = (data.documentos as string[]).map(d => d === 'pagare' ? 'pagaré' : 'contrato').join(' y ')
+                                toast.success(`Enviado a ${data.email_enviado_a}: ${docs} (un solo correo)`)
+                                router.refresh()
                               } catch (e: any) { toast.error(e.message) }
                             }}
                             className="text-[11px] font-medium text-[var(--ar-accent)] hover:underline"
-                            title="Enviar contrato por email para firma remota (elige monto completo o 2x1)"
+                            title="Envía por email lo que falta firmar (contrato y/o pagaré) en un solo correo"
                           >
-                            📧 Contrato
-                          </button>
-                        )}
-                        {!m.firma_pagare && (
-                          <button
-                            onClick={async () => {
-                              try {
-                                const res = await fetch('/api/contratos/enviar-firma', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ matricula_id: m.id, tipo: 'pagare' }),
-                                })
-                                const data = await res.json()
-                                if (!res.ok) throw new Error(data.error)
-                                toast.success(`Pagaré enviado a ${data.email_enviado_a}`)
-                              } catch (e: any) { toast.error(e.message) }
-                            }}
-                            className="text-[11px] font-medium text-[#3D7A94] hover:underline"
-                            title="Enviar pagaré por email para firma remota"
-                          >
-                            📧 Pagaré
+                            📧 {['enviado', 'visto', 'vencido'].includes(m.firmas?.contrato) || ['enviado', 'visto', 'vencido'].includes(m.firmas?.pagare) ? 'Reenviar a firma' : 'Enviar a firma'}
                           </button>
                         )}
                       </div>
@@ -1159,13 +1143,11 @@ export default function MatriculaClient({ planes, matriculas, cursos, aportes, b
                 onClick={async () => {
                   setEnviandoFirma(true)
                   try {
-                    const res = await fetch('/api/contratos/enviar-firma', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matricula_id: matriculaCompletada, tipo: 'contrato' }) })
+                    // Un solo correo: la familia firma contrato y pagaré uno tras otro
+                    const res = await fetch('/api/contratos/enviar-firma', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matricula_id: matriculaCompletada, tipo: 'ambos' }) })
                     const d = await res.json()
                     if (!res.ok) throw new Error(d.error)
-                    toast.success(`Contrato enviado a ${d.email_enviado_a}`)
-                    const res2 = await fetch('/api/contratos/enviar-firma', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matricula_id: matriculaCompletada, tipo: 'pagare' }) })
-                    const d2 = await res2.json()
-                    if (res2.ok) toast.success('Pagaré también enviado')
+                    toast.success(`Contrato y pagaré enviados a ${d.email_enviado_a} (un solo correo)`)
                   } catch (e: any) { toast.error(e.message) }
                   setEnviandoFirma(false)
                   setMatriculaCompletada(null)

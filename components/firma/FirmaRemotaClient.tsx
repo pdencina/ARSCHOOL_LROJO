@@ -19,6 +19,8 @@ export default function FirmaRemotaClient({ token, tipo, nombreEsperado, contrat
   const [rutFirma, setRutFirma] = useState('')
   const [codigoEnviado, setCodigoEnviado] = useState(false)
   const [evidencia, setEvidencia] = useState<any>(null)
+  // Documento que falta firmar (contrato o pagaré) para continuar sin otro correo
+  const [siguiente, setSiguiente] = useState<{ tipo: string; etiqueta: string; url: string | null } | null>(null)
 
   const tipoLabel = tipo === 'pagare' ? 'Pagaré' : 'Contrato de Servicios Educacionales'
 
@@ -63,6 +65,7 @@ export default function FirmaRemotaClient({ token, tipo, nombreEsperado, contrat
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setEvidencia(data.evidencia)
+      setSiguiente(data.siguiente ?? null)
       setPaso('exito')
     } catch (e: any) {
       setError(e.message)
@@ -244,7 +247,7 @@ export default function FirmaRemotaClient({ token, tipo, nombreEsperado, contrat
 
               <h2 className="text-xl font-bold text-[#2D5A3F] mb-2">Documento firmado</h2>
               <p className="text-sm text-gray-500 mb-5">
-                Su {tipoLabel.toLowerCase()} ha sido firmado exitosamente. El Centro Educativo recibirá notificación de su firma.
+                Su {tipoLabel.toLowerCase()} ha sido firmado exitosamente. El Centro Educacional recibirá notificación de su firma.
               </p>
 
               {evidencia && (
@@ -256,9 +259,25 @@ export default function FirmaRemotaClient({ token, tipo, nombreEsperado, contrat
                 </div>
               )}
 
-              <p className="text-[10px] text-gray-400 mt-4">
-                Puede cerrar esta página. Los documentos firmados estarán disponibles en su portal de apoderado.
-              </p>
+              {siguiente ? (
+                <div className="mt-5 rounded-xl border-2 border-[#E8722A]/40 bg-[#FEF3EC] p-4 text-left">
+                  <div className="text-sm font-bold text-[#9a3412]">Falta firmar: {siguiente.etiqueta}</div>
+                  <p className="text-xs text-[#9a3412]/80 mt-1">
+                    {siguiente.url
+                      ? 'Para completar la matrícula, firme también este documento. Toma solo un momento.'
+                      : 'Para completar la matrícula falta este documento. Solicite al Centro Educacional que le envíe el enlace.'}
+                  </p>
+                  {siguiente.url && (
+                    <a href={siguiente.url} className="mt-3 flex items-center justify-center gap-2 w-full py-3 bg-[#1B3A5C] text-white text-sm font-semibold rounded-xl hover:bg-[#143050]">
+                      Continuar con el {siguiente.tipo === 'pagare' ? 'pagaré' : 'contrato'} →
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[10px] text-gray-400 mt-4">
+                  Puede cerrar esta página. Los documentos firmados estarán disponibles en su portal de apoderado.
+                </p>
+              )}
             </div>
           </div>
         )}
